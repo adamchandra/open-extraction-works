@@ -7,7 +7,7 @@ import { readExtractionRecord } from '~/extract/abstracts/extract-abstracts';
 // import { resolveCachedNormalFile } from '~/extract/core/field-extract';
 // import { updateCorpusJsonFile, readCorpusJsonFile, listCorpusArtifacts } from '~/corpora/corpus-file-walkers';
 // import { initGroundTruthEntry, GroundTruthLog, initGroundTruthLog } from '~/extract/core/ground-truth-records';
-import { openFileWithLess, openFileWithBrowser } from '~/qa-review/view-files';
+import { openFileWithLess, openFileWithBrowser } from '~/qa-editing/view-files';
 import { appFrame, createScreen, textDivBox } from './blessterm-widgets';
 import { layoutTreeWithInlineControls } from './records-bterm';
 import { bold, red, blue } from './text-styling';

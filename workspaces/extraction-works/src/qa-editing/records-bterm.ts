@@ -1,7 +1,7 @@
 import _ from "lodash";
 import B from 'blessed';
 import * as BB from './blessterm-basics';
-import { toQualifiedPaths, QualifiedPath, ObjectPath, toObjectPath } from '~/qa-review/to-pairs-deep';
+import { toQualifiedPaths, QualifiedPath, ObjectPath, toObjectPath } from './to-pairs-deep';
 // import { createListTable, createForm, createCheckBox, createLayout, createRadios, textDivBox, createRadioEmmitter } from './blessterm-widgets';
 import { blue, red, bold, StyledText, text, dim, gray, concatStyledText, wrapStyledText, textLength, appendStyledTexts } from './text-styling';
 import { textDivBox, createRadioEmmitter } from './blessterm-widgets';

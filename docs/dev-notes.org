@@ -1,16 +1,6 @@
-
 ** Building
-*** Inter-module linking
-    lerna bootstrap (or lerna link)
-    e.g., link module 'commons' as dependency of 'server'
-
-*** Run shared steps
-    lerna run lint/build/test
-
+   > lerna bootstrap
 
 ** Checking/Updating dependency versions
-   npm-check-updates (ncu) via lerna
-*** Check versions
-   lerna --concurrency 1 exec -- ncu  --loglevel verbose
-*** Update package.json files
-   lerna --concurrency 1 exec -- ncu -u  --loglevel verbose
+   > npm run deps:check
+   > npm run deps:update

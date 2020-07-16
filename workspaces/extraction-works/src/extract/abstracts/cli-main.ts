@@ -13,7 +13,6 @@ import { AlphaRecord } from '../core/extraction-records';
 import { walkScrapyCacheCorpus, ensureArtifactDirectories, writeCorpusJsonFile } from '~/corpora/corpus-file-walkers';
 import { readUrlFetchChainsFromScrapyLogs } from '../urls/url-fetch-chains';
 import { diff } from 'deep-diff';
-import { runInteractiveReviewUI } from '~/qa-review/interactive-ui';
 import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';
 
 async function createAlphaRecordDict(csvFile: string): Promise<Map<string, AlphaRecord>> {
