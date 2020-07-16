@@ -1,7 +1,7 @@
 import 'chai/register-should';
 import { prettyPrint } from 'commons';
 import { Url } from './database-tables';
-import { createEmptyDB } from '~/workflow/test-utils';
+import { createEmptyDB } from './db-test-utils';
 
 describe('OpenReview Database', () => {
   it.only('smokescreen', async (done) => {
