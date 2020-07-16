@@ -78,11 +78,3 @@ export function addFieldInstance(rec: ExtractionRecord, field: Field): void {
   });
 }
 
-// Copy of the record supplied by the OpenReview team
-export interface AlphaRecord {
-  noteId: string;
-  dblpConfId: string;
-  url: string;
-  title?: string;
-  authorId?: string;
-}

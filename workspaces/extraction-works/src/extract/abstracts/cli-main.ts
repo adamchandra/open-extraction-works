@@ -3,20 +3,18 @@ import _ from "lodash";
 import path from "path";
 
 import {
-  streamPump, expandDir,
+  streamPump, expandDir, AlphaRecord, readAlphaRecStream,
 } from "commons";
 
-import { readOrderCsv } from '~/openreview/workflow';
 import { initLogger, readMetaFile } from '../logging/logging';
 import { extractAbstractTransform, ExtractionAppContext, skipIfAbstractLogExisits } from './extract-abstracts';
-import { AlphaRecord } from '../core/extraction-records';
 import { walkScrapyCacheCorpus, ensureArtifactDirectories, writeCorpusJsonFile } from '~/corpora/corpus-file-walkers';
 import { readUrlFetchChainsFromScrapyLogs } from '../urls/url-fetch-chains';
 import { diff } from 'deep-diff';
 import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';
 
 async function createAlphaRecordDict(csvFile: string): Promise<Map<string, AlphaRecord>> {
-  const inputStream = readOrderCsv(csvFile);
+  const inputStream = readAlphaRecStream(csvFile);
 
   const urlDict = new Map<string, AlphaRecord>();
 

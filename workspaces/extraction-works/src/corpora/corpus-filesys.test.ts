@@ -2,10 +2,10 @@ import "chai/register-should";
 
 import _ from "lodash";
 import { updateCorpusJsonFile, readCorpusJsonFile } from './corpus-file-walkers';
-import { initTestCorpusDirs } from '~/openreview/test-utils';
-import { prettyPrint } from 'commons/dist';
+import { prettyPrint } from 'commons';
 import path from "path";
 import fs from "fs-extra";
+import { initTestCorpusDirs } from '~/workflow/test-utils';
 
 describe("Corpus filesystem access utilities", () => {
   const scratchTestDir = 'test-tmp.d';

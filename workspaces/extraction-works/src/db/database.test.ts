@@ -1,16 +1,9 @@
 import 'chai/register-should';
 import { prettyPrint } from 'commons';
 import { Url } from './database-tables';
-import { createEmptyDB } from './test-utils';
+import { createEmptyDB } from '~/workflow/test-utils';
 
 describe('OpenReview Database', () => {
-
-  // beforeEach(() => {});
-  // afterEach(() => {})
-  // afterAll(() => {})
-
-
-
   it.only('smokescreen', async (done) => {
     const db = await createEmptyDB();
     await db.runTransaction(async (db, transaction) => {

@@ -2,9 +2,8 @@ import _ from "lodash";
 
 import path from "path";
 import { arglib } from "commons";
-import { pruneCrawledFromCSV } from '~/openreview/workflow';
 import { runMainExtractAbstracts, runMainWriteAlphaRecords, runMainInteractiveFieldReview } from '~/extract/abstracts/cli-main';
-import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';
+import { pruneCrawledFromCSV } from '~/spidering/spider-service';
 
 const { opt, config, registerCmd } = arglib;
 

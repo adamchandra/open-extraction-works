@@ -10,6 +10,7 @@ export * from "./util/stream-utils";
 export * from "./util/string-utils";
 export * from "./util/tree-shapers";
 export * from "./redis/redis-client";
+export * from "./workflow/index";
 
 export * as radix from "./util/radix-tree";
 export * as arglib from "./cli/arglib"

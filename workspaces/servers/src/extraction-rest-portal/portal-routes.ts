@@ -9,7 +9,7 @@ import {
 
 import { createAppLogger } from './portal-logger';
 
-export function readOrderCsv(csvfile: string): Promise<void> {
+export function readAlphaRecStream(csvfile: string): Promise<void> {
   const inputStream = csvStream(csvfile);
   const log = createAppLogger();
 
@@ -52,7 +52,7 @@ async function postBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Rou
 
   if (files) {
     const { data } = files;
-    await readOrderCsv(data.path)
+    await readAlphaRecStream(data.path)
     redisClient.publish('portal.ingress', 'csv.ready');
     ctx.response.body = { status: 'ok' };
   } else {
