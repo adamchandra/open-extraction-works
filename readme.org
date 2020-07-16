@@ -1,34 +1,5 @@
-** Applications and Subsystems
+* Open Extraction Works 
 
-*** Visual Tracelog Viewer
+  A set of services to spider and extract metadata (abstracts, titles, pdf links) from URLs.
 
-*** Pdf Page image region annotator
 
-*** Textgrid annotator
-    Easier hierarchical annotation system
-
-*** Extracted Text Viewer
-
-*** Annotation Explorer
-    Read-only version of the labeler for viewing:
-    - labelled datasets
-    - issues and/or errors with current extractors
-
-*** Workload distribution
-    Allow multiple annotators to be assigned portions of
-    labeling work and track progress
-
-*** Reconcilation UI
-    Show differences between two annotations of the same region or text,
-    allow reconcilation editor to resolve differences.
-
-*** Hosted text extraction interface
-    Online trial version of TextWorks and visualizers
-
-*** MIT Material Science Annotator
-**** Relation and graph editor
-
-*** Pdf Page thumbnail viewer/browser
-
-*** Pdf extraction artifact overview/viewer
-    Planned. Show all artifacts and information related to a particular pdf
