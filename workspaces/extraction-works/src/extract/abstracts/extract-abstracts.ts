@@ -22,10 +22,9 @@ import {
   findInMetaTE,
 } from "~/extract/core/field-extract-utils";
 
-import { BufferedLogger } from "commons";
 import { AbstractCleaningRules } from './data-clean-abstracts';
 import { ExtractionFunction, Field, ExtractionEnv, applyCleaningRules, flatMapTasksEA } from '../core/extraction-process';
-import { hasCorpusFile, writeCorpusJsonFile, readCorpusJsonFile } from '~/corpora/corpus-file-walkers';
+import { BufferedLogger, hasCorpusFile, writeCorpusJsonFile, readCorpusJsonFile } from 'commons';
 import { ExtractionRecord, ExtractionErrors, foldExtractionRec, ExtractedFields, FieldInstances, addFieldInstance } from '../core/extraction-records';
 
 export const findInGlobalDocumentMetadata: ExtractionFunction =

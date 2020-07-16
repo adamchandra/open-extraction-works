@@ -4,11 +4,11 @@ import path from "path";
 
 import {
   streamPump, expandDir, AlphaRecord, readAlphaRecStream,
+  walkScrapyCacheCorpus, ensureArtifactDirectories, writeCorpusJsonFile
 } from "commons";
 
 import { initLogger, readMetaFile } from '../logging/logging';
 import { extractAbstractTransform, ExtractionAppContext, skipIfAbstractLogExisits } from './extract-abstracts';
-import { walkScrapyCacheCorpus, ensureArtifactDirectories, writeCorpusJsonFile } from '~/corpora/corpus-file-walkers';
 import { readUrlFetchChainsFromScrapyLogs } from '../urls/url-fetch-chains';
 import { diff } from 'deep-diff';
 import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';

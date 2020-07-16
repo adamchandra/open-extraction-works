@@ -9,11 +9,8 @@ import { Context } from "koa";
 import Router from "koa-router";
 
 import {
-  corpusEntryStream,
-  expandDirTrans,
   CorpusEntry,
   getDirWalkerStream,
-  sliceStream
 } from "commons";
 
 

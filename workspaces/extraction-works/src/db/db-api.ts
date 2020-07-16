@@ -1,7 +1,7 @@
 //
-import { openDatabase, Database } from './database';
+import { Database } from './database';
 import { Order, Url, NoteId, VenueUrl, OrderEntry } from './database-tables';
-import { AlphaRecord } from '~/extract/core/extraction-records';
+import { AlphaRecord } from 'commons';
 
 export const addOrderEntry: (db: Database, order: Order) => (r: AlphaRecord) => Promise<OrderEntry> =
   (db, order) => async (rec) => {

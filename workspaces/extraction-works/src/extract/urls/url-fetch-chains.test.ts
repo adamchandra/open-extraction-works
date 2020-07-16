@@ -2,11 +2,10 @@
 import "chai/register-should";
 
 import _ from "lodash";
-import { prettyPrint } from 'commons';
+import { AlphaRecord, prettyPrint } from 'commons';
 import { parseLogLine } from './url-fetch-chains';
 // import * as Tree from 'fp-ts/lib/Tree';
 // import * as Arr from 'fp-ts/lib/Array';
-import { AlphaRecord } from '../core/extraction-records';
 import { diff } from 'deep-diff';
 
 describe("Url Parsing from scrapy spidering logs", () => {
