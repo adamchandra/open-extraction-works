@@ -1,3 +1,0 @@
-{
-  "/api/corpus/entries?start=:start&len=:len": "/api/corpus/entries/o23.json"
-}
