@@ -12,7 +12,7 @@ import {
   corpusEntryStream,
   expandDirTrans,
   CorpusEntry,
-  dirstream,
+  getDirWalkerStream,
   sliceStream
 } from "commons";
 
@@ -53,7 +53,7 @@ export interface CorpusPage {
 export async function listCorpusArtifacts(
   entryPath: string,
 ): Promise<string[]> {
-  const pipe = dirstream(entryPath, true);
+  const pipe = getDirWalkerStream(entryPath, true);
 
   return new Promise((resolve) => {
     const artifacts: string[] = [];

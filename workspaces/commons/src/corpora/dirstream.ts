@@ -3,8 +3,6 @@ import path from "path";
 import fs, { } from 'fs-extra';
 import stream, { Readable, Transform } from 'stream';
 import through from 'through2';
-import { prettyPrint } from '~/util/pretty-print';
-
 
 interface DirStackEntry {
   fullpath: string;
@@ -12,8 +10,7 @@ interface DirStackEntry {
   files: string[];
 }
 
-// TODO rename dirstream to e.g., directoryWalkerStream
-export function dirstream(root: string, includeFiles?: boolean): Readable {
+export function getDirWalkerStream(root: string, includeFiles?: boolean): Readable {
   const incFiles = includeFiles || false;
   const stack: DirStackEntry[] = [{ fullpath: root, expanded: false, files: [] }];
 

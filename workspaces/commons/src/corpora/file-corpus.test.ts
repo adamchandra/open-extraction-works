@@ -3,7 +3,7 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 import through from 'through2';
-import { dirstream } from './dirstream';
+import { getDirWalkerStream } from './dirstream';
 import { prettyPrint } from '~/util/pretty-print';
 
 describe('File corpus operations',  () => {
@@ -13,7 +13,7 @@ describe('File corpus operations',  () => {
 
     const filesRead: string[] = [];
 
-    const dirStream = dirstream(testDirPath, false);
+    const dirStream = getDirWalkerStream(testDirPath, false);
 
     dirStream.pipe(through.obj(
       (chunk: string, _enc: string, next: (err: any, v: any) => void) => {

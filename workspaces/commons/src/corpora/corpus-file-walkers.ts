@@ -1,13 +1,14 @@
 import _ from "lodash";
 import { Readable } from "stream";
-import { dirstream, stringStreamFilter, ExpandedDir, expandDir } from 'commons';
 import path from "path";
 import fs from "fs-extra";
+import { getDirWalkerStream, stringStreamFilter } from './dirstream';
+import { ExpandedDir, expandDir } from '.';
 
 
 // TODO many of the spidering-corpus functions can be pushed into the commons lib
 export function walkScrapyCacheCorpus(corpusRoot: string): Readable {
-  const corpusDirStream = dirstream(corpusRoot);
+  const corpusDirStream = getDirWalkerStream(corpusRoot);
 
   const entryDirFilter = stringStreamFilter((dir: string) => {
     const shaHexRE = /[\dabcdefABCDEF]{40}[/]?$/;

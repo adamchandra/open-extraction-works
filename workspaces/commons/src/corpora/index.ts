@@ -1,7 +1,7 @@
 //
 import { Readable } from "stream";
 import hash from "object-hash";
-import { dirstream, stringStreamFilter } from "./dirstream";
+import { getDirWalkerStream, stringStreamFilter } from "./dirstream";
 import fs from "fs-extra";
 import { throughFunc } from '~/util/stream-utils';
 
@@ -32,7 +32,7 @@ export interface ExpandedDir {
 
 
 export function corpusEntryStream(corpusRoot: string): Readable {
-  const corpusDirStream = dirstream(corpusRoot);
+  const corpusDirStream = getDirWalkerStream(corpusRoot);
 
   const entryDirFilter = stringStreamFilter((dir: string) => {
     return /[/][^/]+\.d$/.test(dir);
