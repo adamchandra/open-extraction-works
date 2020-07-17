@@ -44,7 +44,8 @@ export function readAlphaRecStream(csvfile: string): Promise<void> {
 async function postBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Router> {
   const { files } = ctx.request;
 
-  const redisClient = await getAsyncRedisClient();
+  const portalEventsPub = await getAsyncRedisClient();
+  await portalEventsPub.publish('portal.events', 'ping');
 
   // Stash incoming file to /data-root/portal/ingress/zzz-incoming.csv/json
   // Respond with status/endpoints for completed work
@@ -53,13 +54,13 @@ async function postBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Rou
   if (files) {
     const { data } = files;
     await readAlphaRecStream(data.path)
-    redisClient.publish('portal.ingress', 'csv.ready');
+    portalEventsPub.publish('portal.events', 'csv.ready');
     ctx.response.body = { status: 'ok' };
   } else {
     ctx.response.body = { status: 'error' };
   }
 
-  return redisClient.quit()
+  return portalEventsPub.quit()
     .then(() => next());
 }
 
