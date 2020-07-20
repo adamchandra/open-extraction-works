@@ -14,3 +14,16 @@ services:
       - app-volume:/usr/src/app
     networks:
       - watr-net 
+    command: ["./workspaces/servers/dist/extraction-rest-portal/rest-server.js"]
+
+  rest-portal:
+    image: adamchandra/watr-front
+    container_name: rest-portal 
+    ports:
+      - "3100:3100"
+    restart: always
+    volumes:
+      - app-volume:/usr/src/app
+    networks:
+      - watr-net 
+    command: ["./workspaces/extraction-works/dist/"]

@@ -148,7 +148,6 @@ export function clientOnMessage(
   }
 }
 
-
 export async function handleMessages(
   receiverName: string,
   receiverClient: Redis.Redis,

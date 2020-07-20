@@ -19,14 +19,18 @@ ADD workspaces/commons/@types ./workspaces/commons/@types
 ADD workspaces/commons/rollup.config.js ./workspaces/commons/
 ADD workspaces/commons/tsconfig.json ./workspaces/commons/
 
-COPY workspaces/server/package*.json ./workspaces/server/
-COPY workspaces/server/tsconfig.json ./workspaces/server/
-ADD workspaces/server/src ./workspaces/server/src
+COPY workspaces/servers/package*.json ./workspaces/servers/
+COPY workspaces/servers/tsconfig.json ./workspaces/servers/
+ADD workspaces/servers/src ./workspaces/servers/src
+
+COPY workspaces/extraction-works/package*.json ./workspaces/extraction-works/
+COPY workspaces/extraction-works/tsconfig.json ./workspaces/extraction-works/
+ADD workspaces/extraction-works/src ./workspaces/extraction-works/src
 
 RUN lerna bootstrap
 RUN lerna run build 
+
 # If you are building your code for production
 # RUN npm ci --only=production
 
 ENTRYPOINT ["node"]
-CMD ["./workspaces/server/dist/extraction-rest-portal/rest-server.js"]

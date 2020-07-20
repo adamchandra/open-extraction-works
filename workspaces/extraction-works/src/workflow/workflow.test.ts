@@ -6,22 +6,8 @@ import { putStrLn, delay } from 'commons';
 
 import { getHubRedisPool, getSatelliteRedisPool } from './workflow';
 
-export interface ChannelMessages {
-  'hub.inbox': null;
-  'upload-ingestor.inbox': null;
-  'hub.broadcast': {
-    'shutdown': null;
-  }
-}
-
-export interface ServiceTasks {
-  serviceName: string;
-  onStart(): Promise<void>;
-}
-
 
 describe("End-to-end Extraction workflows", () => {
-
 
   it("demo an end-to-end sys", async (done) => {
     const hubPool = await getHubRedisPool('hub')

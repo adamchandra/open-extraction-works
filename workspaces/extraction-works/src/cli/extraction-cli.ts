@@ -27,7 +27,7 @@ registerCmd(
 
 registerCmd(
   "write-alpha-records",
-  "write out alpha-recs, ",
+  "write out alpha-recs",
   config(
     opt.cwd,
     opt.existingDir("corpus-root: root directory for corpus files"),

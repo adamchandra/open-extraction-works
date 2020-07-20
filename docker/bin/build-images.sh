@@ -5,6 +5,9 @@ BIN=$(dirname "$SCRIPT")
 . $BIN/paths.sh
 
 DOCKER_BUILDKIT=1
+
+docker builder build -t adamchandra/spider-app $tag git@github.com:adamchandra/spider-works.git
+
 for imaged in $IMAGES/*
 do
     base=$(basename $imaged)
