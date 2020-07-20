@@ -6,6 +6,8 @@
     "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",
+    "lib": ["es6"],
+
     "incremental": true,
 
     "esModuleInterop": true,
@@ -16,7 +18,6 @@
     "strict": true,
     "noEmit": false,
     "outDir": "./dist",
-
     "noImplicitReturns": true,
     "noUnusedParameters": false,
     "noUnusedLocals": false,

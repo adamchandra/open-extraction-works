@@ -1,9 +1,6 @@
 import "chai/register-should";
 
 import _ from "lodash";
-import {
-  createHubService,
-} from './workflow';
 
 import { prettyPrint } from 'commons';
 

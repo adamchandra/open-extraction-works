@@ -2,9 +2,9 @@ import "chai/register-should";
 
 import _ from "lodash";
 
-import { putStrLn } from 'commons';
+import { putStrLn, delay } from 'commons';
 
-import { getNamedRedisPool } from './workflow';
+import { getHubRedisPool, getSatelliteRedisPool } from './workflow';
 
 export interface ChannelMessages {
   'hub.inbox': null;
@@ -14,94 +14,44 @@ export interface ChannelMessages {
   }
 }
 
+export interface ServiceTasks {
+  serviceName: string;
+  onStart(): Promise<void>;
+}
+
+
 describe("End-to-end Extraction workflows", () => {
 
 
   it("demo an end-to-end sys", async (done) => {
-    const hubPool = await getNamedRedisPool('hub')
-
+    const hubPool = await getHubRedisPool('hub')
 
     hubPool.handleInbox({
-      'rest-portal:upload.event': async () => {
-        // mv upload.tmp -> upload-ingestor/inbox/tmp-xxx-file
-        await hubPool.sendTo('upload-ingestor', 'upload.event');
+      'rest-portal:upload': async () => {
+        await hubPool.sendTo('upload-ingestor', 'start');
       },
-      'ingested.event': async () => {
-        await hubPool.sendTo('spider', 'new.urls');
+      'upload-ingestor:done': async () => {
+        await hubPool.sendTo('spider', 'start');
       },
-      'spidered.urls': async () => {
-        await hubPool.sendTo('extractor', 'new.htmls');
-      },
-      'shutdown.event': async () => {
-        await hubPool.sendTo('extractor', 'new.htmls');
-        await hubPool.broadcast('shutdown.event');
-        await hubPool.quit();
+      'spider:done': async () => {
+        await hubPool.sendTo('extractor', 'start');
       },
     });
 
-    const ingestorPool = await getNamedRedisPool('upload-ingestor');
+
+    const ingestorPool = await getSatelliteRedisPool('upload-ingestor');
     ingestorPool.handleInbox({
-      'upload.event': async () => {
+      'start': async () => {
         // figure out which urls we know about, which fields, etc.,
         // create a response json detailing what we have/don't have,
         //    and endpoints to download, check status, etc.
-
-        // await uploadIngestorOutgoing.publish('hub.inbox.upload-ingestor', 'ingested.event')
-        return ingestorPool.sendTo('hub', 'done');
       },
     });
 
-    ingestorPool.handleBroadcasts({
-      'hub:shutdown': async () => {
-        await ingestorPool.quit();
-      },
-    });
+    const restPortal = await getSatelliteRedisPool('rest-portal')
+    await restPortal.sendTo('hub', 'upload');
 
-    // const restPortalInbox = new Redis();
-    // const restPortalOutgoing = new Redis();
-    // await restPortalInbox.subscribe('spider.inbox', 'hub.broadcast');
-    // restPortalInbox.on('message', (channel: string, msg: string) => {
-    //   console.log(`restPortal :: ${channel} : ${msg}`);
-    //   switch (msg) {
-    //     case 'shutdown.event': {
-    //       restPortalInbox.quit();
-    //       restPortalOutgoing.quit();
-    //       break;
-    //     }
-    //   }
-    // });
-
-
-    // // When new file uploaded:
-    // // await restPortalOutgoing.publish('hub.inbox.portal', 'csv.upload');
-
-    // const spiderInbox = new Redis();
-    // const spiderOutgoing = new Redis();
-    // await spiderInbox.subscribe('spider.inbox', 'hub.broadcast');
-    // spiderInbox.on('message', (channel: string, msg: string) => {
-    //   console.log(`spiderInbox :: ${channel} : ${msg}`);
-    //   switch (msg) {
-    //     case 'new.urls': {
-    //       // copy new urls file to fs ./spider/inbox
-    //       // launch spider if not already running
-    //       break;
-    //     }
-
-    //     case 'shutdown.event': {
-    //       spiderInbox.quit();
-    //       spiderOutgoing.quit();
-    //       break;
-    //     }
-    //   }
-    // });
-
-    // When spider finished a batch:
-    // spiderOutgoing.publish('hub.inbox.spider', 'spidered.urls')
-
-    const restPortal = await getNamedRedisPool('rest-portal')
-    await restPortal.sendTo('hub', 'upload.event');
-
-    // await delay(2000);
+    await delay(2000);
     putStrLn('shutting down');
     Promise.all(_.map([
       restPortal.quit(),
@@ -110,7 +60,6 @@ describe("End-to-end Extraction workflows", () => {
     ])).then(() => done());
 
   });
-
 
   // it("should create a hub shaped network of extraction clients", async (done) => {
   //   // const pool = createClientPool()
