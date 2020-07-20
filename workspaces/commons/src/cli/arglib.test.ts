@@ -40,6 +40,7 @@ describe("Arglib tests", () => {
   it.only("should register multiple commands", () => {
 
     registerCmd(
+      yargs,
       "extract-abstracts",
       "run the abstract field extractors over htmls in corpus",
       config(
@@ -55,6 +56,7 @@ describe("Arglib tests", () => {
     const args1b = 'extract-abstracts --cwd . --corpus-root . --overwrite'.split(' ');
 
     registerCmd(
+      yargs,
       "c1",
       "run c1",
       opt.existingDir("dir: dir 0"),

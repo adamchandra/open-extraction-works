@@ -8,6 +8,7 @@ import { pruneCrawledFromCSV } from '~/spidering/spider-service';
 const { opt, config, registerCmd } = arglib;
 
 registerCmd(
+  arglib.YArgs,
   "openreview-prune-csv",
   "remove records from csv that have already been spidered",
   config(
@@ -26,6 +27,7 @@ registerCmd(
 
 
 registerCmd(
+  arglib.YArgs,
   "write-alpha-records",
   "write out alpha-recs",
   config(
@@ -47,6 +49,7 @@ registerCmd(
 })
 
 registerCmd(
+  arglib.YArgs,
   "extract-abstracts",
   "run the abstract field extractors over htmls in corpus",
   config(
@@ -68,6 +71,7 @@ registerCmd(
 });
 
 registerCmd(
+  arglib.YArgs,
   "review-extraction",
   "interactively review the extraction process",
   config(

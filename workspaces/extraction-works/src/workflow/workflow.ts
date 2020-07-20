@@ -20,8 +20,13 @@ export interface WithPubSub {
   publisher: Redis.Redis;
   subscriber: Redis.Redis;
 }
+
 export function newRedis(name: string, opts?: Redis.RedisOptions): Redis.Redis {
-  const client = new Redis(opts || {});
+  const isDockerized = process.env['DOCKERIZED'] === 'true';
+  const host = isDockerized ? 'redis' : 'localhost';
+  const allOpts = _.merge({}, { host }, opts);
+  putStrLn(`redis using opts`, allOpts);
+  const client = new Redis(allOpts);
   installConnectionHandlers(client, name);
   return client;
 }
@@ -171,8 +176,8 @@ export async function handleMessagesThenSendDone(
 
   receiverClient.on('message', (channel: string, msg: string) => {
     handleOnMessage(channel, msg)
-    .then(() => sendPrefixedMsg(receiverName, publishClient, 'hub', 'done'))
-    .catch((err) => putStrLn(`${receiverName} [err]> ${err}`))
+      .then(() => sendPrefixedMsg(receiverName, publishClient, 'hub', 'done'))
+      .catch((err) => putStrLn(`${receiverName} [err]> ${err}`))
   });
 
   await receiverClient.subscribe(messageChannel);

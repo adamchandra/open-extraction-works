@@ -1,8 +1,8 @@
 {
-  "name": "server",
+  "name": "servers",
   "version": "0.1.0",
-  "private": true,
-  "description": "Backend server for WatrColors",
+  "private": false,
+  "description": "Various server for extraction services",
   "keywords": [],
   "dependencies": {
     "@types/redis": "^2.8.25",
@@ -52,6 +52,7 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "serve": "ts-node-dev --notify=false ./src/server.ts",
+    "rest-portal": "./bin/ts-node ./src/extraction-rest-portal/rest-server.ts portal-server",
     "ui:dev": "./bin/ts-node ./src/server.ts --corpus ../../corpus-test.d",
     "lint": "eslint --config .eslintrc.js --ext .ts --ignore-path ../../.gitignore ./src",
     "test": "jest",

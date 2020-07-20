@@ -9,11 +9,8 @@ docker-compose \
     -f $COMPOSE/volumes.yml \
     -f $COMPOSE/redis.yml \
     -f $COMPOSE/watr-front.yml \
-    -f $COMPOSE/spider-app.yml \
     $@
 
-    # -f $COMPOSE/watr-front.yml \
     # -f $COMPOSE/filebeat.yml \
-    # -f $COMPOSE/elk.yml \
 
 

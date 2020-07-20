@@ -4,9 +4,10 @@ import json from 'koa-json';
 import koaBody from 'koa-body';
 import { initPortalRouter } from './portal-routes';
 import { arglib } from "commons";
-const { opt, config, registerCmd } = arglib;
+const { opt, config, registerCmd, YArgs } = arglib;
 
 registerCmd(
+  YArgs,
   "portal-server",
   "remove records from csv that have already been spidered",
   config(
@@ -43,5 +44,11 @@ registerCmd(
 
 });
 
-
-
+YArgs
+  .demandCommand(1, "You need at least one command before moving on")
+  .strict()
+  .help()
+  .fail((error) => {
+    console.log("Error", error)
+  })
+  .argv;

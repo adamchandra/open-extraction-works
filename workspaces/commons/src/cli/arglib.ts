@@ -132,12 +132,13 @@ export const setOpt = (ya: Argv) => {
 };
 
 export function registerCmd(
+  useYargs: Argv,
   name: string,
   description: string,
   ...fs: ArgvApp[]
 ): (cb: (parsedArgs: any) => void) => void {
   return (cb: (parsedArgs: any) => void) => {
-    yargs.command(
+    useYargs.command(
       name, description,
       config(...fs),
       (argv: any) => {

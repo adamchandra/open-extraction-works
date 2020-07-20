@@ -3,27 +3,49 @@ version: '3.8'
 volumes:
   app-volume:
 
+x-service-defaults:
+  &service-defaults
+  image: adamchandra/watr-front
+  restart: always
+  volumes:
+    - app-volume:/usr/src/app
+  networks:
+    - watr-net
+
+
+# lerna exec --scope extraction-works --stream  ./bin/ts-node -- ./src/workflow/workflow-server.ts start-service --service-name hub
+# entrypoint: ["./bin/ts-node", "./workspaces/extraction-works/src/workflow/workflow-server.ts", "--dockerize", "--service-name"]
+
+x-workflow-service:
+  &workflow-service
+  << : *service-defaults
+  entrypoint: ["lerna", "exec", "--scope", "extraction-works", "--stream", "./bin/ts-node", "--", "./src/workflow/workflow-server.ts", "start-service", "--dockerize", "--service-name"]
+
+x-rest-service:
+  &rest-service
+  << : *service-defaults
+  entrypoint: ["lerna", "run", "--"]
+
 services:
   rest-portal:
-    image: adamchandra/watr-front
-    container_name: rest-portal 
+    << : *rest-service
+    container_name: rest-portal
     ports:
       - "3100:3100"
-    restart: always
-    volumes:
-      - app-volume:/usr/src/app
-    networks:
-      - watr-net 
-    command: ["./workspaces/servers/dist/extraction-rest-portal/rest-server.js"]
+    entrypoint: ["lerna", "run", "--scope", "server", "rest-portal"]
 
-  rest-portal:
-    image: adamchandra/watr-front
-    container_name: rest-portal 
-    ports:
-      - "3100:3100"
-    restart: always
-    volumes:
-      - app-volume:/usr/src/app
-    networks:
-      - watr-net 
-    command: ["./workspaces/extraction-works/dist/"]
+  service-hub:
+    << : *workflow-service
+    container_name: service-hub
+    command: ["hub"]
+
+  upload-ingestor:
+    << : *workflow-service
+    container_name: upload-ingestor
+    command: ["upload-ingestor"]
+
+  spider-service:
+    << : *workflow-service
+    image: adamchandra/spider-app
+    container_name: spider-service
+    command: ["spider"]

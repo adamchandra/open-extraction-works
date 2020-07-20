@@ -1,7 +1,7 @@
 {
   "name": "extraction-works",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Services and workflow for spidering, field extraction in support of the OpenReview project",
   "keywords": [],
   "author": "Adam Saunders <saunders@cs.umass.edu>",
