@@ -1,7 +1,7 @@
 {
   "name": "commons",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Common libs",
   "keywords": [],
   "author": "Adam Saunders <saunders@cs.umass.edu>",
@@ -15,9 +15,8 @@
     "src": "src"
   },
   "scripts": {
-    "build": "rollup -c",
-    "build:watch": "rollup -c --watch",
-    "dist": "rollup -c",
+    "build": "tsc",
+    "rollup": "rollup -c",
     "lint": "eslint --config .eslintrc.js --ext .ts --ignore-path ../../.gitignore ./src",
     "test": "jest"
   },

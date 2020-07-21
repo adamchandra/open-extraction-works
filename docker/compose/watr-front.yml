@@ -4,41 +4,35 @@ x-service-defaults:
   &service-defaults
   image: adamchandra/watr-front
   restart: always
-  volumes:
-    - app-volume:/usr/src/app
   networks:
     - watr-net
 
 x-workflow-service:
   &workflow-service
   << : *service-defaults
-  entrypoint: ["npm", "--prefix", "workspaces/extraction-works", "run", "cli", "start-service", "--", "--dockerize", "--service-name"]
 
-x-rest-service:
-  &rest-service
-  << : *service-defaults
-  entrypoint: ["npm", "--prefix", "workspaces/servers", "run", "cli", "portal-server"]
+# command: ["portal-server"]
 
 services:
   rest-portal:
-    << : *rest-service
+    << : *workflow-service
     container_name: rest-portal
     ports:
       - "3100:3100"
-    entrypoint: ["npm", "--prefix", "workspaces/servers", "run"]
+    command: ['portal-server']
 
   service-hub:
     << : *workflow-service
     container_name: service-hub
-    command: ["hub"]
+    command: ["start-service", "--dockerize", "--service-name", "hub"]
 
   upload-ingestor:
     << : *workflow-service
     container_name: upload-ingestor
-    command: ["upload-ingestor"]
+    command: ["start-service", "--dockerize", "--service-name", "upload-ingestor"]
 
   spider-service:
     << : *workflow-service
     image: adamchandra/spider-app
     container_name: spider-service
-    command: ["spider"]
+    command: ["start-service", "--dockerize", "--service-name", "spider"]

@@ -1,6 +1,6 @@
 //
 import _ from "lodash";
-import { cheerioLoad } from './field-extract-utils';
+import { cheerioLoad } from './cheerio-loader';
 
 type Attrs = { [k: string]: string };
 

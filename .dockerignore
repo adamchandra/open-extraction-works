@@ -1,10 +1,8 @@
 */**/node_modules
 */**/*.log
 */**/*.d
-*/**/dist
 */**/test
+*/**/*.test.ts
+*/**/dist
 */**/logs
 lib
-workspaces/codemorphs
-workspaces/watr-front
-workspaces/textworks-aas

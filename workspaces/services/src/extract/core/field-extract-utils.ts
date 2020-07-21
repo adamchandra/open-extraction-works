@@ -1,12 +1,12 @@
 import _ from "lodash";
 import fs from "fs-extra";
 import path from "path";
-import * as cheerio from "cheerio";
 import { Field, ExtractionEnv, ExtractionFunction } from "./extraction-process";
 
 import * as TE from 'fp-ts/lib/TaskEither';
 import { makeCssTreeNormalFormFromNode } from './html-to-css-normal';
 import { addFieldInstance } from './extraction-records';
+import { cheerioLoad } from './cheerio-loader';
 
 export function readFile(
   leading: string,
@@ -79,19 +79,6 @@ export function findSubContentAtIndex(
   return sub;
 }
 
-export function cheerioLoad(
-  fileContent: string,
-  useXmlMode: boolean = true
-): CheerioStatic {
-  const $ = cheerio.load(fileContent, {
-    _useHtmlParser2: true,
-    recognizeSelfClosing: true,
-    normalizeWhitespace: false,
-    xmlMode: useXmlMode,
-    decodeEntities: true
-  });
-  return $;
-}
 
 export function queryContent(
   query: string,
