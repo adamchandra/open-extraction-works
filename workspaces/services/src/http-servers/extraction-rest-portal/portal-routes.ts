@@ -1,13 +1,14 @@
+import _ from 'lodash';
 import { Context } from 'koa';
 import Router from 'koa-router';
 
 import {
   csvStream,
   streamPump,
-  getAsyncRedisClient,
 } from "commons";
 
 import { createAppLogger } from './portal-logger';
+import { NamedRedisPool } from '~/workflow/workflow';
 
 export function readAlphaRecStream(csvfile: string): Promise<void> {
   const inputStream = csvStream(csvfile);
@@ -41,27 +42,21 @@ export function readAlphaRecStream(csvfile: string): Promise<void> {
   return p;
 }
 
-async function postBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Router> {
+async function postBatchCsv(redisPool: NamedRedisPool, ctx: Context, next: () => Promise<any>): Promise<Router> {
   const { files } = ctx.request;
 
-  const portalEventsPub = await getAsyncRedisClient();
-  await portalEventsPub.publish('portal.events', 'ping');
-
   // Stash incoming file to /data-root/portal/ingress/zzz-incoming.csv/json
-  // Respond with status/endpoints for completed work
-  // Publish to downstream pipeline
 
   if (files) {
     const { data } = files;
     await readAlphaRecStream(data.path)
-    portalEventsPub.publish('portal.events', 'csv.ready');
+    await redisPool.sendTo('hub', 'done');
     ctx.response.body = { status: 'ok' };
   } else {
     ctx.response.body = { status: 'error' };
   }
 
-  return portalEventsPub.quit()
-    .then(() => next());
+  return next();
 }
 
 async function getBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Router> {
@@ -78,13 +73,15 @@ async function getRoot(ctx: Context, next: () => Promise<any>): Promise<Router> 
   return next();
 }
 
-export function initPortalRouter(): Router {
+export function initPortalRouter(redisPool: NamedRedisPool): Router {
   const apiRouter = new Router({});
   const pathPrefix = '/extractor'
 
+  const curriedPostBatchCsv = _.curry(postBatchCsv)(redisPool);
+
   apiRouter
     .get(new RegExp(`${pathPrefix}/`), getRoot)
-    .post(new RegExp(`${pathPrefix}/batch.csv`), postBatchCsv)
+    .post(new RegExp(`${pathPrefix}/batch.csv`), curriedPostBatchCsv)
     .get(new RegExp(`${pathPrefix}/batch.csv`), getBatchCsv)
   ;
 

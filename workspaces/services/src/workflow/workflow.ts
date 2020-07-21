@@ -42,12 +42,12 @@ export function sendPrefixedMsg(
   return senderClient.publish(`${recipientName}.inbox`, prefixedMsg);
 }
 
-
 export function getSatelliteRedisPool(name: string): Promise<NamedRedisPool> {
 
   return new Promise((resolve) => {
     const publisher = newRedis(name);
     const subscriber = publisher.duplicate();
+
     const namedPool: NamedRedisPool & WithPubSub = {
       name,
       publisher,
@@ -61,12 +61,11 @@ export function getSatelliteRedisPool(name: string): Promise<NamedRedisPool> {
       },
       async handleInbox(hs: HandlerSet) {
         const client = this.subscriber;
-        return handleMessagesThenSendDone(name, client, publisher, `${name}.inbox`, hs);
+        return handleMessagesThenSendDone(name, client, publisher, hs);
       },
       async handleBroadcasts(hs: HandlerSet) {
         const client = this.subscriber;
-        await client.subscribe('hub.broadcast');
-        return handleMessagesThenSendDone(name, client, publisher, 'hub.broadcast', hs)
+        return handleMessagesThenSendDone(name, client, publisher, hs)
       },
       async quit(): Promise<void> {
         return Promise
@@ -76,18 +75,22 @@ export function getSatelliteRedisPool(name: string): Promise<NamedRedisPool> {
           ]).then(() => undefined);
       }
     };
+
     subscriber.on('ready', () => {
       handleMessagesThenSendDone(
         name,
         subscriber,
-        publisher,
-        'hub.broadcast', {
-        'hub:shutdown': async () => namedPool.quit(),
-      })
+        publisher, {
+          'hub:shutdown': async () => namedPool.quit(),
+        })
+        .then(() => subscriber.subscribe(`${name}.inbox`))
+        .then(() => subscriber.subscribe(`hub.broadcast`))
         .then(() => resolve(namedPool));
     });
   });
 }
+
+
 export function getHubRedisPool(name: string): Promise<NamedRedisPool> {
 
   return new Promise((resolve) => {
@@ -106,7 +109,7 @@ export function getHubRedisPool(name: string): Promise<NamedRedisPool> {
       },
       async handleInbox(hs: HandlerSet) {
         const client = this.subscriber;
-        return handleMessages(name, client, publisher, `${name}.inbox`, hs);
+        return handleMessages(name, client, publisher, hs);
       },
       async handleBroadcasts(_hs: HandlerSet) {
         return;
@@ -120,22 +123,23 @@ export function getHubRedisPool(name: string): Promise<NamedRedisPool> {
       }
     };
     subscriber.on('ready', () => {
-      resolve(namedPool);
+      subscriber.subscribe(`${name}.inbox`)
+        .then(() => resolve(namedPool))
     });
   });
 }
 
 export function clientOnMessage(
   receiverName: string,
-  messageChannel: string,
+  // messageChannel: string,
   handlers: Record<string, () => Promise<void>>,
 ): (channel: string, msg: string) => Promise<void> {
 
   return async (channel: string, msg: string) => {
-    if (channel !== messageChannel) {
-      return;
-    }
-    putStrLn(`${receiverName} [rcvd]> ${msg}`);
+    // if (channel !== messageChannel) {
+    //   return;
+    // }
+    putStrLn(`${receiverName} [rcvd]> ${msg}  (on channel ${channel})`);
     const [, suffix] = msg.split(':');
     let handler = handlers[msg];
     if (handler === undefined && suffix !== undefined) {
@@ -157,22 +161,20 @@ export async function handleMessages(
   receiverName: string,
   receiverClient: Redis.Redis,
   _publishClient: Redis.Redis,
-  messageChannel: string,
   handlers: Record<string, () => Promise<void>>
 ): Promise<void> {
-  const handleOnMessage = clientOnMessage(receiverName, messageChannel, handlers);
+  const handleOnMessage = clientOnMessage(receiverName, handlers);
   receiverClient.on('message', handleOnMessage);
-  await receiverClient.subscribe(messageChannel);
+  // await receiverClient.subscribe(messageChannel);
 }
 
 export async function handleMessagesThenSendDone(
   receiverName: string,
   receiverClient: Redis.Redis,
   publishClient: Redis.Redis,
-  messageChannel: string,
   handlers: Record<string, () => Promise<void>>
 ): Promise<void> {
-  const handleOnMessage = clientOnMessage(receiverName, messageChannel, handlers);
+  const handleOnMessage = clientOnMessage(receiverName, handlers);
 
   receiverClient.on('message', (channel: string, msg: string) => {
     handleOnMessage(channel, msg)
@@ -180,7 +182,7 @@ export async function handleMessagesThenSendDone(
       .catch((err) => putStrLn(`${receiverName} [err]> ${err}`))
   });
 
-  await receiverClient.subscribe(messageChannel);
+  // await receiverClient.subscribe(messageChannel);
 }
 
 function installConnectionHandlers(r: Redis.Redis, name: string) {

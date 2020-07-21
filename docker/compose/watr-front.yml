@@ -11,15 +11,13 @@ x-workflow-service:
   &workflow-service
   << : *service-defaults
 
-# command: ["portal-server"]
-
 services:
   rest-portal:
     << : *workflow-service
     container_name: rest-portal
     ports:
       - "3100:3100"
-    command: ['portal-server']
+    command: ["start-service", "--dockerize", "--service-name", "rest-portal"]
 
   service-hub:
     << : *workflow-service
