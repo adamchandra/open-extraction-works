@@ -1,9 +1,6 @@
 import _ from "lodash";
 import { getHubRedisPool, getSatelliteRedisPool } from './workflow';
-
-import { putStrLn, arglib } from 'commons';
-
-const { opt, config, registerCmd } = arglib;
+import { putStrLn } from 'commons';
 
 export interface ServiceTasks {
   serviceName: string;
@@ -29,13 +26,36 @@ const defaultServiceTasks: ServiceTasks = {
   },
 }
 
-const serviceNames = [
+export const WorkflowServiceNames = [
   'hub',
   'rest-portal',
   'upload-ingestor',
   'field-extractor',
   'spider',
 ];
+export function runService(serviceName: string, dockerize: boolean) {
+  if (dockerize) {
+    process.env['DOCKERIZED'] = 'true';
+  }
+  if (serviceName === 'hub') {
+    createHubService()
+      .then(() => {
+        console.log('created satelliteService');
+      })
+    return;
+  }
+  const serviceTasks = serviceDef[serviceName];
+  if (!serviceTasks) {
+    putStrLn(`Service Init Error: ${serviceName} not registered`);
+    return;
+  }
+  createSatelliteService(serviceName, serviceTasks)
+    .then(() => {
+      console.log('created satelliteService');
+    })
+
+
+}
 
 const serviceDef: Record<string, ServiceTasks> = {};
 
@@ -57,7 +77,6 @@ export async function createSatelliteService(
     'run': async () => serviceTasks.onRun(),
   });
 }
-
 
 
 export async function createHubService() {
@@ -97,52 +116,6 @@ addService('upload-ingestor', {
 
 
 
-function runMain() {
-  const localYargs = arglib.YArgs;
-  registerCmd(
-    localYargs,
-    "start-service",
-    "start workflow service hub",
-    config(
-      opt.ion("dockerize", { boolean: true, default: false }),
-      opt.ion("service-name: name of service to launch", {
-        choices: serviceNames
-      })
-    )
-  )((args: any) => {
-    const { serviceName, dockerize } = args;
-    if (dockerize) {
-      process.env['DOCKERIZED'] = 'true';
-    }
-    if (serviceName === 'hub') {
-      createHubService()
-        .then(() => {
-          console.log('created satelliteService');
-        })
-      return;
-    }
-    const serviceTasks = serviceDef[serviceName];
-    if (!serviceTasks) {
-      putStrLn(`Service Init Error: ${serviceName} not registered`);
-      return;
-    }
-    createSatelliteService(serviceName, serviceTasks)
-      .then(() => {
-        console.log('created satelliteService');
-      })
-  });
-
-  localYargs
-    .demandCommand(1, "You need at least one command before moving on")
-    .strict()
-    .help()
-    .fail((err) => {
-      console.log('failed!', err);
-    })
-    .argv;
-}
-
-runMain();
 
 
 // const servicePairs = _.zip(serviceNames, serviceNames.slice(1));

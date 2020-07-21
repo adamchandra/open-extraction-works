@@ -1,9 +1,5 @@
 version: '3.8'
 
-volumes:
-  redis-logs:
-    driver: local
-
 services:
   redis:
     image: redis:6.0.5

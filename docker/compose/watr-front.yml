@@ -1,8 +1,5 @@
 version: '3.8'
 
-volumes:
-  app-volume:
-
 x-service-defaults:
   &service-defaults
   image: adamchandra/watr-front
@@ -12,19 +9,15 @@ x-service-defaults:
   networks:
     - watr-net
 
-
-# lerna exec --scope extraction-works --stream  ./bin/ts-node -- ./src/workflow/workflow-server.ts start-service --service-name hub
-# entrypoint: ["./bin/ts-node", "./workspaces/extraction-works/src/workflow/workflow-server.ts", "--dockerize", "--service-name"]
-
 x-workflow-service:
   &workflow-service
   << : *service-defaults
-  entrypoint: ["lerna", "exec", "--scope", "extraction-works", "--stream", "./bin/ts-node", "--", "./src/workflow/workflow-server.ts", "start-service", "--dockerize", "--service-name"]
+  entrypoint: ["npm", "--prefix", "workspaces/extraction-works", "run", "cli", "start-service", "--", "--dockerize", "--service-name"]
 
 x-rest-service:
   &rest-service
   << : *service-defaults
-  entrypoint: ["lerna", "run", "--"]
+  entrypoint: ["npm", "--prefix", "workspaces/servers", "run", "cli", "portal-server"]
 
 services:
   rest-portal:
@@ -32,7 +25,7 @@ services:
     container_name: rest-portal
     ports:
       - "3100:3100"
-    entrypoint: ["lerna", "run", "--scope", "server", "rest-portal"]
+    entrypoint: ["npm", "--prefix", "workspaces/servers", "run"]
 
   service-hub:
     << : *workflow-service

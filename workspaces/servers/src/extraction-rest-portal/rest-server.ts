@@ -43,12 +43,3 @@ registerCmd(
   });
 
 });
-
-YArgs
-  .demandCommand(1, "You need at least one command before moving on")
-  .strict()
-  .help()
-  .fail((error) => {
-    console.log("Error", error)
-  })
-  .argv;
