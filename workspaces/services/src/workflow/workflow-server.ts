@@ -3,6 +3,7 @@ import { getHubRedisPool, getSatelliteRedisPool, NamedRedisPool } from './workfl
 import { putStrLn } from 'commons';
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 
+
 export interface ServiceHandlers {
   serviceName: string;
   onStartup(this: ServiceHandlers): Promise<void>;
@@ -27,36 +28,48 @@ const defaultServiceTasks: Omit<ServiceHandlers, 'serviceName' | 'getRedisPool'>
   },
 };
 
-export const WorkflowServiceNames = [
-  'hub',
+interface WorkflowServiceNames {
+  'rest-portal': null;
+  'upload-ingestor': null;
+  'field-extractor': null;
+  'spider': null;
+  'no-op': null;
+}
+type WorkflowServiceName = keyof WorkflowServiceNames;
+
+// export const WorkflowServiceNames = [
+export const WorkflowServiceNames: WorkflowServiceName[] = [
   'rest-portal',
   'upload-ingestor',
   'field-extractor',
   'spider',
+  'no-op',
 ];
 
-export function runService(serviceName: string, dockerize: boolean) {
+export async function runServiceHub(dockerize: boolean): Promise<NamedRedisPool> {
   if (dockerize) {
     process.env['DOCKERIZED'] = 'true';
   }
-  if (serviceName === 'hub') {
-    createHubService()
-      .then(() => {
-        putStrLn(`Created Hub Service`);
-      })
-    return;
+
+  return createHubService()
+    .then((service) => {
+      putStrLn(`Created Hub Service`);
+      return service;
+    });
+}
+
+export async function runService(serviceName: WorkflowServiceName, dockerize: boolean): Promise<NamedRedisPool> {
+  if (dockerize) {
+    process.env['DOCKERIZED'] = 'true';
   }
+
   const serviceHandlers = serviceDef[serviceName];
-  if (!serviceHandlers) {
-    putStrLn(`Service Init Error: ${serviceName} not registered`);
-    return;
-  }
-  createSatelliteService(serviceName, serviceHandlers)
-    .then(() => {
+
+  return createSatelliteService(serviceName, serviceHandlers)
+    .then((service) => {
       putStrLn(`Created Satellite Service ${serviceName}`);
-    })
-
-
+      return service;
+    });
 }
 
 const serviceDef: Record<string, Omit<ServiceHandlers, 'serviceName' | 'getRedisPool'>> = {};
@@ -73,15 +86,16 @@ export async function createSatelliteService(
 ): Promise<NamedRedisPool> {
   const servicePool = await getSatelliteRedisPool(serviceName);
   const fullHandlers: ServiceHandlers = _.merge(
-    {},
-    serviceHandlers, {
-    serviceName,
-    getRedisPool() {
-      return servicePool;
+    {}, serviceHandlers,
+    {
+      serviceName,
+      getRedisPool() {
+        return servicePool;
+      }
     }
-  });
+  );
 
-  servicePool.handleInbox({
+  servicePool.addHandlers('inbox', {
     'startup': async () => fullHandlers.onStartup(),
     'shutdown': async () => fullHandlers.onShutdown(),
     'ping': async () => fullHandlers.onPing(),
@@ -94,7 +108,7 @@ export async function createSatelliteService(
 export async function createHubService(): Promise<NamedRedisPool> {
   const hubPool = await getHubRedisPool('hub')
 
-  hubPool.handleInbox({
+  hubPool.addHandlers('inbox', {
     'rest-portal:done': async () => {
       await hubPool.sendTo('upload-ingestor', 'run');
     },
@@ -135,12 +149,24 @@ addService('spider', {
 
 addService('upload-ingestor', {
   async onRun(): Promise<void> {
-    putStrLn(`upload-ingestor> start`);
-    // figure out which urls we know about, which fields, etc.,
-    // create a response json detailing what we have/don't have,
-    //    and endpoints to download, check status, etc.
     return;
   }
+});
+// _.flatMap(servicePairs, ([service1, service2]) => {
+//   if (service1 && service2) {
+//     const key = `${service1}:done`;
+//     const value = async () => {
+//       await hubPool.sendTo(`${service2}`, 'start');
+//     };
+//     return [[key, value]];
+//   }
+//   return [];
+// });
+
+addService('field-extractor', {
+});
+
+addService('no-op', {
 });
 
 // const servicePairs = _.zip(serviceNames, serviceNames.slice(1));
