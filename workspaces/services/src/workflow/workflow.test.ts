@@ -2,29 +2,25 @@ import "chai/register-should";
 
 import _ from "lodash";
 
-import { putStrLn, delay } from 'commons';
-
-import { getHubRedisPool, getSatelliteRedisPool } from './workflow';
-import { runService, WorkflowServiceNames, runServiceHub } from './workflow-server';
+// import { putStrLn, delay } from 'commons';
+import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
 
 
 describe("End-to-end Extraction workflows", () => {
 
-  it.only("should startup/shutdown one hub/service", async (done) => {
-
+  it("should startup/shutdown one hub/service", async (done) => {
     const hubService = await runServiceHub(false);
     const satService = await runService('no-op', false);
-
     await hubService.broadcast('shutdown');
-
-    // putStrLn('pre-delay');
-    // await delay(2000);
-    // putStrLn('post-delay');
-
     await hubService.quit();
+    done();
+  });
 
-    putStrLn('test is shutting down');
-
+  it.only("should startup/shutdown service with cargo requiring shutdown", async (done) => {
+    const hubService = await runServiceHub(false);
+    const satService = await runService('rest-portal', false);
+    await hubService.broadcast('shutdown');
+    await hubService.quit();
     done();
   });
 

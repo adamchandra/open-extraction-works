@@ -1,7 +1,7 @@
 
 import yargs  from "yargs";
 import { arglib } from 'commons';
-import { WorkflowServiceNames, runService } from './workflow-server';
+import { runService, WorkflowServiceNames } from './workflow-services';
 const { opt, config, registerCmd } = arglib;
 
 export function registerCLICommands(yargv: yargs.Argv) {

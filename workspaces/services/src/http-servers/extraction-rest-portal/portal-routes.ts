@@ -8,7 +8,7 @@ import {
 } from "commons";
 
 import { createAppLogger } from './portal-logger';
-import { NamedRedisPool } from '~/workflow/workflow';
+import { ServiceComm } from '~/workflow/service-comm';
 
 export function readAlphaRecStream(csvfile: string): Promise<void> {
   const inputStream = csvStream(csvfile);
@@ -42,7 +42,7 @@ export function readAlphaRecStream(csvfile: string): Promise<void> {
   return p;
 }
 
-async function postBatchCsv(redisPool: NamedRedisPool, ctx: Context, next: () => Promise<any>): Promise<Router> {
+async function postBatchCsv(serviceComm: ServiceComm, ctx: Context, next: () => Promise<any>): Promise<Router> {
   const { files } = ctx.request;
 
   // Stash incoming file to /data-root/portal/ingress/zzz-incoming.csv/json
@@ -50,7 +50,7 @@ async function postBatchCsv(redisPool: NamedRedisPool, ctx: Context, next: () =>
   if (files) {
     const { data } = files;
     await readAlphaRecStream(data.path)
-    await redisPool.sendTo('hub', 'done');
+    await serviceComm.sendTo('hub', 'done');
     ctx.response.body = { status: 'ok' };
   } else {
     ctx.response.body = { status: 'error' };
@@ -73,11 +73,11 @@ async function getRoot(ctx: Context, next: () => Promise<any>): Promise<Router> 
   return next();
 }
 
-export function initPortalRouter(redisPool: NamedRedisPool): Router {
+export function initPortalRouter(serviceComm: ServiceComm): Router {
   const apiRouter = new Router({});
   const pathPrefix = '/extractor'
 
-  const curriedPostBatchCsv = _.curry(postBatchCsv)(redisPool);
+  const curriedPostBatchCsv = _.curry(postBatchCsv)(serviceComm);
 
   apiRouter
     .get(new RegExp(`${pathPrefix}/`), getRoot)
