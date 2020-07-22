@@ -54,9 +54,9 @@ export async function createSatelliteService<T>(
       if (originalScope === 'inbox') {
         switch (localMessage) {
           case 'received':
-            return serviceComm.send('hub', 'inbox', 'ack')
+            return serviceComm.sendTo('hub', 'ack')
           case 'handled':
-            return serviceComm.send('hub', 'inbox', 'done')
+            return serviceComm.sendTo('hub', 'done')
           default:
             putStrLn(`${name} [unhandled]> #${msg}`);
         }
@@ -77,13 +77,14 @@ export async function createSatelliteService<T>(
         cargo,
       };
       serviceComm.addHandlers('broadcast', {
-        // 'startup': async () => { if (satService.onStartup) return satService.onStartup(); },
         'shutdown': async () => {
           if (satService.onShutdown) {
             await satService.onShutdown()
           }
           return serviceComm.quit();
         },
+      });
+      serviceComm.addHandlers('inbox', {
         'ping': async () => { if (satService.onPing) return satService.onPing(); },
         'run': async () => { if (satService.onRun) return satService.onRun(); },
       });

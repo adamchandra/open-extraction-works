@@ -21,7 +21,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@types/redis": "^2.8.25",
     "chalk": "^4.1.0",
     "diff": "^4.0.2",
     "fast-csv": "^4.3.1",
@@ -32,7 +31,6 @@
     "object-hash": "^2.0.3",
     "pm2": "^4.4.0",
     "pumpify": "^2.0.1",
-    "redis": "^3.0.2",
     "slice-ansi": "^4.0.0",
     "split": "^1.0.1",
     "through2": "^4.0.2",

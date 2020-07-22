@@ -14,7 +14,7 @@ const RedisConnectionEvents = [
 ];
 
 type HandlerInstance = (msg: string) => Promise<void>
-type HandlerSet = Record<string, HandlerInstance>
+export type HandlerSet = Record<string, HandlerInstance>
 
 interface HandlerSets {
   'inbox': HandlerSet[];
@@ -152,26 +152,6 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 
 function installEventEchoing(r: Redis.Redis, name: string) {
   _.each(RedisConnectionEvents, (e: string) => {
-    r.on(e, () => putStrLn(`${name} [${e}]>`));
+    r.on(e, () => putStrLn(`${name} [redis:${e}]>`));
   });
 }
-
-// const defaultServiceTasks: ServiceLifecycleHandlers = {
-//   async onStartup(): Promise<void> {
-//     putStrLn(`${this.serviceName} [startup]`);
-//   },
-//   async onShutdown(): Promise<void> {
-//     putStrLn(`${this.serviceName} [shutdown]`);
-//   },
-//   async onPing(): Promise<void> {
-//     putStrLn(`${this.serviceName} [ping]`);
-//   },
-//   async onRun(): Promise<void> {
-//     putStrLn(`${this.serviceName} [run]`);
-//   },
-// };
-// export function addService(serviceName: string, service: Partial<ServiceHandlers>): void {
-//   const tasks = _.merge({}, defaultServiceTasks, service, { serviceName });
-//   serviceDef[serviceName] = tasks;
-// }
-// const serviceDef: Record<string, Omit<ServiceHandlers, 'serviceName' | 'getServiceComm'>> = {};
