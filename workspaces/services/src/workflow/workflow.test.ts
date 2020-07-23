@@ -1,9 +1,15 @@
 import "chai/register-should";
 
 import _ from "lodash";
+import winston, {
+  createLogger,
+  format,
+  transports,
+} from "winston";
 
 // import { putStrLn, delay } from 'commons';
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
+import { getLogger } from './service-comm';
 
 
 describe("End-to-end Extraction workflows", () => {
@@ -23,6 +29,8 @@ describe("End-to-end Extraction workflows", () => {
   });
 
   it.only("should demo end-to-end processing", async (done) => {
+    const log = getLogger();
+    log.level = 'info';
     const hubService = await runServiceHub(false);
     const satellitePs = _.map(
       WorkflowServiceNames, (service) => {
@@ -46,6 +54,38 @@ describe("End-to-end Extraction workflows", () => {
     })
   });
 
-  // it("should create a hub shaped network of extraction clients", async (done) => { });
+  it("test logging",  () => {
+    // const cli = winston.config.cli;
+    // const logger = createLogger({
+    //   level: 'silly',
+    //   levels: cli.levels,
+    //   transports: [
+    //     new transports.Console({
+    //       format: format.combine(
+    //         format.colorize(),
+    //         format.simple(),
+    //       ),
+    //     }),
+    //     new transports.Console({
+    //       format: format.combine(
+    //         format.colorize(),
+    //         format.splat(),
+    //       ),
+    //     }),
+    //   ],
+    // });
+
+    // logger.error('some message');
+    // logger.warn('some message');
+    // logger.help('some message');
+    // logger.data('some message');
+    // logger.info('some message', "more", {a: 2});
+    // logger.debug('some message');
+    // logger.prompt('some message');
+    // logger.verbose('some message');
+    // logger.input('some message');
+    // logger.silly('some message');
+
+  });
 
 });

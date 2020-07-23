@@ -23,3 +23,11 @@ export function createAppLogger(): Logger {
 }
 
 
+
+export function createConsoleLogger(): Logger {
+  return createLogger({
+    transports: [
+      new transports.Console(),
+    ],
+  });
+}

@@ -1,7 +1,8 @@
 import _ from "lodash";
 
-import { putStrLn } from 'commons';
-import { ServiceComm, createServiceComm } from './service-comm';
+import { ServiceComm, createServiceComm, getLogger } from './service-comm';
+
+const log = getLogger();
 
 export interface LifecycleHandlers<T> {
   onStartup(this: SatelliteService<T>): Promise<void>;
@@ -38,18 +39,11 @@ export async function createSatelliteService<T>(
 ): Promise<SatelliteService<T>> {
   const serviceComm = await createServiceComm(name);
   serviceComm.subscriber.subscribe(`hub.broadcast`);
-  serviceComm.addHandlers('inbox', {
-    '.*': async (msg: string) => {
-      putStrLn(`${name}> got inbox message ${msg}`);
-    },
-  });
 
   serviceComm.addHandlers('local', {
     '.*': async (msg: string) => {
       const [localMessage, originalChannel, originalMsg] = msg.split(/::/);
       const [, originalScope] = originalChannel.split(/\./);
-
-      putStrLn(`${name} [${localMessage}]> #${originalMsg} <-[from]- ${originalChannel}`);
 
       if (originalScope === 'inbox') {
         switch (localMessage) {
@@ -58,7 +52,7 @@ export async function createSatelliteService<T>(
           case 'handled':
             return serviceComm.sendTo('hub', 'done')
           default:
-            putStrLn(`${name} [unhandled]> #${msg}`);
+            log.warn(`${name} [unhandled]> #${msg}`);
         }
       }
     },
@@ -89,7 +83,7 @@ export async function createSatelliteService<T>(
         'run': async () => { if (satService.onRun) return satService.onRun(); },
       });
 
-      if (satService.onStartup){
+      if (satService.onStartup) {
         await satService.onStartup();
       }
 

@@ -4,6 +4,30 @@ import Redis from 'ioredis';
 import * as Task from 'fp-ts/lib/Task';
 import * as Arr from 'fp-ts/lib/Array';
 
+import winston, {
+  createLogger,
+  transports,
+  format,
+} from "winston";
+
+const cli = winston.config.cli;
+const _logger = createLogger({
+  level: 'silly',
+  levels: cli.levels,
+  transports: [
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.simple(),
+      ),
+    })
+  ],
+});
+
+export const getLogger = () => _logger;
+
+const log = getLogger();
+
 const RedisConnectionEvents = [
   'ready',
   'close',
@@ -69,7 +93,12 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 
         const publisher = this.subscriber.duplicate();
         await publisher.publish(`${recipient}.${scope}`, msg);
-        putStrLn(`${name} [sent:${scope}]> #${msg} -[to]-> ${recipient}`);
+        // putStrLn(`${name} [sent:${scope}]> #${msg} -[to]-> ${recipient}`);
+        if (scope === 'local') {
+          log.debug(`${name} [local]> #${msg}`)
+        } else {
+          log.info(`${name} [sent]> #${msg} -[to]-> ${recipient}`)
+        }
         await publisher.quit();
       },
       async sendTo(recipient: string, msg: string): Promise<void> {
@@ -125,26 +154,30 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       const isLocalMessage = channelScope === 'local';
       if (isLocalMessage) {
         sequenceArrOfTask(handlersForMessage)()
+          .then(() => log.debug(`${name} [local]> #${msg}`))
           .catch((err) => {
-            putStrLn(`${name} [ERROR]> ${msg} on ${channel}: ${err}`);
+            log.error(`${name}> ${msg} on ${channel}: ${err}`)
           });
         return;
       }
 
       serviceComm.send(name, 'local', `received::${channel}::${msg}`)
+        .then(() => log.info(`${name} [received]> #${msg}`))
         .then(() => sequenceArrOfTask(handlersForMessage)())
-        .then(() => {
-          return serviceComm.send(name, 'local', `handled::${channel}::${msg}`)
-        })
+        .then(() => serviceComm.send(name, 'local', `handled::${channel}::${msg}`))
+        .then(() => log.info(`${name} [handled]> #${msg}`))
         .catch((err) => {
-          putStrLn(`${name} [WARN]> ${msg} on ${channel}: ${err}`);
+          log.warn(`${name}> ${msg} on ${channel}: ${err}`)
         });
     });
 
     subscriber.on('ready', () => {
       subscriber.subscribe(`${name}.inbox`)
-      subscriber.subscribe(`${name}.local`)
-        .then(() => resolve(serviceComm));
+        .then(() => subscriber.subscribe(`${name}.local`))
+        .then(() => resolve(serviceComm))
+        .catch((err) => {
+          log.error(`${name} [subscribe]> ${err}`)
+        });
     });
   });
 }
@@ -152,6 +185,6 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 
 function installEventEchoing(r: Redis.Redis, name: string) {
   _.each(RedisConnectionEvents, (e: string) => {
-    r.on(e, () => putStrLn(`${name} [redis:${e}]>`));
+    r.on(e, () => log.debug(`${name} [redis:${e}]>`));
   });
 }

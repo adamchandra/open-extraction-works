@@ -1,12 +1,13 @@
 import _ from "lodash";
 import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService } from './service-hub';
 
-import { ServiceComm, HandlerSet } from './service-comm';
-import { putStrLn } from 'commons';
+import { ServiceComm, HandlerSet, getLogger } from './service-comm';
 
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
 import { promisify } from 'util';
+
+const log = getLogger();
 
 interface WorkflowServiceNames {
   'rest-portal': null;
@@ -37,11 +38,14 @@ export async function runServiceHub(dockerize: boolean): Promise<ServiceComm> {
 const restPortalService = defineSatelliteService<Server>(
   (serviceComm) => startRestPortal(serviceComm), {
   async onShutdown(): Promise<void> {
-    putStrLn(`${this.serviceName} [shutdown]> `);
+    // putStrLn(`${this.serviceName} [shutdown]> `);
+    log.debug(`${this.serviceName} [shutdown]> `)
+
     const server = this.cargo;
     const doClose = promisify(server.close).bind(server);
     return doClose().then(() => {
-      putStrLn(`${this.serviceName} [cargo:shutdown]> `);
+      // putStrLn(`${this.serviceName} [cargo:shutdown]> `);
+      log.debug(`${this.serviceName} [cargo:shutdown]> `)
     });
   }
 });
@@ -116,7 +120,9 @@ export async function createWorkflowHub(): Promise<ServiceComm> {
   const handlerSet: HandlerSet = {};
 
   _.each(servicePairs, ([svc1, svc2]) => {
-    putStrLn('connecting services', [svc1, svc2]);
+    // putStrLn('connecting services', [svc1, svc2]);
+
+    log.info(`connecting services ${svc1} => ${svc2}`);
     const onEvent = `${svc1}:done`;
     handlerSet[onEvent] = async () => {
       await hubPool.sendTo(`${svc2}`, 'run');
