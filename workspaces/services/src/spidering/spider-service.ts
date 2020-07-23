@@ -3,11 +3,9 @@ import fs, { } from 'fs-extra';
 import { readUrlFetchChainsFromScrapyLogs } from '~/extract/urls/url-fetch-chains';
 
 import {
-  // csvStream,
   streamPump,
   readAlphaRecStream,
   AlphaRecord,
-  // getAsyncRedisClient,
 } from "commons";
 
 export async function pruneCrawledFromCSV(scrapyLogs: string, csvFile: string): Promise<void> {

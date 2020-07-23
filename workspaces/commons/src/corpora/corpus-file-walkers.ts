@@ -33,7 +33,6 @@ export function makeCorpusEntryLeadingPath(s: string): string {
 }
 
 
-
 export function expandDir(path: string): ExpandedDir {
   const dirEntries = fs.readdirSync(path, { withFileTypes: true });
   const files = dirEntries
@@ -91,6 +90,7 @@ const artifactSubdirs: ArtifactSubdir[] = [
 export function resolveCorpusFile(entryPath: string, artifactDir: ArtifactSubdir, corpusFilename: string): string {
   return path.resolve(entryPath, artifactDir, corpusFilename);
 }
+
 export function ensureArtifactDir(entryPath: string, artifactDir: ArtifactSubdir): void {
   const artifactDirPath = path.resolve(entryPath, artifactDir);
   const artifactDirExists = fs.existsSync(artifactDirPath);
@@ -123,6 +123,7 @@ export function readCorpusTextFile(entryPath: string, artifactDir: ArtifactSubdi
   const filePath = path.resolve(entryPath, artifactDir, corpusFilename);
   return readTextOrUndef(filePath);
 }
+
 export function readCorpusTextFileAsync(entryPath: string, artifactDir: ArtifactSubdir, corpusFilename: string): Promise<string | undefined> {
   const filePath = path.resolve(entryPath, artifactDir, corpusFilename);
   return readTextOrUndefAsync(filePath);
