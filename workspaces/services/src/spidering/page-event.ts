@@ -46,19 +46,19 @@ export function logPageEvents(ctx: ScrapingContext, page: Page) {
         case 'domcontentloaded':
         case 'load':
         case 'close': {
-          log.info({ pageEvent: e });
+          log.debug({ pageEvent: e });
           break;
         }
         case 'console': {
           const data: ConsoleMessage = _data;
           const text = data.text()
-          log.info({ pageEvent: e, text });
+          log.debug({ pageEvent: e, text });
           break;
         }
         case 'dialog': {
           const data: Dialog = _data;
           const message = data.message();
-          log.info({ pageEvent: e, message });
+          log.debug({ pageEvent: e, message });
           break;
         }
         case 'pageerror':
@@ -66,24 +66,24 @@ export function logPageEvents(ctx: ScrapingContext, page: Page) {
           const data: Error = _data;
           const message = data.message;
           const name = data.name;
-          log.info({ pageEvent: e, name, message });
+          log.debug({ pageEvent: e, name, message });
           break;
         }
         case 'frameattached':
         case 'framedetached':
         case 'framenavigated': {
           // const data: Frame = _data;
-          log.info({ pageEvent: e });
+          log.debug({ pageEvent: e });
           break;
         }
         case 'metrics': {
           const data: { title: string, metrics: Metrics } = _data;
-          log.info({ pageEvent: e, data });
+          log.debug({ pageEvent: e, data });
           break;
         }
         case 'popup': {
           // const data: Page = _data;
-          log.info({ pageEvent: e });
+          log.debug({ pageEvent: e });
           break;
         }
         case 'request':
@@ -91,20 +91,20 @@ export function logPageEvents(ctx: ScrapingContext, page: Page) {
         case 'requestfinished': {
           const data: Request = _data;
           const url = data.url();
-          log.info({ pageEvent: e, url });
+          log.debug({ pageEvent: e, url });
           break;
         }
         case 'response': {
           const data: Response = _data;
           const url = data.url();
-          log.info({ pageEvent: e, url });
+          log.debug({ pageEvent: e, url });
           break;
         }
         case 'workercreated':
         case 'workerdestroyed': {
           const data: Worker = _data;
           const url = data.url();
-          log.info({ pageEvent: e, url });
+          log.debug({ pageEvent: e, url });
           break;
         }
       }

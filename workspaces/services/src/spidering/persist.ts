@@ -31,12 +31,13 @@ export function makeHashEncodedPath(source: string, depth: number): HashEncodedP
   }
 }
 
-export function getResolvedTmpRoot(ctx: ScrapingContext): string {
+export function getResolvedTempRoot(ctx: ScrapingContext): string {
   return path.resolve(
     ctx.workingDirectory,
     'temp.d',
   );
 }
+
 export function getResolvedDownloadRoot(ctx: ScrapingContext): string {
   return path.resolve(
     ctx.workingDirectory,
@@ -46,13 +47,13 @@ export function getResolvedDownloadRoot(ctx: ScrapingContext): string {
 
 export function getResolvedEntryDownloadPath(ctx: ScrapingContext): string {
   return path.resolve(
-    getResolvedEntryDownloadPath(ctx),
+    getResolvedDownloadRoot(ctx),
     ctx.entryEncPath.toPath()
   );
 }
 export function getResolvedEntryTempPath(ctx: ScrapingContext): string {
   return path.resolve(
-    getResolvedEntryTempPath(ctx),
+    getResolvedTempRoot(ctx),
     ctx.entryEncPath.toPath()
   );
 }
@@ -87,9 +88,10 @@ export function createTmpDownloadPath(
   const exists = fs.existsSync(resolvedEntryPath)
   const isDir = exists && fs.statSync(resolvedEntryPath).isDirectory();
   if (isDir) {
-    fs.rmdirSync(resolvedEntryPath);
+    fs.emptyDirSync(resolvedEntryPath);
+  } else {
+    fs.mkdirpSync(resolvedEntryPath);
   }
-  fs.mkdirpSync(resolvedEntryPath);
 
   return resolvedEntryPath;
 }

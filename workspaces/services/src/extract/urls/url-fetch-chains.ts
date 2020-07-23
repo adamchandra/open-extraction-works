@@ -6,7 +6,6 @@ import {
   isDefined,
   makeTreeFromPairs,
   Edges,
-  prettyPrint,
 } from "commons";
 
 export interface UrlChainLink {

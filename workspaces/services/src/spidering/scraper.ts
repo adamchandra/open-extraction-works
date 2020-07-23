@@ -1,17 +1,15 @@
 import _ from 'lodash';
-import { arglib, prettyPrint } from 'commons';
+import { arglib, writeCorpusJsonFile, writeCorpusTextFile } from 'commons';
 const { opt, config, registerCmd } = arglib;
 
 import puppeteer, {
   Response,
-  Request,
-  ResourceType,
   Page,
 } from 'puppeteer';
 
 import { logPageEvents } from './page-event';
-import { formatRequestChain, ScrapingContext } from './data-formats';
-import {  makeHashEncodedPath, createTmpDownloadPath, writeBuffer } from './persist';
+import { ScrapingContext, createMetadata } from './data-formats';
+import { makeHashEncodedPath, createTmpDownloadPath } from './persist';
 import { getSpiderLoggers } from './spider-logging';
 
 
@@ -30,44 +28,46 @@ export function createScrapingContext(
   }
 }
 
-
 async function scrapeUrl(
   workingDirectory: string,
   url: string
 ): Promise<void> {
 
   const scrapingContext = createScrapingContext(workingDirectory, url);
-  // const { entryLogger, rootLogger } = scrapingContext;
+  const { rootLogger } = scrapingContext;
 
-  scrapingContext.rootLogger.info(scrapingContext)
+  rootLogger.info({ msg: "begin scraping", url });
 
   const tmpDownloadPath = createTmpDownloadPath(scrapingContext);
 
+  rootLogger.info({ msg: "launching browser" });
   const browser = await puppeteer.launch();
   const page: Page = await browser.newPage();
 
   logPageEvents(scrapingContext, page);
 
+  rootLogger.info({ msg: "navigating to", url });
   const response: Response | null = await page.goto(url);
 
-  if (!response) return;
+  if (!response) {
+    rootLogger.warn({ msg: "no response", url });
+    await browser.close();
+    return;
+  }
+
+  rootLogger.info({ msg: "writing response" });
+  const request = response.request();
+  const requestHeaders = request.headers();
+  writeCorpusJsonFile(tmpDownloadPath, '.', 'request-headers.json', requestHeaders);
 
   const respHeaders = response.headers();
-  console.log('get headers');
+  writeCorpusJsonFile(tmpDownloadPath, '.', 'response-headers.json', respHeaders);
+
   const respBuffer = await response.buffer();
-  console.log('write content');
+  writeCorpusTextFile(tmpDownloadPath, '.', 'response-body', respBuffer.toString())
 
-  writeBuffer(tmpDownloadPath, 'response-body', respBuffer);
-  const status = response.status();
-  const statusText = response.statusText();
-  const responseUrl = response.url();
-  const request: Request = response.request();
-  const reqHeaders = request.headers();
-  const reqMethod = request.method();
-
-  // const reqChain = formatRequestChain(request);
-  const reqResourceType: ResourceType = request.resourceType();
-  prettyPrint({ url, reqHeaders, reqMethod, responseUrl, respHeaders, status, statusText, reqResourceType })
+  const metadata = createMetadata(response);
+  writeCorpusJsonFile(tmpDownloadPath, '.', 'metadata.json', metadata);
 
   await browser.close();
 

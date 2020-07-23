@@ -1,57 +1,67 @@
 import _ from 'lodash';
 
 import {
-  // Response,
-  Request,
-  // ResourceType,
-  // Page,
+  Request, Response,
 } from 'puppeteer';
 
-import { prettyPrint } from 'commons';
 import { SpiderLoggers } from './spider-logging';
 import { HashEncodedPath } from './persist';
+import { UrlChain, UrlChainLink } from '~/extract/urls/url-fetch-chains';
 
-// WorkingDirectory
-//   DownloadDirectory
-//     a/b/c/abc...
-//   TempDirectory
-//     d/e/f/def..
-//   spider-logs.json
-//   alpha-records.json
-
-export function formatRequestChain(request: Request) {
+export function createRequestChain(request: Request): UrlChain {
   const reqRedirectChain = request.redirectChain();
-  _.each(reqRedirectChain, creq => {
-    const reqHeaders = creq.headers();
-    const reqMethod = creq.method();
-    const cresp = creq.response();
-    if (!cresp) return;
-    const cstatus = cresp.status();
-    const cstatusText = cresp.statusText();
-    const cresponseUrl = cresp.url();
-    prettyPrint({ msg: 'Request Chain', reqHeaders, reqMethod, cstatus, cstatusText, cresponseUrl });
-  })
- //
+  const urlChain = _.flatMap(reqRedirectChain, req => {
+    const requestUrl = req.url();
+    const resp = req.response();
+    if (resp === null) {
+      return [];
+    }
+    const responseUrl = resp.url();
+    const status = resp.status().toString();
+    const timestamp = makeTimestamp();
+
+    const chainLink: UrlChainLink = {
+      requestUrl,
+      responseUrl,
+      status,
+      timestamp
+    };
+    return [chainLink];
+  });
+  return urlChain;
 }
 
-// Files to write:
-// metadata.json
-// request-headers.json
-// request-body
-// response-headers.json
-// response-body
-// fetchlog.json
+export function makeTimestamp(): string {
+  const now = new Date().toISOString()
+  return now;
+}
 
 export interface Metadata {
-  url: string;
+  requestUrl: string;
   responseUrl: string;
   status: number;
-  fetchChain: string[];
+  fetchChain: UrlChain;
   method: string;
   timestamp: string;
 }
-export function formatMetaFile() {
-  //
+
+export function createMetadata(response: Response): Metadata {
+  const request: Request = response.request();
+  const fetchChain = createRequestChain(request);
+  const requestUrl = request.url();
+  const responseUrl = response.url();
+  const status = response.status();
+  const method = request.method();
+  const timestamp = makeTimestamp();
+  const metadata: Metadata = {
+    requestUrl,
+    responseUrl,
+    status,
+    fetchChain,
+    method,
+    timestamp,
+  };
+  return metadata;
 }
 
 export interface ScrapingContext extends SpiderLoggers {
@@ -59,10 +69,3 @@ export interface ScrapingContext extends SpiderLoggers {
   initialUrl: string;
   entryEncPath: HashEncodedPath;
 }
-
-
-// {'url': 'https://knowledge.amia.org/67852-amia-1.4259402/t006-1.4263223/t006-1.4263224/2974121-1.4263582/2976633-1.4263579?qr=1',
-// 'method': 'GET', 'status': 200,
-// 'response_url': 'https://knowledge.amia.org/67852-amia-1.4259402/t006-1.4263223/t006-1.4263224/2974121-1.4263582/2976633-1.4263579?qr=1',
-// 'timestamp': 1591284248.5032194}%
-

@@ -11,53 +11,32 @@ import { HashEncodedPath } from './persist';
 
 const cli = winston.config.cli;
 
-// const _logger = createLogger({
-//   level: 'silly',
-//   levels: cli.levels,
-//   transports: [
-//     new transports.Console({
-//       format: format.combine(
-//         format.colorize(),
-//         format.simple(),
-//       ),
-//     }),
-//     new transports.File({
-//       filename: "spidering-log.json",
-//       format: format.combine(
-//         format.timestamp(),
-//         format.json()
-//       ),
-//       dirname: "./logs",
-//       tailable: true,
-//     })
-//   ],
-// });
-
-
 export interface SpiderLoggers {
   rootLogger: Logger;
   entryLogger: Logger;
 }
 
 export function getSpiderLoggers(
+
   workingDirectory: string,
   entryEncPath: HashEncodedPath
 ): SpiderLoggers {
   const rootLoggingPath = path.resolve(workingDirectory);
-  const entryLoggingPath = path.resolve(workingDirectory, entryEncPath.toPath());
+
+  // TODO un-hardcode temp dir name
+  const entryLoggingPath = path.resolve(workingDirectory, 'temp.d', entryEncPath.toPath());
+  const console = new transports.Console({
+    format: format.splat(),
+    level: 'info'
+  });
 
   const rootLogger = createLogger({
-      level: 'silly',
       levels: cli.levels,
       transports: [
-        new transports.Console({
-          format: format.combine(
-            format.colorize(),
-            format.simple(),
-          ),
-        }),
+        console,
         new transports.File({
           filename: "spidering-log.json",
+          level: 'silly',
           format: format.combine(
             format.timestamp(),
             format.json()
@@ -68,17 +47,12 @@ export function getSpiderLoggers(
       ],
     });
   const entryLogger = createLogger({
-    level: 'silly',
     levels: cli.levels,
     transports: [
-      new transports.Console({
-        format: format.combine(
-          format.colorize(),
-          format.simple(),
-        ),
-      }),
+      console,
       new transports.File({
         filename: "entry-log.json",
+        level: 'silly',
         format: format.combine(
           format.timestamp(),
           format.json()
