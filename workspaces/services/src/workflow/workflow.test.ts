@@ -9,7 +9,7 @@ import winston, {
 
 // import { putStrLn, delay } from 'commons';
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
-import { getLogger } from './service-comm';
+import { getWorkflowServiceLogger } from './service-comm';
 
 
 describe("End-to-end Extraction workflows", () => {
@@ -29,7 +29,7 @@ describe("End-to-end Extraction workflows", () => {
   });
 
   it.only("should demo end-to-end processing", async (done) => {
-    const log = getLogger();
+    const log = getWorkflowServiceLogger();
     log.level = 'info';
     const hubService = await runServiceHub(false);
     const satellitePs = _.map(

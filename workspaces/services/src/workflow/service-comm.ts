@@ -24,9 +24,9 @@ const _logger = createLogger({
   ],
 });
 
-export const getLogger = () => _logger;
+export const getWorkflowServiceLogger = () => _logger;
 
-const log = getLogger();
+const log = getWorkflowServiceLogger();
 
 const RedisConnectionEvents = [
   'ready',

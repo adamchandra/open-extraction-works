@@ -1,8 +1,8 @@
 import _ from "lodash";
 
-import { ServiceComm, createServiceComm, getLogger } from './service-comm';
+import { ServiceComm, createServiceComm, getWorkflowServiceLogger } from './service-comm';
 
-const log = getLogger();
+const log = getWorkflowServiceLogger();
 
 export interface LifecycleHandlers<T> {
   onStartup(this: SatelliteService<T>): Promise<void>;

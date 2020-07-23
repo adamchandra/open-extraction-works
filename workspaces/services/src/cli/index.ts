@@ -2,6 +2,7 @@ import "./extraction-cli";
 import { arglib } from "commons";
 import { registerCLICommands } from '~/workflow/workflow-cli';
 import "~/http-servers/extraction-rest-portal/rest-server";
+import "~/spidering/puppet";
 
 registerCLICommands(arglib.YArgs);
 

@@ -1,13 +1,13 @@
 import _ from "lodash";
 import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService } from './service-hub';
 
-import { ServiceComm, HandlerSet, getLogger } from './service-comm';
+import { ServiceComm, HandlerSet, getWorkflowServiceLogger } from './service-comm';
 
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
 import { promisify } from 'util';
 
-const log = getLogger();
+const log = getWorkflowServiceLogger();
 
 interface WorkflowServiceNames {
   'rest-portal': null;
