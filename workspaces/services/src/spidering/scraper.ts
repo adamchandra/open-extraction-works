@@ -2,41 +2,17 @@ import _ from 'lodash';
 import { arglib, prettyPrint, putStrLn } from 'commons';
 const { opt, config, registerCmd } = arglib;
 
-import puppeteer, { PageEventObj, Response, Request, ResourceType, Page, ConsoleMessage, Frame, Metrics, Worker, Dialog } from 'puppeteer';
-import path from "path";
-import fs from "fs-extra";
+import puppeteer, {
+  Response,
+  Request,
+  ResourceType,
+  Page,
+} from 'puppeteer';
 
-const pageEvents: Array<keyof PageEventObj> = [
-  'close',
-  'console',
-  'dialog',
-  'domcontentloaded',
-  'error',
-  'frameattached',
-  'framedetached',
-  'framenavigated',
-  'load',
-  'metrics',
-  'pageerror',
-  'popup',
-  'request',
-  'requestfailed',
-  'requestfinished',
-  'response',
-  'workercreated',
-  'workerdestroyed',
-];
+import { streamPageEvents } from './page-event';
+import { formatRequestChain } from './data-formats';
+import { writeFile } from './persist';
 
-
-export function writeFile(filePath: string, buffer: Buffer): boolean {
-  const exists = fs.existsSync(filePath)
-  const isFile = exists && fs.statSync(filePath).isFile();
-  if (isFile && exists) {
-    fs.removeSync(filePath)
-  }
-  fs.writeFileSync(filePath, buffer);
-  return true;
-}
 async function scrapeUrl(url: string): Promise<void> {
 
   console.log('scraping', url);
@@ -44,83 +20,9 @@ async function scrapeUrl(url: string): Promise<void> {
   const browser = await puppeteer.launch();
   const page: Page = await browser.newPage();
 
-  _.each(pageEvents, e => {
-    page.on(e, (_data: any) => {
-      switch (e) {
-        case 'domcontentloaded':
-        case 'load':
-        case 'close': {
-          putStrLn('Event', e);
-          break;
-        }
-        case 'console': {
-          const data: ConsoleMessage = _data;
-          const text = data.text()
-          putStrLn('Event', e, { text });
-          break;
-        }
-        case 'dialog': {
-          const data: Dialog = _data;
-          const message = data.message();
-          putStrLn('Event', e, { message });
-          break;
-        }
-        case 'pageerror':
-        case 'error': {
-          const data: Error = _data;
+  streamPageEvents(page);
 
-          const message = data.message;
-          const name = data.name;
-          putStrLn('Event', e, { name, message });
-          break;
-        }
-        case 'frameattached':
-        case 'framedetached':
-        case 'framenavigated': {
-          // const data: Frame = _data;
-          putStrLn('Event', e);
-          break;
-        }
-        case 'metrics': {
-          const data: { title: string, metrics: Metrics } = _data;
-          putStrLn('Event', e, data);
-          break;
-        }
-        case 'popup': {
-          // const data: Page = _data;
-          putStrLn('Event', e);
-          break;
-        }
-        case 'request':
-        case 'requestfailed':
-        case 'requestfinished': {
-          const data: Request = _data;
-          const url = data.url();
-
-          putStrLn('Event', e, { url });
-          break;
-        }
-        case 'response': {
-          const data: Response = _data;
-          const url = data.url();
-          putStrLn('Event', e, { url });
-          break;
-        }
-        case 'workercreated':
-        case 'workerdestroyed': {
-          const data: Worker = _data;
-          const url = data.url();
-          putStrLn('Event', e, { url });
-          break;
-        }
-      }
-    });
-  })
-
-  console.log('pre-goto page');
   const response: Response | null = await page.goto(url);
-
-  console.log('got response');
 
   if (!response) return;
 
@@ -135,23 +37,10 @@ async function scrapeUrl(url: string): Promise<void> {
   const request: Request = response.request();
   const reqHeaders = request.headers();
   const reqMethod = request.method();
-  const reqRedirectChain = request.redirectChain();
+
+  const reqChain = formatRequestChain(request);
   const reqResourceType: ResourceType = request.resourceType();
   prettyPrint({ url, reqHeaders, reqMethod, responseUrl, respHeaders, status, statusText, reqResourceType })
-
-  _.each(reqRedirectChain, creq => {
-    const reqHeaders = creq.headers();
-    const reqMethod = creq.method();
-    const cresp = creq.response();
-    if (!cresp) return;
-    const cstatus = cresp.status();
-    const cstatusText = cresp.statusText();
-    const cresponseUrl = cresp.url();
-    prettyPrint({ msg: 'Request Chain', reqHeaders, reqMethod, cstatus, cstatusText, cresponseUrl });
-  })
-  // request.url();
-
-  // await page.screenshot({path: 'example.png'});
 
   await browser.close();
 
