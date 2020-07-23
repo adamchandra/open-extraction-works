@@ -8,9 +8,16 @@ import {
 } from 'puppeteer';
 
 import { prettyPrint } from 'commons';
-import { getSpiderLogger } from './spider-logging';
+import { SpiderLoggers } from './spider-logging';
+import { HashEncodedPath } from './persist';
 
-const log = getSpiderLogger();
+// WorkingDirectory
+//   DownloadDirectory
+//     a/b/c/abc...
+//   TempDirectory
+//     d/e/f/def..
+//   spider-logs.json
+//   alpha-records.json
 
 export function formatRequestChain(request: Request) {
   const reqRedirectChain = request.redirectChain();
@@ -45,6 +52,12 @@ export interface Metadata {
 }
 export function formatMetaFile() {
   //
+}
+
+export interface ScrapingContext extends SpiderLoggers {
+  workingDirectory: string;
+  initialUrl: string;
+  entryEncPath: HashEncodedPath;
 }
 
 

@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { arglib, prettyPrint, putStrLn } from 'commons';
+import { arglib, prettyPrint } from 'commons';
 const { opt, config, registerCmd } = arglib;
 
 import puppeteer, {
@@ -9,18 +9,44 @@ import puppeteer, {
   Page,
 } from 'puppeteer';
 
-import { streamPageEvents } from './page-event';
-import { formatRequestChain } from './data-formats';
-import { writeFile } from './persist';
+import { logPageEvents } from './page-event';
+import { formatRequestChain, ScrapingContext } from './data-formats';
+import {  makeHashEncodedPath, createTmpDownloadPath, writeBuffer } from './persist';
+import { getSpiderLoggers } from './spider-logging';
 
-async function scrapeUrl(url: string): Promise<void> {
 
-  console.log('scraping', url);
+export function createScrapingContext(
+  workingDirectory: string,
+  initialUrl: string,
+): ScrapingContext {
+
+  const entryEncPath = makeHashEncodedPath(initialUrl, 3);
+  const spiderLoggers = getSpiderLoggers(workingDirectory, entryEncPath);
+  return {
+    workingDirectory,
+    entryEncPath,
+    initialUrl,
+    ...spiderLoggers
+  }
+}
+
+
+async function scrapeUrl(
+  workingDirectory: string,
+  url: string
+): Promise<void> {
+
+  const scrapingContext = createScrapingContext(workingDirectory, url);
+  // const { entryLogger, rootLogger } = scrapingContext;
+
+  scrapingContext.rootLogger.info(scrapingContext)
+
+  const tmpDownloadPath = createTmpDownloadPath(scrapingContext);
 
   const browser = await puppeteer.launch();
   const page: Page = await browser.newPage();
 
-  streamPageEvents(page);
+  logPageEvents(scrapingContext, page);
 
   const response: Response | null = await page.goto(url);
 
@@ -30,7 +56,8 @@ async function scrapeUrl(url: string): Promise<void> {
   console.log('get headers');
   const respBuffer = await response.buffer();
   console.log('write content');
-  writeFile('scrape-response', respBuffer);
+
+  writeBuffer(tmpDownloadPath, 'response-body', respBuffer);
   const status = response.status();
   const statusText = response.statusText();
   const responseUrl = response.url();
@@ -38,7 +65,7 @@ async function scrapeUrl(url: string): Promise<void> {
   const reqHeaders = request.headers();
   const reqMethod = request.method();
 
-  const reqChain = formatRequestChain(request);
+  // const reqChain = formatRequestChain(request);
   const reqResourceType: ResourceType = request.resourceType();
   prettyPrint({ url, reqHeaders, reqMethod, responseUrl, respHeaders, status, statusText, reqResourceType })
 
@@ -51,14 +78,16 @@ registerCmd(
   "scrape-url",
   "spider via puppeteer testing...",
   config(
+    opt.cwd,
+    opt.existingDir("working-directory: root directory for logging/tmpfile/downloading"),
     opt.ion("url", {
       required: true
     })
   )
 )((args: any) => {
-  const { url } = args;
+  const { workingDirectory, url } = args;
 
-  scrapeUrl(url)
+  scrapeUrl(workingDirectory, url)
     .then(() => undefined)
 
 });
