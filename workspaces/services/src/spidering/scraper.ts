@@ -1,11 +1,27 @@
 import _ from 'lodash';
 import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile } from 'commons';
 
-import puppeteer, {
+
+import {
   Response,
   Page,
   Browser,
 } from 'puppeteer';
+
+import puppeteer from 'puppeteer-extra'
+
+// import blockResources from 'puppeteer-extra-plugin-block-resources';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+// @ts-ignore
+import AnonPlugin from 'puppeteer-extra-plugin-anonymize-ua';
+
+puppeteer.use(StealthPlugin())
+puppeteer.use(AnonPlugin())
+// puppeteer.use(blockResources({
+//   blockedTypes: new Set(['image', 'stylesheet'])
+// });
+
 
 import { logPageEvents } from './page-event';
 import { createMetadata } from './data-formats';
@@ -15,14 +31,14 @@ import { createScrapingContext } from './scraping-context';
 export interface Scraper {
   browser: Browser;
   workingDirectory: string;
-  scrapeUrl(url: string): Promise<void>;
+  scrapeUrl(url: string): Promise<boolean>;
   quit(): Promise<void>;
 }
 
 export async function initScraper(
   workingDirectory: string,
 ): Promise<Scraper> {
-  const browser: Browser = await puppeteer.launch();
+  const browser: Browser = await puppeteer.launch({});
   return {
     workingDirectory,
     browser,
@@ -39,7 +55,7 @@ async function scrapeUrl(
   browser: Browser,
   workingDirectory: string,
   url: string
-): Promise<void> {
+): Promise<boolean> {
 
   const scrapingContext = createScrapingContext(workingDirectory, url);
 
@@ -50,10 +66,9 @@ async function scrapeUrl(
 
   if (hasMetadata) {
     rootLogger.warn(`skipping ${url}: metadata file exists`);
-    return;
+    return false;
   }
 
-  rootLogger.info(`scraping ${url}`);
 
   const page: Page = await browser.newPage();
 
@@ -63,7 +78,7 @@ async function scrapeUrl(
 
   if (!response) {
     rootLogger.warn(`no response ${url}`);
-    return;
+    return false;
   }
 
   const request = response.request();
@@ -79,6 +94,12 @@ async function scrapeUrl(
   const metadata = createMetadata(response);
   metadata.initialUrl = url;
   writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
+  const status  = response.status();
+
+  // TODO put in finally clause
+  await page.close();
+  rootLogger.info(`Scraped ${url}: status: ${status}`);
+  return true;
 }
 
 export async function scrapeUrlAndQuit(

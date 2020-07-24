@@ -26,7 +26,10 @@ export function getSpiderLoggers(
   // TODO un-hardcode download dir name
   const entryLoggingPath = path.resolve(workingDirectory, 'downloads.d', entryEncPath.toPath());
   const console = new transports.Console({
-    format: format.splat(),
+    format: format.combine(
+      format.colorize(),
+      format.simple(),
+    ),
     level: 'info'
   });
 

@@ -1,11 +1,11 @@
 import path from 'path';
 import { Readable } from 'stream';
 
-import { initScraper,  Scraper } from './scraper';
+import { initScraper, Scraper } from './scraper';
 import { CrawlScheduler, initCrawlScheduler } from './scheduler';
 
 import {
-  streamPump, readAlphaRecStream, AlphaRecord,
+  streamPump, readAlphaRecStream, AlphaRecord, putStrLn, delay,
 } from "commons";
 
 
@@ -30,12 +30,22 @@ export async function createSpiderService(): Promise<SpiderService> {
     scraper,
     crawlScheduler,
     async run(alphaRecordStream: Readable) {
-      await this.crawlScheduler.addUrls(alphaRecordStream);
+      const urlCount = await this.crawlScheduler.addUrls(alphaRecordStream);
       const seedUrlStream = this.crawlScheduler.getUrlStream();
+      let i = 0;
       await streamPump.createPump()
         .viaStream<string>(seedUrlStream)
         .throughF((urlString) => {
-          return this.scraper.scrapeUrl(urlString);
+          putStrLn(`url ${i} of ${urlCount}`);
+          i = i + 1;
+          return this.scraper.scrapeUrl(urlString)
+            .then((didScrape) => {
+              if (didScrape) {
+                return delay(3000);
+              }
+            })
+            .catch((error) => putStrLn(`Error`, error))
+          ;
         })
         .toPromise();
     },
@@ -47,6 +57,7 @@ export async function createSpiderService(): Promise<SpiderService> {
   return service;
 }
 
+import isUrl from 'is-url-superb';
 export async function runLocalSpider(
   alphaRecordCsv: string,
   workingDir: string
@@ -59,10 +70,12 @@ export async function runLocalSpider(
     .viaStream<AlphaRecord>(inputStream)
     .throughF((inputRec: AlphaRecord) => {
       const { url } = inputRec;
+      if (!isUrl(url)) {
+        putStrLn(`Warn: filtering non-valid url ${url}`)
+      }
       return url;
     })
+    .filter((url) => isUrl(url))
     .toReadableStream();
   await spiderService.run(urlStream)
 }
-
-
