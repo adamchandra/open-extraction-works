@@ -6,6 +6,7 @@ import { ServiceComm, HandlerSet, getWorkflowServiceLogger } from './service-com
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
 import { promisify } from 'util';
+import { createSpiderService, SpiderService } from '~/spidering/spider-service';
 
 const log = getWorkflowServiceLogger();
 
@@ -54,11 +55,10 @@ const uploadIngestorService = defineSatelliteService<void>(
   async () => undefined, {
 });
 
-const spiderService = defineSatelliteService<void>(
-  async () => undefined, {
-  //
-}
-);
+const spiderService = defineSatelliteService<SpiderService>(
+  async () => createSpiderService(), {
+
+});
 
 const noopService = defineSatelliteService<void>(
   async () => undefined, {

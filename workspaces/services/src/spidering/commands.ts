@@ -1,5 +1,6 @@
 import { arglib } from 'commons';
 import { scrapeUrlAndQuit } from './scraper';
+import { runLocalSpider } from './spider-service';
 const { opt, config, registerCmd } = arglib;
 
 registerCmd(
@@ -18,4 +19,22 @@ registerCmd(
 
   scrapeUrlAndQuit(workingDirectory, url)
     .then(() => undefined)
+});
+
+registerCmd(
+  arglib.YArgs,
+  "run-spider",
+  "run spider service locally",
+  config(
+    opt.cwd,
+    opt.existingDir("working-directory: root directory for logging/tmpfile/downloading"),
+    opt.existingFile("alpha-recs: csv file with alpha records")
+  )
+)((args: any) => {
+  const { workingDirectory, alphaRecs } = args;
+  runLocalSpider(
+    alphaRecs,
+    workingDirectory
+  ).then(() => undefined);
+
 });

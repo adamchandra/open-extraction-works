@@ -23,8 +23,8 @@ export function getSpiderLoggers(
 ): SpiderLoggers {
   const rootLoggingPath = path.resolve(workingDirectory);
 
-  // TODO un-hardcode temp dir name
-  const entryLoggingPath = path.resolve(workingDirectory, 'temp.d', entryEncPath.toPath());
+  // TODO un-hardcode download dir name
+  const entryLoggingPath = path.resolve(workingDirectory, 'downloads.d', entryEncPath.toPath());
   const console = new transports.Console({
     format: format.splat(),
     level: 'info'

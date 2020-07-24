@@ -1,55 +1,68 @@
+import path from 'path';
+import { Readable } from 'stream';
 
-import fs, { } from 'fs-extra';
-import { readUrlFetchChainsFromScrapyLogs } from '~/extract/urls/url-fetch-chains';
+import { initScraper,  Scraper } from './scraper';
+import { CrawlScheduler, initCrawlScheduler } from './scheduler';
 
 import {
-  streamPump,
-  readAlphaRecStream,
-  AlphaRecord,
+  streamPump, readAlphaRecStream, AlphaRecord,
 } from "commons";
 
-export async function pruneCrawledFromCSV(scrapyLogs: string, csvFile: string): Promise<void> {
-  const urlGraph = await readUrlFetchChainsFromScrapyLogs(scrapyLogs);
-  console.log('created Url Graph');
 
-  const inputStream = readAlphaRecStream(csvFile);
+export interface SpiderService {
+  crawlScheduler: CrawlScheduler;
+  scraper: Scraper;
+  run(alphaRecordStream: Readable): Promise<void>;
+  setWorkingDirectory(dir: string): void;
+}
 
-  const stats = {
-    crawled: 0,
-    uncrawled: 0,
-    no_url: 0
+export async function createSpiderService(): Promise<SpiderService> {
+  const appSharePath = process.env['APP_SHARE_PATH'];
+  let workingDir = 'spider-workdir.d';
+  if (appSharePath) {
+    workingDir = path.join(appSharePath, workingDir);
   }
 
-  let i = 0;
+  const scraper = await initScraper(workingDir);
+  const crawlScheduler = initCrawlScheduler();
 
-  const fd = fs.openSync(`${csvFile}.pruned.csv`, fs.constants.O_CREAT | fs.constants.O_WRONLY);
+  const service: SpiderService = {
+    scraper,
+    crawlScheduler,
+    async run(alphaRecordStream: Readable) {
+      await this.crawlScheduler.addUrls(alphaRecordStream);
+      const seedUrlStream = this.crawlScheduler.getUrlStream();
+      await streamPump.createPump()
+        .viaStream<string>(seedUrlStream)
+        .throughF((urlString) => {
+          return this.scraper.scrapeUrl(urlString);
+        })
+        .toPromise();
+    },
+    setWorkingDirectory(dir: string) {
+      this.scraper.workingDirectory = dir;
+    }
+  };
 
-  const pumpBuilder = streamPump.createPump()
-    .viaStream<AlphaRecord>(inputStream)
-    .tap((inputRec) => {
-      if (i % 100 === 0) {
-        console.log(`processed ${i} records`);
-      }
-      i += 1;
-
-      const { url } = inputRec;
-      const isCrawled = urlGraph.isUrlCrawled(url);
-      if (isCrawled) {
-        stats.crawled += 1;
-      } else {
-
-        if (url !== 'no_url') {
-          stats.uncrawled += 1;
-          const outrec = `,,,${url}\n`;
-          fs.appendFileSync(fd, outrec);
-        } else {
-          stats.no_url += 1;
-        }
-      }
-    }).throughF(d => d);
-
-  await pumpBuilder.toPromise().then(() => {
-    fs.closeSync(fd);
-  });
-
+  return service;
 }
+
+export async function runLocalSpider(
+  alphaRecordCsv: string,
+  workingDir: string
+): Promise<void> {
+  const spiderService = await createSpiderService();
+  spiderService.setWorkingDirectory(workingDir);
+  const inputStream = readAlphaRecStream(alphaRecordCsv);
+
+  const urlStream = streamPump.createPump()
+    .viaStream<AlphaRecord>(inputStream)
+    .throughF((inputRec: AlphaRecord) => {
+      const { url } = inputRec;
+      return url;
+    })
+    .toReadableStream();
+  await spiderService.run(urlStream)
+}
+
+

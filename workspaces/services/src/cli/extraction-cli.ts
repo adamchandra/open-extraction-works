@@ -3,27 +3,27 @@ import _ from "lodash";
 import path from "path";
 import { arglib } from "commons";
 import { runMainExtractAbstracts, runMainWriteAlphaRecords, runMainInteractiveFieldReview } from '~/extract/abstracts/cli-main';
-import { pruneCrawledFromCSV } from '~/spidering/spider-service';
+// import { pruneCrawledFromCSV } from '~/spidering/spider-service';
 
 const { opt, config, registerCmd } = arglib;
 
-registerCmd(
-  arglib.YArgs,
-  "openreview-prune-csv",
-  "remove records from csv that have already been spidered",
-  config(
-    opt.cwd,
-    opt.existingFile("scrapyLog: ..."),
-    opt.existingFile("csv: ..."),
-  )
-)((opts: any) => {
-  const { scrapyLog, csv } = opts;
-  Promise.all([
-    pruneCrawledFromCSV(scrapyLog, csv)
-  ]).then(() => {
-    console.log('done');
-  })
-});
+// registerCmd(
+//   arglib.YArgs,
+//   "openreview-prune-csv",
+//   "remove records from csv that have already been spidered",
+//   config(
+//     opt.cwd,
+//     opt.existingFile("scrapyLog: ..."),
+//     opt.existingFile("csv: ..."),
+//   )
+// )((opts: any) => {
+//   const { scrapyLog, csv } = opts;
+//   Promise.all([
+//     pruneCrawledFromCSV(scrapyLog, csv)
+//   ]).then(() => {
+//     console.log('done');
+//   })
+// });
 
 
 registerCmd(

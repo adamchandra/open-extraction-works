@@ -7,37 +7,47 @@ import {
 import { SpiderLoggers } from './spider-logging';
 import { HashEncodedPath } from './persist';
 import { UrlChain, UrlChainLink } from '~/extract/urls/url-fetch-chains';
+// import { prettyPrint } from 'commons';
 
 export function createRequestChain(request: Request): UrlChain {
   const reqRedirectChain = request.redirectChain();
   const urlChain = _.flatMap(reqRedirectChain, req => {
     const requestUrl = req.url();
+    // const timestamp = makeTimestamp();
     const resp = req.response();
+
     if (resp === null) {
       return [];
     }
-    const responseUrl = resp.url();
+    const responseChainHeaders = resp.headers();
+    // const requestChainHeaders = req.headers();
+    // const responseUrl = resp.url();
     const status = resp.status().toString();
-    const timestamp = makeTimestamp();
+
+    // prettyPrint({ requestUrl, responseUrl, requestChainHeaders, responseChainHeaders });
+
+    const { location, date } = responseChainHeaders;
+    // chainLink.responseUrl = responseUrl;
+   // chainLink.status = status;
 
     const chainLink: UrlChainLink = {
       requestUrl,
-      responseUrl,
+      responseUrl: location,
       status,
-      timestamp
+      timestamp: date
     };
     return [chainLink];
   });
   return urlChain;
 }
 
-export function makeTimestamp(): string {
-  const now = new Date().toISOString()
-  return now;
-}
+// export function makeTimestamp(): string {
+//   const now = new Date().toISOString()
+//   return now;
+// }
 
 export interface Metadata {
-  requestUrl: string;
+  initialUrl: string;
   responseUrl: string;
   status: number;
   fetchChain: UrlChain;
@@ -45,21 +55,23 @@ export interface Metadata {
   timestamp: string;
 }
 
+
 export function createMetadata(response: Response): Metadata {
   const request: Request = response.request();
   const fetchChain = createRequestChain(request);
-  const requestUrl = request.url();
+  // const requestUrl = request.url();
   const responseUrl = response.url();
   const status = response.status();
   const method = request.method();
-  const timestamp = makeTimestamp();
+  const { date } = response.headers();
+  // const timestamp = makeTimestamp();
   const metadata: Metadata = {
-    requestUrl,
+    initialUrl: responseUrl,
     responseUrl,
     status,
     fetchChain,
     method,
-    timestamp,
+    timestamp: date,
   };
   return metadata;
 }

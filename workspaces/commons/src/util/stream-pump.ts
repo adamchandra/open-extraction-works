@@ -1,6 +1,6 @@
 import _ from "lodash";
 import pumpify from "pumpify";
-import { Stream } from "stream";
+import { Stream, Readable } from "stream";
 import { throughFunc, tapStream, filterStream, throughAccum, initEnv, WithEnv, unEnv, isWithEnv } from './stream-utils';
 
 export type WithoutEnvCallback<ChunkT, R = void> = (data: ChunkT) => R;
@@ -37,6 +37,7 @@ export interface PumpBuilder<ChunkT, Env> {
   onEnd(f: () => void): PumpBuilder<ChunkT, Env>;
   start(): Stream;
   toStream(): Stream;
+  toReadableStream(): Readable;
   toPromise(): Promise<ChunkT | undefined>;
 }
 
@@ -130,6 +131,20 @@ export function createPump<ChunkT, Env = undefined>(): PumpBuilder<ChunkT, Env> 
       return strm;
     },
     toStream(): Stream {
+      const pipe = pumpify.obj(this.streams);
+      if (this.onCloseF) {
+        pipe.on("close", this.onCloseF);
+      }
+      if (this.onEndF) {
+        pipe.on("end", this.onEndF);
+      }
+      if (this.onDataF) {
+        pipe.on("data", this.onDataF);
+      }
+      return pipe;
+    },
+
+    toReadableStream(): Readable {
       const pipe = pumpify.obj(this.streams);
       if (this.onCloseF) {
         pipe.on("close", this.onCloseF);

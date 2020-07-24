@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { writeCorpusJsonFile, writeCorpusTextFile } from 'commons';
+import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile } from 'commons';
 
 import puppeteer, {
   Response,
@@ -12,8 +12,7 @@ import { createMetadata } from './data-formats';
 import { getResolvedEntryDownloadPath } from './persist';
 import { createScrapingContext } from './scraping-context';
 
-
-interface Scraper {
+export interface Scraper {
   browser: Browser;
   workingDirectory: string;
   scrapeUrl(url: string): Promise<void>;
@@ -43,27 +42,30 @@ async function scrapeUrl(
 ): Promise<void> {
 
   const scrapingContext = createScrapingContext(workingDirectory, url);
+
   const { rootLogger } = scrapingContext;
-
-  rootLogger.info({ msg: "begin scraping", url });
-
   const entryRootPath = getResolvedEntryDownloadPath(scrapingContext);
 
-  rootLogger.info({ msg: "launching browser" });
+  const hasMetadata = hasCorpusFile(entryRootPath, '.', 'metadata.json');
+
+  if (hasMetadata) {
+    rootLogger.warn(`skipping ${url}: metadata file exists`);
+    return;
+  }
+
+  rootLogger.info(`scraping ${url}`);
+
   const page: Page = await browser.newPage();
 
   logPageEvents(scrapingContext, page);
 
-  rootLogger.info({ msg: "navigating to", url });
   const response: Response | null = await page.goto(url);
 
   if (!response) {
-    rootLogger.warn({ msg: "no response", url });
-    await browser.close();
+    rootLogger.warn(`no response ${url}`);
     return;
   }
 
-  rootLogger.info({ msg: "writing response" });
   const request = response.request();
   const requestHeaders = request.headers();
   writeCorpusJsonFile(entryRootPath, '.', 'request-headers.json', requestHeaders);
@@ -75,6 +77,7 @@ async function scrapeUrl(
   writeCorpusTextFile(entryRootPath, '.', 'response-body', respBuffer.toString())
 
   const metadata = createMetadata(response);
+  metadata.initialUrl = url;
   writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
 }
 

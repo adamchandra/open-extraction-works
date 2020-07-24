@@ -3,7 +3,6 @@ import pumpify from "pumpify";
 import { throughFunc } from '~/util/stream-utils';
 import { Stream } from "stream";
 
-
 // The Initial Record supplied by the OpenReview team
 export interface AlphaRecord {
   noteId: string;
