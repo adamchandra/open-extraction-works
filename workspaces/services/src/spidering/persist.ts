@@ -1,6 +1,6 @@
 import path from 'path';
 import hash from "object-hash";
-import { ScrapingContext } from './data-formats';
+import { ScrapingContext } from './scraping-context';
 
 export interface HashEncodedPath {
   source: string;

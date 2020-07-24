@@ -143,7 +143,7 @@ export function createRadioEmmitter(
     }
   });
 
-  const [radioSet, buttons] = createRadios({
+  const [, buttons] = createRadios({
     parent: emitterLayout,
   }, buttonOpts);
 

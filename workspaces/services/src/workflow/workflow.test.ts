@@ -1,13 +1,6 @@
 import "chai/register-should";
 
 import _ from "lodash";
-import winston, {
-  createLogger,
-  format,
-  transports,
-} from "winston";
-
-// import { putStrLn, delay } from 'commons';
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
 import { getWorkflowServiceLogger } from './service-comm';
 

@@ -1,7 +1,11 @@
+import { makeHashEncodedPath, HashEncodedPath } from './persist';
+import { getSpiderLoggers, SpiderLoggers } from './spider-logging';
 
-import { ScrapingContext } from './data-formats';
-import { makeHashEncodedPath } from './persist';
-import { getSpiderLoggers } from './spider-logging';
+export interface ScrapingContext extends SpiderLoggers {
+  workingDirectory: string;
+  initialUrl: string;
+  entryEncPath: HashEncodedPath;
+}
 
 export function createScrapingContext(
   workingDirectory: string,

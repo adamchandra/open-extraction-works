@@ -11,8 +11,7 @@ import {
   Worker,
   Dialog
 } from 'puppeteer';
-
-import { ScrapingContext } from './data-formats';
+import { ScrapingContext } from './scraping-context';
 
 const pageEvents: Array<keyof PageEventObj> = [
   'close',

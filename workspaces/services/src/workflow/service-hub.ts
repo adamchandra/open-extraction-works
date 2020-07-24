@@ -42,7 +42,7 @@ export async function createSatelliteService<T>(
 
   serviceComm.addHandlers('local', {
     '.*': async (msg: string) => {
-      const [localMessage, originalChannel, originalMsg] = msg.split(/::/);
+      const [localMessage, originalChannel,] = msg.split(/::/);
       const [, originalScope] = originalChannel.split(/\./);
 
       if (originalScope === 'inbox') {

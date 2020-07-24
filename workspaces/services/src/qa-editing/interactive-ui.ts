@@ -12,12 +12,12 @@ import { appFrame, createScreen, textDivBox } from './blessterm-widgets';
 import { layoutTreeWithInlineControls } from './records-bterm';
 import { bold, red, blue } from './text-styling';
 
-const openWithLess = (filename: string) => () => {
+export const openWithLess = (filename: string) => () => {
   openFileWithLess(filename);
   // .then(() => setRedraws(i => i + 1));
 };
 
-const openWithBrowser = (filename: string) => () => {
+export const openWithBrowser = (filename: string) => () => {
   openFileWithBrowser(filename);
   // .then(() => setRedraws(i => i + 1));
 };
