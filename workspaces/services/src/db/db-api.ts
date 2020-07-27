@@ -1,80 +1,68 @@
-//
-import { Database } from './database';
-import { Order, Url, NoteId, VenueUrl, OrderEntry } from './database-tables';
-import { AlphaRecord } from 'commons';
+import _ from 'lodash';
+import * as DB from './database-tables';
+import { AlphaRecord, prettyPrint, putStrLn } from 'commons';
+import { Transaction } from 'sequelize/types';
+import ASync from 'async';
 
-export const addOrderEntry: (db: Database, order: Order) => (r: AlphaRecord) => Promise<OrderEntry> =
-  (db, order) => async (rec) => {
-    const { noteId, url, dblpConfId } = rec;
+export async function addAlphaRec(
+  transaction: Transaction,
+  alphaRequest: DB.AlphaRequest,
+  rec: AlphaRecord
+): Promise<DB.AlphaRecord> {
 
-    return db.run(async () => {
-      const urlP = Url.findCreateFind({
-        where: { url },
-        defaults: { url },
-      });
+  const { noteId, url, dblpConfId, authorId, title } = rec;
 
-      const noteP = NoteId.findCreateFind({
-        where: { noteId },
-        defaults: { noteId },
-      });
+  // prettyPrint({ msg: 'adding rec', rec });
 
-      const venueP = VenueUrl.findCreateFind({
-        where: { url: dblpConfId },
-        defaults: { url: dblpConfId },
-      });
+  const [noteEntry] = await DB.NoteId.findCreateFind({
+    where: { noteId },
+    defaults: { noteId },
+    transaction
+  });
 
-      return Promise
-        .all([urlP, noteP, venueP])
-        .then(([urlA, noteA, venueA]) => {
-          const [urlEntry] = urlA;
-          const [noteEntry] = noteA;
-          const [venueEntry] = venueA;
+  const [dblpIdEntry] = await DB.DblpId.findCreateFind({
+    where: { dblpId: dblpConfId },
+    defaults: { dblpId: dblpConfId },
+    transaction
+  });
 
-          return OrderEntry.create({
-            order: order.id,
-            note: noteEntry.id,
-            url: urlEntry.id,
-            venue: venueEntry.id,
-          });
-        });
-    })
-  };
+  const [urlEntry] = await DB.Url.findCreateFind({
+    where: { url },
+    defaults: { url },
+    transaction
+  });
 
-// export async function createOrder(opts: COptions): Promise<OrderEntry[]> {
-//   const logger = createConsoleLogger();
-//   logger.info({ event: "initializing order", config: opts });
-//   const inputStream = readAlphaRecStream(opts.csvFile);
+  const alphaRec = await DB.AlphaRecord.create({
+    alphaRequest: alphaRequest.id,
+    note: noteEntry.id,
+    url: urlEntry.id,
+    dblpId: dblpIdEntry.id,
+    authorId: authorId,
+    title: title,
+  }, { transaction });
 
-//   const db = await openDatabase();
+  return alphaRec;
+}
 
-//   const newOrder = await db.run(async () => {
-//     return Order.create()
-//       .catch(error => {
-//         prettyPrint({ error });
-//       });
-//   });
 
-//   if (!newOrder) return [];
+export async function createAlphaRequest(
+  transaction: Transaction,
+  inputRecs: AlphaRecord[]
+): Promise<DB.AlphaRecord[]> {
+  const alphaRequest = await DB.AlphaRequest.create({}, { transaction })
+    .catch(error => {
+      prettyPrint({ error });
+    });
 
-//   const addEntry = addOrderEntry(db, newOrder);
+  if (!alphaRequest) {
+    prettyPrint({ msg: 'error: could not create alpha request' });
+    return []
+  }
 
-//   let i = 0;
-//   const pumpBuilder = streamPump.createPump()
-//     .viaStream<AlphaRecord>(inputStream)
-//     .throughF(addEntry)
-//     .tap(() => {
-//       if (i % 100 === 0) {
-//         console.log(`processed ${i} records`);
-//       }
-//       i += 1;
-//     })
-//     .gather()
-//     .onEnd(async () => {
-//       logger.info({ event: "done" });
-//       await db.sql.close();
-//       logger.info({ event: "db closed" });
-//     });
-
-//   return pumpBuilder.toPromise()
-//     .then((recs) => recs || []);
-// }
+  return ASync.mapSeries<AlphaRecord, DB.AlphaRecord, Error>(
+    inputRecs,
+    async (rec: AlphaRecord) => {
+      return addAlphaRec(transaction, alphaRequest, rec);
+    }
+  );
+}

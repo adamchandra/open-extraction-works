@@ -14,7 +14,7 @@ export class Url extends Model {
 
 export class DblpId extends Model {
   public id!: number;
-  public dplpId!: string;
+  public dblpId!: string;
 }
 
 export class NoteId extends Model {
@@ -28,7 +28,7 @@ export class AlphaRequest extends Model {
   public readonly updatedAt!: Date;
 
   public static associations: {
-    orderEntries: Association<AlphaRequest, AlphaRecord>;
+    requestRecords: Association<AlphaRequest, AlphaRecord>;
   };
 }
 
@@ -38,8 +38,8 @@ export class AlphaRecord extends Model {
   public url!: number;
   public dblpId!: number;
   public note!: number;
-  public authorId!: number;
-  public title!: number;
+  public authorId!: string;
+  public title!: string;
 }
 
 export function defineTables(sql: Sequelize): void {
@@ -64,7 +64,7 @@ export function defineTables(sql: Sequelize): void {
   Url.init({ id: primaryKey, url }, opts);
   DblpId.init({
     id: primaryKey,
-    dplpId: {
+    dblpId: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
@@ -80,10 +80,12 @@ export function defineTables(sql: Sequelize): void {
 
   AlphaRecord.init({
     id: primaryKey,
-    order: { type: DataTypes.INTEGER },
+    alphaRequest: { type: DataTypes.INTEGER },
     url: { type: DataTypes.INTEGER },
-    venue: { type: DataTypes.INTEGER },
+    dblpId: { type: DataTypes.INTEGER },
     note: { type: DataTypes.INTEGER },
+    authorId: { type: DataTypes.STRING },
+    title: { type: DataTypes.STRING },
     // source: { type: DataTypes.JSON },
   }, opts);
 

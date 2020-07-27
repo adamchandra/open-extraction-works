@@ -51,12 +51,13 @@ export async function runQuery<R>(sql: Sequelize, f: (sql: Sequelize) => Promise
 
 export async function runTransaction<R>(
   sql: Sequelize,
-  f: (db: Sequelize, t: Transaction) => Promise<R>
+  f: (sql: Sequelize, t: Transaction) => Promise<R>
 ): Promise<R> {
   return runQuery(sql, async db => {
     const transaction = await db.transaction();
     return f(db, transaction)
       .then(async (r) => {
+        console.log('committing transaction');
         return transaction.commit().then(() => r);
       })
       .catch(async (error) => {
