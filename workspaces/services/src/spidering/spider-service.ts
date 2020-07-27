@@ -12,7 +12,7 @@ import {
 export interface SpiderService {
   crawlScheduler: CrawlScheduler;
   scraper: Scraper;
-  run(alphaRecordStream: Readable): Promise<void>;
+  run(alphaRecordStream: Readable): Promise<Readable>; // Readable<Metadata|undefined>
   setWorkingDirectory(dir: string): void;
 }
 
@@ -29,11 +29,11 @@ export async function createSpiderService(): Promise<SpiderService> {
   const service: SpiderService = {
     scraper,
     crawlScheduler,
-    async run(alphaRecordStream: Readable) {
+    async run(alphaRecordStream: Readable): Promise<Readable> {
       const urlCount = await this.crawlScheduler.addUrls(alphaRecordStream);
       const seedUrlStream = this.crawlScheduler.getUrlStream();
       let i = 0;
-      await streamPump.createPump()
+      return streamPump.createPump()
         .viaStream<string>(seedUrlStream)
         .throughF(async (urlString) => {
           putStrLn(`url ${i} of ${urlCount}`);
@@ -48,7 +48,7 @@ export async function createSpiderService(): Promise<SpiderService> {
             .catch((error) => putStrLn(`Error`, error))
           ;
         })
-        .toPromise();
+        .toReadableStream();
     },
     setWorkingDirectory(dir: string) {
       this.scraper.workingDirectory = dir;

@@ -53,6 +53,7 @@ describe('OpenReview Database', () => {
           defaults: { url },
           transaction
         }));
+
         return await sequenceArrOfTask(inits)();
       });
 
@@ -70,7 +71,8 @@ describe('OpenReview Database', () => {
   });
 
   it.only('create an alpha request from initial alpha records', async (done) => {
-    const inputRecs: AlphaRecord[] = _.map(_.range(10000), (n) => {
+
+    const inputRecs: AlphaRecord[] = _.map(_.range(5000), (n) => {
       const n0 = n % 2 === 0 ? 10 : 20;
       return ({
         noteId: `note-${n0}`,
@@ -98,9 +100,6 @@ describe('OpenReview Database', () => {
     done();
   });
 
-  // it('reset database', async (done) => {});
-  // it('create an empty order', async (done) => {});
-  // it('update an order with a new item', async (done) => {});
   // it('track whether an order is complete', async (done) => {});
 
 });

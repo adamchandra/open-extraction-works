@@ -62,6 +62,7 @@ export function defineTables(sql: Sequelize): void {
   };
 
   Url.init({ id: primaryKey, url }, opts);
+
   DblpId.init({
     id: primaryKey,
     dblpId: {

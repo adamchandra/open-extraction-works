@@ -5,12 +5,14 @@ import Router from 'koa-router';
 import {
   csvStream,
   streamPump,
+  prettyPrint,
+  AlphaRecord,
 } from "commons";
 
 import { createAppLogger } from './portal-logger';
 import { ServiceComm } from '~/workflow/service-comm';
 
-export function readAlphaRecStream(csvfile: string): Promise<void> {
+export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
   const inputStream = csvStream(csvfile);
   const log = createAppLogger();
 
@@ -18,72 +20,72 @@ export function readAlphaRecStream(csvfile: string): Promise<void> {
     .viaStream<string[]>(inputStream)
     .throughF((csvRec: string[]) => {
       const [noteId, dblpConfId, title, url, authorId] = csvRec;
-      const rec = {
+      const rec: AlphaRecord = {
         noteId, dblpConfId, url, title, authorId
       };
-      log.log({
-        level: 'info',
-        message: 'rest-portal-input',
-        id: `${noteId}+${url}`,
-        ...rec
-      });
+      log.info(`alpha rec: ${noteId} ${url}`);
       return rec
-    })
-  ;
+    });
 
-
-  // TODO save the records to local file
-  // generate log entries suitable for filebeat consumption
   const p = pumpBuilder
+    .gather()
     .toPromise()
-    .then(() => undefined)
-  ;
+    .then((recs) => recs || []);
 
   return p;
 }
 
-async function postBatchCsv(serviceComm: ServiceComm, ctx: Context, next: () => Promise<any>): Promise<Router> {
+async function postBatchCsv(
+  serviceComm: ServiceComm,
+  ctx: Context,
+  next: () => Promise<any>
+): Promise<Router> {
   const { files } = ctx.request;
-
-  // Stash incoming file to /data-root/portal/ingress/zzz-incoming.csv/json
+  prettyPrint({ mgs: 'postBatchCsv' })
 
   if (files) {
     const { data } = files;
-    await readAlphaRecStream(data.path)
-    await serviceComm.sendTo('hub', 'done');
-    ctx.response.body = { status: 'ok' };
+    const alphaRecs = await readAlphaRecStream(data.path)
+    // const alphaRequest = await createAlphaRequest(alphaRecs); // <- just put input file into db
+    // TODO delete tmp upload file
+    ctx.response.body = {
+      status: 'ok'
+      // getBatchStatus: "/records/batch/${reqId}"
+    };
   } else {
     ctx.response.body = { status: 'error' };
   }
 
+  await serviceComm.sendTo('hub', 'done');
   return next();
 }
 
 async function getBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Router> {
   const p = ctx.path;
-  console.log('getBatchCsv');
+  console.log('getBatchCsv', p);
+  ctx.response.body = { status: 'ok' };
 
   return next();
 }
 
 async function getRoot(ctx: Context, next: () => Promise<any>): Promise<Router> {
   const p = ctx.path;
-  console.log('getRoot');
+  console.log('getRoot', p);
 
   return next();
 }
 
 export function initPortalRouter(serviceComm: ServiceComm): Router {
   const apiRouter = new Router({});
-  const pathPrefix = '/extractor'
+  const pathPrefix = '^/extractor'
 
   const curriedPostBatchCsv = _.curry(postBatchCsv)(serviceComm);
 
   apiRouter
-    .get(new RegExp(`${pathPrefix}/`), getRoot)
-    .post(new RegExp(`${pathPrefix}/batch.csv`), curriedPostBatchCsv)
-    .get(new RegExp(`${pathPrefix}/batch.csv`), getBatchCsv)
-  ;
+    .get(new RegExp(`${pathPrefix}/batch.csv$`), getBatchCsv)
+    .get(new RegExp(`${pathPrefix}/$`), getRoot)
+    .post(new RegExp(`${pathPrefix}/batch.csv$`), curriedPostBatchCsv)
+    ;
 
   return apiRouter;
 }

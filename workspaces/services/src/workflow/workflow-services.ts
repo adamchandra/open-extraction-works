@@ -13,9 +13,9 @@ const log = getWorkflowServiceLogger();
 interface WorkflowServiceNames {
   'rest-portal': null;
   'upload-ingestor': null;
-  'field-extractor': null;
   'spider': null;
-  'no-op': null;
+  'field-extractor': null;
+  // 'field-bundler': null; <- create aggregated sets of extracted fields
 }
 
 type WorkflowServiceName = keyof WorkflowServiceNames;
@@ -23,9 +23,8 @@ type WorkflowServiceName = keyof WorkflowServiceNames;
 export const WorkflowServiceNames: WorkflowServiceName[] = [
   'rest-portal',
   'upload-ingestor',
-  'field-extractor',
   'spider',
-  'no-op',
+  'field-extractor',
 ];
 
 export async function runServiceHub(dockerize: boolean): Promise<ServiceComm> {
@@ -39,29 +38,42 @@ export async function runServiceHub(dockerize: boolean): Promise<ServiceComm> {
 const restPortalService = defineSatelliteService<Server>(
   (serviceComm) => startRestPortal(serviceComm), {
   async onShutdown(): Promise<void> {
-    // putStrLn(`${this.serviceName} [shutdown]> `);
     log.debug(`${this.serviceName} [shutdown]> `)
 
     const server = this.cargo;
     const doClose = promisify(server.close).bind(server);
     return doClose().then(() => {
-      // putStrLn(`${this.serviceName} [cargo:shutdown]> `);
-      log.debug(`${this.serviceName} [cargo:shutdown]> `)
+      log.debug(`${this.serviceName} [server:shutdown]> `)
     });
   }
 });
 
 const uploadIngestorService = defineSatelliteService<void>(
   async () => undefined, {
+  async onRun(): Promise<void> {
+    // TODO put alpha request records into database
+    // TODO setup spider scheduler
+    return;
+  }
 });
 
 const spiderService = defineSatelliteService<SpiderService>(
   async () => createSpiderService(), {
-
-});
-
-const noopService = defineSatelliteService<void>(
-  async () => undefined, {
+  async onRun(): Promise<void> {
+    const spider = this.cargo;
+    // const urls = await db.getUnspideredUrls()
+    // const metadataStream = await spider.run(urls)
+    // update db.urls with metadata
+    // await this.getServiceComm().sendTo('hub', 'step')
+  },
+  async onShutdown(): Promise<void> {
+    log.debug(`${this.serviceName} [shutdown]> `)
+    const spider = this.cargo;
+    return spider.scraper.quit()
+      .then(() => {
+        log.debug(`${this.serviceName} [scraper:shutdown]> `)
+      });
+  }
 });
 
 
@@ -86,11 +98,8 @@ export async function runService(
       return createSatelliteService(serviceName, fieldExtractorService);
     case 'spider':
       return createSatelliteService(serviceName, spiderService);
-    case 'no-op':
-      return createSatelliteService(serviceName, noopService);
   }
 }
-
 
 // TODO move to utility module
 export type SlidingWindowFunc = <A>(xs: ReadonlyArray<A>) => ReadonlyArray<ReadonlyArray<A>>;
@@ -120,8 +129,6 @@ export async function createWorkflowHub(): Promise<ServiceComm> {
   const handlerSet: HandlerSet = {};
 
   _.each(servicePairs, ([svc1, svc2]) => {
-    // putStrLn('connecting services', [svc1, svc2]);
-
     log.info(`connecting services ${svc1} => ${svc2}`);
     const onEvent = `${svc1}:done`;
     handlerSet[onEvent] = async () => {

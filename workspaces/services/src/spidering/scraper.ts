@@ -24,14 +24,14 @@ puppeteer.use(AnonPlugin())
 
 
 import { logPageEvents } from './page-event';
-import { createMetadata } from './data-formats';
+import { createMetadata, Metadata } from './data-formats';
 import { getResolvedEntryDownloadPath } from './persist';
 import { createScrapingContext } from './scraping-context';
 
 export interface Scraper {
   browser: Browser;
   workingDirectory: string;
-  scrapeUrl(url: string): Promise<boolean>;
+  scrapeUrl(url: string): Promise<Metadata|undefined>;
   quit(): Promise<void>;
 }
 
@@ -55,7 +55,7 @@ async function scrapeUrl(
   browser: Browser,
   workingDirectory: string,
   url: string
-): Promise<boolean> {
+): Promise<Metadata|undefined> {
 
   const scrapingContext = createScrapingContext(workingDirectory, url);
 
@@ -66,7 +66,7 @@ async function scrapeUrl(
 
   if (hasMetadata) {
     rootLogger.warn(`skipping ${url}: metadata file exists`);
-    return false;
+    return;
   }
 
 
@@ -78,7 +78,7 @@ async function scrapeUrl(
 
   if (!response) {
     rootLogger.warn(`no response ${url}`);
-    return false;
+    return;
   }
 
   const request = response.request();
@@ -99,7 +99,7 @@ async function scrapeUrl(
   // TODO put in finally clause
   await page.close();
   rootLogger.info(`Scraped ${url}: status: ${status}`);
-  return true;
+  return metadata;
 }
 
 export async function scrapeUrlAndQuit(
