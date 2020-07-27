@@ -12,9 +12,9 @@ export class Url extends Model {
   public url!: string;
 }
 
-export class VenueUrl extends Model {
+export class DblpId extends Model {
   public id!: number;
-  public url!: string;
+  public dplpId!: string;
 }
 
 export class NoteId extends Model {
@@ -22,23 +22,24 @@ export class NoteId extends Model {
   public noteId!: string;
 }
 
-export class Order extends Model {
+export class AlphaRequest extends Model {
   public id!: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
   public static associations: {
-    orderEntries: Association<Order, OrderEntry>;
+    orderEntries: Association<AlphaRequest, AlphaRecord>;
   };
 }
 
-export class OrderEntry extends Model {
+export class AlphaRecord extends Model {
   public id!: number;
-  public order!: number;
+  public alphaRequest!: number;
   public url!: number;
-  public venue!: number;
+  public dblpId!: number;
   public note!: number;
-  // public source!: string; // the original record as provided by the openreview team (csv record)
+  public authorId!: number;
+  public title!: number;
 }
 
 export function defineTables(sql: Sequelize): void {
@@ -61,16 +62,23 @@ export function defineTables(sql: Sequelize): void {
   };
 
   Url.init({ id: primaryKey, url }, opts);
-  VenueUrl.init({ id: primaryKey, url }, opts);
+  DblpId.init({
+    id: primaryKey,
+    dplpId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    }
+  }, opts);
 
   NoteId.init({
     id: primaryKey,
     noteId: { type: DataTypes.STRING, allowNull: false, unique: true },
   }, opts);
 
-  Order.init({ id: primaryKey }, opts);
+  AlphaRequest.init({ id: primaryKey }, opts);
 
-  OrderEntry.init({
+  AlphaRecord.init({
     id: primaryKey,
     order: { type: DataTypes.INTEGER },
     url: { type: DataTypes.INTEGER },

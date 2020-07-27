@@ -35,7 +35,7 @@ export async function createSpiderService(): Promise<SpiderService> {
       let i = 0;
       await streamPump.createPump()
         .viaStream<string>(seedUrlStream)
-        .throughF((urlString) => {
+        .throughF(async (urlString) => {
           putStrLn(`url ${i} of ${urlCount}`);
           i = i + 1;
           return this.scraper.scrapeUrl(urlString)
@@ -43,6 +43,7 @@ export async function createSpiderService(): Promise<SpiderService> {
               if (didScrape) {
                 return delay(3000);
               }
+              return;
             })
             .catch((error) => putStrLn(`Error`, error))
           ;

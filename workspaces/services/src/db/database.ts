@@ -17,8 +17,8 @@ export async function initSequelize(): Promise<Sequelize> {
   const sequelize = new Sequelize({
     dialect: 'postgres',
     username: 'watrworker',
-    password: 'watrpass',
-    database: 'textworks_or_onramp',
+    password: 'watrpasswd',
+    database: 'open_extraction',
     logging: false, // logging: console.log,
   });
 

@@ -9,7 +9,6 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.8.0
     container_name: elasticsearch
     environment:
-    environment:
       - "discovery.type=single-node"
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ulimits:

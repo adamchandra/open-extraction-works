@@ -7,10 +7,11 @@ BIN=$(dirname "$SCRIPT")
 docker-compose \
     -f $COMPOSE/network.yml \
     -f $COMPOSE/volumes.yml \
-    -f $COMPOSE/redis.yml \
-    -f $COMPOSE/watr-front.yml \
+    -f $COMPOSE/postgres.yml \
     $@
 
-    # -f $COMPOSE/filebeat.yml \
+# -f $COMPOSE/redis.yml \
+# -f $COMPOSE/watr-front.yml \
+# -f $COMPOSE/filebeat.yml \
 
 
