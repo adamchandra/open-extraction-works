@@ -1,14 +1,16 @@
 
 import yargs  from "yargs";
 import { arglib } from 'commons';
-import { runService, WorkflowServiceNames } from './workflow-services';
+import { runService, WorkflowServiceNames, runServiceHub } from './workflow-services';
 const { opt, config, registerCmd } = arglib;
 
 export function registerCLICommands(yargv: yargs.Argv) {
+  const hubName = "ServiceHub";
+
   registerCmd(
     yargv,
     "start-service",
-    "start workflow service hub",
+    "start a named service",
     config(
       opt.ion("dockerize", { boolean: true, default: false }),
       opt.ion("service-name: name of service to launch", {
@@ -17,6 +19,18 @@ export function registerCLICommands(yargv: yargs.Argv) {
     )
   )((args: any) => {
     const { serviceName, dockerize } = args;
-    runService(serviceName, dockerize);
+    runService(hubName, serviceName, dockerize);
+  });
+
+  registerCmd(
+    yargv,
+    "start-service-hub",
+    "start the service hub",
+    config(
+      opt.ion("dockerize", { boolean: true, default: false }),
+    )
+  )((args: any) => {
+    const { dockerize } = args;
+    runServiceHub(hubName, dockerize);
   });
 }

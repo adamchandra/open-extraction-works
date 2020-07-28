@@ -10,13 +10,14 @@ import got from 'got';
 
 
 describe("End-to-end Extraction workflows", () => {
+  const hubName = 'ServiceHub';
 
 
   it("should demo end-to-end processing", async (done) => {
-    const hubService = await runServiceHub(false);
+    const hubService = await runServiceHub(hubName, false);
     const satellitePs = _.map(
       WorkflowServiceNames,
-      (service) => runService(service, false)
+      (service) => runService(hubName, service, false)
     );
 
     // await delay(500);

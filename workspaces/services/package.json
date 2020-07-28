@@ -129,6 +129,9 @@
     "roots": [
       "<rootDir>/src"
     ],
+    "reporters": [
+      "<rootDir>/node_modules/@jest/reporters/build/summary_reporter.js"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1",
       "^~/(.*)$": "<rootDir>/src/$1"

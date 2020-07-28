@@ -9,8 +9,9 @@ import Async from 'async';
 
 
 async function createTestServices(n: number): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
+  const hubName = 'ServiceHub';
   const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
-  const hubPool = await createHubService('hub')
+  const hubPool = await createHubService(hubName)
 
   // Make hub aware of service names, so that it will wait for them to start before continuing
   const satelliteInits = _.map(serviceNames, serviceName => {
@@ -35,7 +36,7 @@ async function createTestServices(n: number): Promise<[ServiceHub, Array<Satelli
       const serviceDef = defineSatelliteService<void>(
         async () => undefined, {
       });
-      return createSatelliteService(serviceName, serviceDef);
+      return createSatelliteService(hubName, serviceName, serviceDef);
     });
 
   await Promise.all(satelliteInits);
@@ -53,11 +54,13 @@ describe("Service Communication Hub lifecycle", () => {
     done();
   });
 
+
   it("should execute hub, service startup/shutdown", async (done) => {
-    const hubService = await runServiceHub(false);
+    const hubName = 'ServiceHub';
+    const hubService = await runServiceHub(hubName, false);
     const satellitePs = _.map(
       WorkflowServiceNames, (service) => {
-        return runService(service, false);
+        return runService(hubName, service, false);
       }
     );
 
@@ -68,10 +71,11 @@ describe("Service Communication Hub lifecycle", () => {
   });
 
   it("should demo end-to-end startup/run/shutdown", async (done) => {
-    const hubService = await runServiceHub(false);
+    const hubName = 'ServiceHub';
+    const hubService = await runServiceHub(hubName, false);
     const satellitePs = _.map(
       WorkflowServiceNames, (service) => {
-        return runService(service, false);
+        return runService(hubName, service, false);
       }
     );
 

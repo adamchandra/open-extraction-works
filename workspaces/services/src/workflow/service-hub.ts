@@ -1,15 +1,15 @@
 import _ from "lodash";
 
-import { ServiceComm, createServiceComm, HandlerSet, getServiceLogger } from './service-comm';
-import { putStrLn, delay } from 'commons';
+import { ServiceComm, createServiceComm, HandlerSet, unpackLocalMessage } from './service-comm';
+import { delay } from 'commons';
 
-const log = getServiceLogger('star');
 
 export interface LifecycleHandlers<T> {
   onStartup(this: SatelliteService<T>): Promise<void>;
   onShutdown(this: SatelliteService<T>): Promise<void>;
   onPing(this: SatelliteService<T>): Promise<void>;
   onRun(this: SatelliteService<T>): Promise<void>;
+  on(this: SatelliteService<T>): Promise<void>;
 }
 
 export interface SatelliteService<T> extends Partial<LifecycleHandlers<T>> {
@@ -41,44 +41,13 @@ export function defineSatelliteService<T>(
   };
 }
 
-async function logInboxMessageHandler(msg: string): Promise<void> {
-  const [ogSender, ogMsg] = msg.split(/:/);
-  log.debug(`[log inbox] ${msg}`);
-}
-async function logBroadcastMessageHandler(msg: string): Promise<void> {
-  log.debug(`[log broadcast] ${msg}`);
-}
-
 export async function createSatelliteService<T>(
-  name: string,
+  hubName: string,
+  satelliteName: string,
   serviceDef: SatelliteServiceDef<T>
 ): Promise<SatelliteService<T>> {
-  const serviceComm = await createServiceComm(name);
-  serviceComm.subscriber.subscribe(`hub.broadcast`);
+  const serviceComm = await createServiceComm(satelliteName);
 
-  // serviceComm.addHandlers('local', { '.*': logLocalMessageHandler });
-  serviceComm.addHandlers('inbox', { '.*': logInboxMessageHandler });
-  serviceComm.addHandlers('broadcast', { '.*': logBroadcastMessageHandler });
-
-  serviceComm.addHandlers('local', {
-    '.*': async (msg: string) => {
-      const [localMessage, originalChannel, originalMsg] = msg.split(/::/);
-      const [, originalScope] = originalChannel.split(/\./);
-      const [ogSender, ogMsg] = originalMsg.split(/:/);
-
-
-      if (originalScope === 'inbox') {
-        switch (localMessage) {
-          case 'received':
-            return serviceComm.sendTo('hub', `ack~${ogMsg}`)
-          case 'handled':
-            return serviceComm.sendTo('hub', 'done')
-          default:
-            log.warn(`${name} [unhandled]> #${msg}`);
-        }
-      }
-    },
-  });
 
   return serviceDef
     .cargoInit(serviceComm)
@@ -86,24 +55,44 @@ export async function createSatelliteService<T>(
 
       const satService: SatelliteService<T> = {
         ...serviceDef.lifecyleHandlers,
-        serviceName: name,
+        serviceName: satelliteName,
         getServiceComm() {
           return serviceComm;
         },
         cargo,
       };
-      serviceComm.addHandlers('broadcast', {
-        'shutdown': async () => {
+
+      serviceComm.addHandler(
+        'local', '.*',
+        async (msg: string) => {
+          const lm = unpackLocalMessage(msg);
+          if (lm.scope === 'inbox') {
+            switch (lm.localMessage) {
+              case 'received':
+                return serviceComm.sendTo(hubName, `ack~${lm.message}`);
+              case 'handled':
+                return serviceComm.sendTo(hubName, `done~${lm.message}`);
+              default:
+                serviceComm.log.warn(`${satelliteName} [unhandled]> #${msg}`);
+            }
+          }
+        });
+      serviceComm.addHandler(
+        'broadcast', `${hubName}:shutdown`,
+        async () => {
           if (satService.onShutdown) {
             await satService.onShutdown()
           }
           return serviceComm.quit();
         },
-      });
+      );
+
       serviceComm.addHandlers('inbox', {
         'ping': async () => { if (satService.onPing) return satService.onPing(); },
         'run': async () => { if (satService.onRun) return satService.onRun(); },
       });
+
+      serviceComm.subscriber.subscribe(`${hubName}.broadcast`);
 
       if (satService.onStartup) {
         await satService.onStartup();
@@ -113,25 +102,22 @@ export async function createSatelliteService<T>(
     });
 }
 
-async function establishSatelliteConnection(hubName: string, hubComm: ServiceComm, satelliteName: string): Promise<void> {
-  const handlerSet: HandlerSet = {};
+async function establishSatelliteConnection(hubComm: ServiceComm, satelliteName: string): Promise<void> {
   let pingedSatellite = false;
-  handlerSet[`${satelliteName}:ack~ping`] = async (msg) => {
-    putStrLn(`${hubName}> addSatelliteService`, msg);
-    pingedSatellite = true;
-  };
-  hubComm.addHandlers('inbox', handlerSet);
+  hubComm.addHandler(
+    'inbox',
+    `${satelliteName}:ack~link`,
+    async () => { pingedSatellite = true; }
+  );
   const tryPing = async () => {
     if (pingedSatellite) {
-      putStrLn(`${hubName}> addSatelliteService: succesfully pinged`, satelliteName);
       return;
     }
-    putStrLn(`${hubName}> createServiceComm: pinging`, satelliteName);
-    await hubComm.sendTo(satelliteName, 'ping');
+    await hubComm.sendTo(satelliteName, 'link');
     await delay(200).then(() => tryPing())
   };
   await tryPing();
-  putStrLn(`${hubName}> addSatelliteService: added`, satelliteName);
+  hubComm.log.info(`established link to ${satelliteName}`);
 }
 
 export async function createHubService(name: string): Promise<ServiceHub> {
@@ -142,7 +128,7 @@ export async function createHubService(name: string): Promise<ServiceHub> {
         getComm() { return comm; },
         serviceQuorum: [],
         async addSatelliteService(satelliteName: string): Promise<void> {
-          await establishSatelliteConnection(name, this.getComm(), satelliteName);
+          await establishSatelliteConnection(this.getComm(), satelliteName);
           this.serviceQuorum.push(satelliteName);
         }
       };

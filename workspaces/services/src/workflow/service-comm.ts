@@ -34,8 +34,9 @@ const RedisConnectionEvents = [
   'reconnecting'
 ];
 
-type HandlerInstance = (msg: string) => Promise<void>
-export type HandlerSet = Record<string, HandlerInstance>
+type Thunk = () => Promise<void>;
+type HandlerInstance = (msg: string) => Promise<void>;
+export type HandlerSet = Record<string, HandlerInstance>;
 
 interface HandlerSets {
   'inbox': HandlerSet[];
@@ -49,7 +50,9 @@ export interface ServiceComm {
   name: string;
   log: winston.Logger;
   addHandlers: (scope: HandlerScope, hs: HandlerSet) => void;
+  addHandler: (scope: HandlerScope, regex: string, handler: HandlerInstance) => void;
   sendTo(name: string, msg: string): Promise<void>;
+  sendSelf(selfMsg: string, channel: string, msg: string): Promise<void>;
   broadcast(msg: string): Promise<void>;
   quit: () => Promise<void>;
 
@@ -83,22 +86,41 @@ export interface LocalMessage {
 }
 
 export function unpackLocalMessage(sourceMsg: string): LocalMessage {
-  // sourceMsg = received::service-2.inbox::hub:run
   const [localMessage, channel, qualifiedMessage] = sourceMsg.split(/::/);
-  // [received  service-2.inbox  hub:run]
   const [receiver, scope] = channel.split(/\./);
-  //   [service-2,  inbox]
   const [sender, message] = qualifiedMessage.split(/:/);
-  // [hub, run]
   return {
     sourceMsg, localMessage, channel, qualifiedMessage,
     receiver, scope, sender, message,
   };
 }
 
+function getScopedMessageHandlers(
+  scope: string,
+  message: string,
+  serviceComm: ServiceComm
+): Thunk[] {
+  const handlerScope: HandlerScope = scope as any;
+  const scopedHandlers = serviceComm.handlerSets[handlerScope]
+
+  if (scopedHandlers === undefined) {
+    serviceComm.log.error(`Error: Received unknown scoped message ${message} in ${scope}`);
+    return [];
+  }
+  return _.flatMap(scopedHandlers, (hs) => {
+    return _.flatMap(_.toPairs(hs), ([k, v]) => {
+      const keyMatches = message.match(k)
+      if (keyMatches) {
+        return [() => v(message)];
+      }
+      return [];
+    })
+  });
+}
+
 export function createServiceComm(name: string): Promise<ServiceComm> {
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const subscriber = newRedis(name);
 
     const serviceComm: ServiceComm = {
@@ -116,24 +138,28 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 
         const publisher = this.subscriber.duplicate();
         await publisher.publish(`${recipient}.${scope}`, msg);
-        if (scope === 'local') {
-          const lm = unpackLocalMessage(msg);
-          // this.log.debug(`${ogReceiver} [${localMessage}:${originalScope}]> #${ogSender}:${ogMsg}`);
-          this.log.debug(`${lm.localMessage}:local> #${lm.sender}:${lm.message}`);
-        } else {
-          this.log.info(`sent> #${msg} -[to]-> ${recipient}`)
-        }
         await publisher.quit();
       },
       async sendTo(recipient: string, msg: string): Promise<void> {
         const prefixedMsg = `${name}:${msg}`;
+        this.log.info(`sending> #${msg} -[to]-> ${recipient}`)
         return this.send(recipient, 'inbox', prefixedMsg);
       },
+      async sendSelf(selfMsg: string, channel: string, msg: string): Promise<void> {
+        return this.send(this.name, 'local', `${selfMsg}::${channel}::${msg}`);
+      },
       async broadcast(msg: string): Promise<void> {
-        return this.send(name, 'broadcast', msg);
+        const prefixedMsg = `${name}:${msg}`;
+        this.log.info(`broadcasting> #${msg}`)
+        return this.send(name, 'broadcast', prefixedMsg);
       },
       addHandlers(scope: HandlerScope, hs: HandlerSet): void {
         this.handlerSets[scope].push(hs);
+      },
+      addHandler(scope: HandlerScope, regex: string, handler: HandlerInstance): void {
+        const handlerSet: HandlerSet = {};
+        handlerSet[regex] = handler;
+        this.addHandlers(scope, handlerSet);
       },
       async quit(): Promise<void> {
         const self = this;
@@ -146,32 +172,23 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
     };
 
     subscriber.on('message', (channel: string, msg: string) => {
+      // serviceComm.log.debug(`${name}.on('message', ('${channel}', '${msg}') => ...`);
+
       const channelParts = channel.split(/\./);
-      const channelScope = _.last(channelParts);
+      const [, channelScope] = channelParts;
       if (channelScope === undefined) {
+        serviceComm.log.error(`Error: Unknown scope in ${channel}: msg: ${msg}`);
         return;
       }
 
-      const handlerScope: HandlerScope = channelScope as any;
-      const scopedHandlers = serviceComm.handlerSets[handlerScope]
+      const handlersForMessage = getScopedMessageHandlers(channelScope, msg, serviceComm);
 
-      if (scopedHandlers === undefined) {
-        serviceComm.log.error(`Error: Received unknown scoped message ${msg} on ${channel}`);
-        return;
-      }
+      const haveHandlers = handlersForMessage.length > 0;
+      const isLocalMessage = channelScope === 'local';
 
-      const handlersForMessage = _.flatMap(scopedHandlers, (hs) => {
-        return _.flatMap(_.toPairs(hs), ([k, v]) => {
-          const keyMatches = msg.match(k)
-          if (keyMatches) {
-            return [() => v(msg)];
-          }
-          return [];
-        })
-      });
-
-      const isLocalMessage = handlerScope === 'local';
       if (isLocalMessage) {
+        const lm = unpackLocalMessage(msg);
+        serviceComm.log.info(`${lm.localMessage}:local> #${lm.sender}:${lm.message}`);
         Async.mapSeries(handlersForMessage, async (handler) => handler())
           .catch((err) => {
             serviceComm.log.error(`> ${msg} on ${channel}: ${err}`)
@@ -179,22 +196,25 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         return;
       }
 
-      serviceComm.send(name, 'local', `received::${channel}::${msg}`)
-        // .then(() => serviceComm.log.info(`receive> #${msg}`))
+      const respondIfHandled = async () => {
+        if (haveHandlers) {
+          return serviceComm.sendSelf('handled', channel, msg);
+        }
+      };
+      serviceComm.sendSelf('received', channel, msg)
         .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
-        .then(() => serviceComm.send(name, 'local', `handled::${channel}::${msg}`))
-        // .then(() => serviceComm.log.info(`handled> #${msg}`))
+        .then(respondIfHandled)
         .catch((err) => {
           serviceComm.log.warn(`> ${msg} on ${channel}: ${err}`)
         });
     });
 
     subscriber.on('ready', () => {
-      subscriber.subscribe(`${name}.inbox`)
-        .then(() => subscriber.subscribe(`${name}.local`))
+      subscriber.subscribe(`${name}.inbox`, `${name}.local`)
         .then(() => resolve(serviceComm))
         .catch((err) => {
           serviceComm.log.error(`subscribe> ${err}`)
+          reject(`${name} subscribe> ${err}`)
         });
     });
   });
@@ -203,6 +223,6 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 function installEventEchoing(r: Redis.Redis, name: string) {
   const log = getServiceLogger(`${name}/redis`);
   _.each(RedisConnectionEvents, (e: string) => {
-    r.on(e, () => log.debug(`> ${e}`));
+    r.on(e, () => log.debug(`event:${e}`));
   });
 }

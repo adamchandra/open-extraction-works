@@ -28,11 +28,11 @@ export const WorkflowServiceNames: WorkflowServiceName[] = [
   'field-extractor',
 ];
 
-export async function runServiceHub(dockerize: boolean): Promise<ServiceHub> {
+export async function runServiceHub(hubName: string,dockerize: boolean): Promise<ServiceHub> {
   if (dockerize) {
     process.env['DOCKERIZED'] = 'true';
   }
-  return createWorkflowHub();
+  return createWorkflowHub(hubName);
 }
 
 
@@ -84,6 +84,7 @@ const fieldExtractorService = defineSatelliteService<void>(
 
 
 export async function runService(
+  hubName: string,
   serviceName: WorkflowServiceName,
   dockerize: boolean
 ): Promise<SatelliteService<any>> {
@@ -92,19 +93,19 @@ export async function runService(
   }
   switch (serviceName) {
     case 'rest-portal':
-      return createSatelliteService(serviceName, restPortalService);
+      return createSatelliteService(hubName, serviceName, restPortalService);
     case 'upload-ingestor':
-      return createSatelliteService(serviceName, uploadIngestorService);
+      return createSatelliteService(hubName, serviceName, uploadIngestorService);
     case 'field-extractor':
-      return createSatelliteService(serviceName, fieldExtractorService);
+      return createSatelliteService(hubName, serviceName, fieldExtractorService);
     case 'spider':
-      return createSatelliteService(serviceName, spiderService);
+      return createSatelliteService(hubName, serviceName, spiderService);
   }
 }
 
 
-export async function createWorkflowHub(): Promise<ServiceHub> {
-  const hubPool = await createHubService('hub')
+export async function createWorkflowHub(hubName: string): Promise<ServiceHub> {
+  const hubPool = await createHubService(hubName)
 
   const orderedServices: WorkflowServiceName[] = [
     'rest-portal',
