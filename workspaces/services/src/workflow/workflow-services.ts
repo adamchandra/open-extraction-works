@@ -1,14 +1,15 @@
 import _ from "lodash";
-import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService } from './service-hub';
+import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub } from './service-hub';
 
-import { ServiceComm, HandlerSet, getWorkflowServiceLogger } from './service-comm';
+import { HandlerSet, getServiceLogger } from './service-comm';
 
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
 import { promisify } from 'util';
 import { createSpiderService, SpiderService } from '~/spidering/spider-service';
+import { slidingWindow } from 'commons';
 
-const log = getWorkflowServiceLogger();
+const log = getServiceLogger('service');
 
 interface WorkflowServiceNames {
   'rest-portal': null;
@@ -27,7 +28,7 @@ export const WorkflowServiceNames: WorkflowServiceName[] = [
   'field-extractor',
 ];
 
-export async function runServiceHub(dockerize: boolean): Promise<ServiceComm> {
+export async function runServiceHub(dockerize: boolean): Promise<ServiceHub> {
   if (dockerize) {
     process.env['DOCKERIZED'] = 'true';
   }
@@ -60,7 +61,7 @@ const uploadIngestorService = defineSatelliteService<void>(
 const spiderService = defineSatelliteService<SpiderService>(
   async () => createSpiderService(), {
   async onRun(): Promise<void> {
-    const spider = this.cargo;
+    // const spider = this.cargo;
     // const urls = await db.getUnspideredUrls()
     // const metadataStream = await spider.run(urls)
     // update db.urls with metadata
@@ -101,19 +102,8 @@ export async function runService(
   }
 }
 
-// TODO move to utility module
-export type SlidingWindowFunc = <A>(xs: ReadonlyArray<A>) => ReadonlyArray<ReadonlyArray<A>>;
-export function sliding(
-  window: number,
-  offset: number
-): SlidingWindowFunc {
-  return xs => (
-    xs.length < window ? [] :
-      [xs.slice(0, window), ...sliding(window, offset)(xs.slice(offset))]
-  );
-}
 
-export async function createWorkflowHub(): Promise<ServiceComm> {
+export async function createWorkflowHub(): Promise<ServiceHub> {
   const hubPool = await createHubService('hub')
 
   const orderedServices: WorkflowServiceName[] = [
@@ -123,7 +113,7 @@ export async function createWorkflowHub(): Promise<ServiceComm> {
     'field-extractor',
   ];
 
-  const pairWise = sliding(2, 1);
+  const pairWise = slidingWindow(2);
   const servicePairs = pairWise(orderedServices);
 
   const handlerSet: HandlerSet = {};
@@ -132,11 +122,11 @@ export async function createWorkflowHub(): Promise<ServiceComm> {
     log.info(`connecting services ${svc1} => ${svc2}`);
     const onEvent = `${svc1}:done`;
     handlerSet[onEvent] = async () => {
-      await hubPool.sendTo(`${svc2}`, 'run');
+      await hubPool.getComm().sendTo(`${svc2}`, 'run');
     };
   });
 
-  hubPool.addHandlers('inbox', handlerSet);
+  hubPool.getComm().addHandlers('inbox', handlerSet);
 
   return hubPool;
 }

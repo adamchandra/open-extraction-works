@@ -1,8 +1,6 @@
 import _ from "lodash";
-import { putStrLn } from 'commons';
 import Redis from 'ioredis';
-import * as Task from 'fp-ts/lib/Task';
-import * as Arr from 'fp-ts/lib/Array';
+import Async from 'async';
 
 import winston, {
   createLogger,
@@ -10,23 +8,22 @@ import winston, {
   format,
 } from "winston";
 
-const cli = winston.config.cli;
-const _logger = createLogger({
-  level: 'silly',
-  levels: cli.levels,
-  transports: [
-    new transports.Console({
-      format: format.combine(
-        format.colorize(),
-        format.simple(),
-      ),
-    })
-  ],
-});
-
-export const getWorkflowServiceLogger = () => _logger;
-
-const log = getWorkflowServiceLogger();
+export function getServiceLogger(label: string): winston.Logger {
+  const cli = winston.config.cli;
+  return createLogger({
+    level: 'silly',
+    levels: cli.levels,
+    transports: [
+      new transports.Console({
+        format: format.combine(
+          format.colorize(),
+          format.label({ label, message: true }),
+          format.simple(),
+        ),
+      })
+    ],
+  });
+}
 
 const RedisConnectionEvents = [
   'ready',
@@ -50,6 +47,7 @@ type HandlerScope = keyof HandlerSets;
 
 export interface ServiceComm {
   name: string;
+  log: winston.Logger;
   addHandlers: (scope: HandlerScope, hs: HandlerSet) => void;
   sendTo(name: string, msg: string): Promise<void>;
   broadcast(msg: string): Promise<void>;
@@ -72,7 +70,31 @@ function newRedis(name: string, opts?: Redis.RedisOptions): Redis.Redis {
   return client;
 }
 
-const sequenceArrOfTask = Arr.array.sequence(Task.task);
+export interface LocalMessage {
+  sourceMsg: string;
+  localMessage: string;
+  channel: string;
+  qualifiedMessage: string;
+  receiver: string;
+  scope: string;
+  sender: string;
+  message: string;
+
+}
+
+export function unpackLocalMessage(sourceMsg: string): LocalMessage {
+  // sourceMsg = received::service-2.inbox::hub:run
+  const [localMessage, channel, qualifiedMessage] = sourceMsg.split(/::/);
+  // [received  service-2.inbox  hub:run]
+  const [receiver, scope] = channel.split(/\./);
+  //   [service-2,  inbox]
+  const [sender, message] = qualifiedMessage.split(/:/);
+  // [hub, run]
+  return {
+    sourceMsg, localMessage, channel, qualifiedMessage,
+    receiver, scope, sender, message,
+  };
+}
 
 export function createServiceComm(name: string): Promise<ServiceComm> {
 
@@ -83,6 +105,7 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       name,
       subscriber,
       isShutdown: false,
+      log: getServiceLogger(`${name}/comm`),
       handlerSets: {
         'inbox': [],
         'local': [],
@@ -93,11 +116,12 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 
         const publisher = this.subscriber.duplicate();
         await publisher.publish(`${recipient}.${scope}`, msg);
-        // putStrLn(`${name} [sent:${scope}]> #${msg} -[to]-> ${recipient}`);
         if (scope === 'local') {
-          log.debug(`${name} [local]> #${msg}`)
+          const lm = unpackLocalMessage(msg);
+          // this.log.debug(`${ogReceiver} [${localMessage}:${originalScope}]> #${ogSender}:${ogMsg}`);
+          this.log.debug(`${lm.localMessage}:local> #${lm.sender}:${lm.message}`);
         } else {
-          log.info(`${name} [sent]> #${msg} -[to]-> ${recipient}`)
+          this.log.info(`sent> #${msg} -[to]-> ${recipient}`)
         }
         await publisher.quit();
       },
@@ -128,16 +152,11 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         return;
       }
 
-      const scopedHandlers =
-        channelScope === 'inbox' ?
-          serviceComm.handlerSets.inbox :
-          channelScope === 'local' ?
-            serviceComm.handlerSets.local :
-            channelScope === 'broadcast' ?
-              serviceComm.handlerSets.broadcast : undefined;
+      const handlerScope: HandlerScope = channelScope as any;
+      const scopedHandlers = serviceComm.handlerSets[handlerScope]
 
       if (scopedHandlers === undefined) {
-        putStrLn(`Error: Received unknown scoped message ${msg} on ${channel}`);
+        serviceComm.log.error(`Error: Received unknown scoped message ${msg} on ${channel}`);
         return;
       }
 
@@ -151,23 +170,22 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         })
       });
 
-      const isLocalMessage = channelScope === 'local';
+      const isLocalMessage = handlerScope === 'local';
       if (isLocalMessage) {
-        sequenceArrOfTask(handlersForMessage)()
-          .then(() => log.debug(`${name} [local]> #${msg}`))
+        Async.mapSeries(handlersForMessage, async (handler) => handler())
           .catch((err) => {
-            log.error(`${name}> ${msg} on ${channel}: ${err}`)
+            serviceComm.log.error(`> ${msg} on ${channel}: ${err}`)
           });
         return;
       }
 
       serviceComm.send(name, 'local', `received::${channel}::${msg}`)
-        .then(() => log.info(`${name} [received]> #${msg}`))
-        .then(() => sequenceArrOfTask(handlersForMessage)())
+        // .then(() => serviceComm.log.info(`receive> #${msg}`))
+        .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
         .then(() => serviceComm.send(name, 'local', `handled::${channel}::${msg}`))
-        .then(() => log.info(`${name} [handled]> #${msg}`))
+        // .then(() => serviceComm.log.info(`handled> #${msg}`))
         .catch((err) => {
-          log.warn(`${name}> ${msg} on ${channel}: ${err}`)
+          serviceComm.log.warn(`> ${msg} on ${channel}: ${err}`)
         });
     });
 
@@ -176,15 +194,15 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         .then(() => subscriber.subscribe(`${name}.local`))
         .then(() => resolve(serviceComm))
         .catch((err) => {
-          log.error(`${name} [subscribe]> ${err}`)
+          serviceComm.log.error(`subscribe> ${err}`)
         });
     });
   });
 }
 
-
 function installEventEchoing(r: Redis.Redis, name: string) {
+  const log = getServiceLogger(`${name}/redis`);
   _.each(RedisConnectionEvents, (e: string) => {
-    r.on(e, () => log.debug(`${name} [redis:${e}]>`));
+    r.on(e, () => log.debug(`> ${e}`));
   });
 }

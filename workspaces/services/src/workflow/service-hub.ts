@@ -1,8 +1,9 @@
 import _ from "lodash";
 
-import { ServiceComm, createServiceComm, getWorkflowServiceLogger } from './service-comm';
+import { ServiceComm, createServiceComm, HandlerSet, getServiceLogger } from './service-comm';
+import { putStrLn, delay } from 'commons';
 
-const log = getWorkflowServiceLogger();
+const log = getServiceLogger('star');
 
 export interface LifecycleHandlers<T> {
   onStartup(this: SatelliteService<T>): Promise<void>;
@@ -15,6 +16,13 @@ export interface SatelliteService<T> extends Partial<LifecycleHandlers<T>> {
   serviceName: string;
   getServiceComm(): ServiceComm;
   cargo: T;
+}
+
+export interface ServiceHub {
+  name: string;
+  getComm(): ServiceComm;
+  addSatelliteService(name: string): Promise<void>;
+  serviceQuorum: string[];
 }
 
 export interface SatelliteServiceDef<T> {
@@ -33,6 +41,14 @@ export function defineSatelliteService<T>(
   };
 }
 
+async function logInboxMessageHandler(msg: string): Promise<void> {
+  const [ogSender, ogMsg] = msg.split(/:/);
+  log.debug(`[log inbox] ${msg}`);
+}
+async function logBroadcastMessageHandler(msg: string): Promise<void> {
+  log.debug(`[log broadcast] ${msg}`);
+}
+
 export async function createSatelliteService<T>(
   name: string,
   serviceDef: SatelliteServiceDef<T>
@@ -40,15 +56,21 @@ export async function createSatelliteService<T>(
   const serviceComm = await createServiceComm(name);
   serviceComm.subscriber.subscribe(`hub.broadcast`);
 
+  // serviceComm.addHandlers('local', { '.*': logLocalMessageHandler });
+  serviceComm.addHandlers('inbox', { '.*': logInboxMessageHandler });
+  serviceComm.addHandlers('broadcast', { '.*': logBroadcastMessageHandler });
+
   serviceComm.addHandlers('local', {
     '.*': async (msg: string) => {
-      const [localMessage, originalChannel,] = msg.split(/::/);
+      const [localMessage, originalChannel, originalMsg] = msg.split(/::/);
       const [, originalScope] = originalChannel.split(/\./);
+      const [ogSender, ogMsg] = originalMsg.split(/:/);
+
 
       if (originalScope === 'inbox') {
         switch (localMessage) {
           case 'received':
-            return serviceComm.sendTo('hub', 'ack')
+            return serviceComm.sendTo('hub', `ack~${ogMsg}`)
           case 'handled':
             return serviceComm.sendTo('hub', 'done')
           default:
@@ -91,7 +113,40 @@ export async function createSatelliteService<T>(
     });
 }
 
-export async function createHubService(name: string): Promise<ServiceComm> {
-  const serviceComm = await createServiceComm(name);
-  return serviceComm;
+async function establishSatelliteConnection(hubName: string, hubComm: ServiceComm, satelliteName: string): Promise<void> {
+  const handlerSet: HandlerSet = {};
+  let pingedSatellite = false;
+  handlerSet[`${satelliteName}:ack~ping`] = async (msg) => {
+    putStrLn(`${hubName}> addSatelliteService`, msg);
+    pingedSatellite = true;
+  };
+  hubComm.addHandlers('inbox', handlerSet);
+  const tryPing = async () => {
+    if (pingedSatellite) {
+      putStrLn(`${hubName}> addSatelliteService: succesfully pinged`, satelliteName);
+      return;
+    }
+    putStrLn(`${hubName}> createServiceComm: pinging`, satelliteName);
+    await hubComm.sendTo(satelliteName, 'ping');
+    await delay(200).then(() => tryPing())
+  };
+  await tryPing();
+  putStrLn(`${hubName}> addSatelliteService: added`, satelliteName);
+}
+
+export async function createHubService(name: string): Promise<ServiceHub> {
+  return await createServiceComm(name)
+    .then(comm => {
+      const hub: ServiceHub = {
+        name,
+        getComm() { return comm; },
+        serviceQuorum: [],
+        async addSatelliteService(satelliteName: string): Promise<void> {
+          await establishSatelliteConnection(name, this.getComm(), satelliteName);
+          this.serviceQuorum.push(satelliteName);
+        }
+      };
+
+      return hub;
+    });
 }
