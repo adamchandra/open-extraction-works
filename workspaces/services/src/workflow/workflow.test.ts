@@ -2,7 +2,6 @@ import "chai/register-should";
 
 import _ from "lodash";
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
-import { } from './service-comm';
 import { prettyPrint, } from 'commons';
 import FormData from 'form-data';
 import fs from "fs-extra";
@@ -15,7 +14,7 @@ describe("End-to-end Extraction workflows", () => {
 
   it("should demo end-to-end processing", async (done) => {
     const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
-    const satellitePs = _.map(
+    _.each(
       orderedServices,
       (service) => runService(hubName, service, false)
     );
@@ -24,8 +23,7 @@ describe("End-to-end Extraction workflows", () => {
     prettyPrint({ msg: 'services are running and connected' });
 
     hubService.commLink.addHandler(
-      'inbox', 'field-extractor:done~step',
-
+      'inbox', 'FieldExtractor:done~step',
       async () => {
         await hubService.commLink.broadcast('shutdown');
         await hubService.commLink.quit();

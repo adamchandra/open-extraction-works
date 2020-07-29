@@ -1,9 +1,8 @@
 import "chai/register-should";
 
 import _ from "lodash";
-import { runServiceHub, runService, WorkflowServiceNames, createWorkflowHub } from './workflow-services';
-// import { HandlerSet } from './service-comm';
-import { defineSatelliteService, createSatelliteService, SatelliteService, ServiceHub } from './service-hub';
+import { runServiceHub, runService, WorkflowServiceNames  } from './workflow-services';
+import { defineSatelliteService, createSatelliteService, SatelliteService, ServiceHub, createHubService } from './service-hub';
 import { putStrLn } from 'commons';
 import Async from 'async';
 
@@ -11,12 +10,8 @@ import Async from 'async';
 async function createTestServices(n: number): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
   const hubName = 'ServiceHub';
   const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
-  const [hubPool, hubConnected] = await createWorkflowHub(hubName, serviceNames);
+  const [hubPool, hubConnected] = await createHubService(hubName, serviceNames);
 
-  // Make hub aware of service names, so that it will wait for them to start before continuing
-  // const satelliteInits = _.map(serviceNames, serviceName => {
-  //   return hubPool.addSatelliteService(serviceName);
-  // });
 
   // TODO Async.mapXX seem to be buggy; if iterator fn is not declared as async (v) => {}, it doesn't work
   const satelliteServices = await Async.map<string, SatelliteService<void>, Error>(
