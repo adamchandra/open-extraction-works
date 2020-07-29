@@ -36,23 +36,24 @@ const RedisConnectionEvents = [
 
 type Thunk = () => Promise<void>;
 type HandlerInstance = (msg: string) => Promise<void>;
-export type HandlerSet = Record<string, HandlerInstance>;
+type HandlerSet = Record<string, HandlerInstance>;
 
-interface HandlerSets {
-  'inbox': HandlerSet[];
-  'local': HandlerSet[];
-  'broadcast': HandlerSet[];
-}
+type HandlerScope = keyof {
+  'inbox': null,
+  'local': null,
+  'broadcast': null
+};
 
-type HandlerScope = keyof HandlerSets;
+type HandlerSets = Record<HandlerScope, HandlerSet[]>;
+
 
 export interface ServiceComm {
   name: string;
   log: winston.Logger;
-  addHandlers: (scope: HandlerScope, hs: HandlerSet) => void;
   addHandler: (scope: HandlerScope, regex: string, handler: HandlerInstance) => void;
   sendTo(name: string, msg: string): Promise<void>;
   sendSelf(selfMsg: string, channel: string, msg: string): Promise<void>;
+  emit(msg: string): Promise<void>;
   broadcast(msg: string): Promise<void>;
   quit: () => Promise<void>;
 
@@ -82,7 +83,6 @@ export interface LocalMessage {
   scope: string;
   sender: string;
   message: string;
-
 }
 
 export function unpackLocalMessage(sourceMsg: string): LocalMessage {
@@ -101,7 +101,7 @@ function getScopedMessageHandlers(
   serviceComm: ServiceComm
 ): Thunk[] {
   const handlerScope: HandlerScope = scope as any;
-  const scopedHandlers = serviceComm.handlerSets[handlerScope]
+  const scopedHandlers = serviceComm.handlerSets[handlerScope];
 
   if (scopedHandlers === undefined) {
     serviceComm.log.error(`Error: Received unknown scoped message ${message} in ${scope}`);
@@ -148,18 +148,19 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       async sendSelf(selfMsg: string, channel: string, msg: string): Promise<void> {
         return this.send(this.name, 'local', `${selfMsg}::${channel}::${msg}`);
       },
+      async emit(msg: string): Promise<void> {
+        const prefixedMsg = `${name}:${msg}`;
+        return this.sendSelf('emit', `${this.name}.inbox`, prefixedMsg);
+      },
       async broadcast(msg: string): Promise<void> {
         const prefixedMsg = `${name}:${msg}`;
         this.log.info(`broadcasting> #${msg}`)
         return this.send(name, 'broadcast', prefixedMsg);
       },
-      addHandlers(scope: HandlerScope, hs: HandlerSet): void {
-        this.handlerSets[scope].push(hs);
-      },
       addHandler(scope: HandlerScope, regex: string, handler: HandlerInstance): void {
         const handlerSet: HandlerSet = {};
         handlerSet[regex] = handler;
-        this.addHandlers(scope, handlerSet);
+        this.handlerSets[scope].push(handlerSet);
       },
       async quit(): Promise<void> {
         const self = this;

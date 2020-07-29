@@ -2,8 +2,8 @@ import "chai/register-should";
 
 import _ from "lodash";
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
-import {  } from './service-comm';
-import { prettyPrint,  } from 'commons';
+import { } from './service-comm';
+import { prettyPrint, } from 'commons';
 import FormData from 'form-data';
 import fs from "fs-extra";
 import got from 'got';
@@ -11,29 +11,27 @@ import got from 'got';
 
 describe("End-to-end Extraction workflows", () => {
   const hubName = 'ServiceHub';
-
+  const orderedServices = WorkflowServiceNames;
 
   it("should demo end-to-end processing", async (done) => {
-    const hubService = await runServiceHub(hubName, false);
+    const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
     const satellitePs = _.map(
-      WorkflowServiceNames,
+      orderedServices,
       (service) => runService(hubName, service, false)
     );
 
-    // await delay(500);
+    await hubConnected;
+    prettyPrint({ msg: 'services are running and connected' });
 
-    await Promise.all(satellitePs);
-    prettyPrint({ msg: 'services are running' });
+    hubService.commLink.addHandler(
+      'inbox', 'field-extractor:done~step',
 
-    hubService.getComm().addHandlers('inbox', {
-      async 'field-extractor:done'() {
-        prettyPrint({ msg: 'done' });
-        await hubService.getComm().broadcast('shutdown');
-        await hubService.getComm().quit();
+      async () => {
+        await hubService.commLink.broadcast('shutdown');
+        await hubService.commLink.quit();
         done();
       }
-    });
-
+    );
 
     const getResponse = await got('http://localhost:3100/extractor/batch.csv');
 

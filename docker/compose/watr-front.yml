@@ -22,7 +22,7 @@ services:
   service-hub:
     << : *workflow-service
     container_name: service-hub
-    command: ["start-service", "--dockerize", "--service-name", "hub"]
+    command: ["start-service-hub", "--dockerize"]
 
   upload-ingestor:
     << : *workflow-service

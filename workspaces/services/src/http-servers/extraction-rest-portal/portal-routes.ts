@@ -56,7 +56,7 @@ async function postBatchCsv(
     ctx.response.body = { status: 'error' };
   }
 
-  await serviceComm.sendTo('hub', 'done');
+  await serviceComm.emit('step');
   return next();
 }
 
