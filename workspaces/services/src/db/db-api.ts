@@ -43,11 +43,31 @@ export async function addAlphaRec(
 }
 
 
+export async function createAlphaUpload(
+  transaction: Transaction,
+  inputRecs: AlphaRecord[]
+): Promise<DB.AlphaUpload | undefined> {
+  const alphUpload = await DB.AlphaUpload.create({
+    rawUpload: inputRecs,
+  }, { transaction })
+    .catch(error => {
+      prettyPrint({ error });
+    });
+
+  if (!alphUpload) {
+    prettyPrint({ msg: 'error: could not create alpha request' });
+    return;
+  }
+  return alphUpload;
+}
+
 export async function createAlphaRequest(
   transaction: Transaction,
   inputRecs: AlphaRecord[]
 ): Promise<DB.AlphaRecord[]> {
-  const alphaRequest = await DB.AlphaRequest.create({}, { transaction })
+  const alphaRequest = await DB.AlphaRequest.create({
+    rawRequest: inputRecs,
+  }, { transaction })
     .catch(error => {
       prettyPrint({ error });
     });

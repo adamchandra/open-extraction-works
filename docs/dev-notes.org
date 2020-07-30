@@ -55,29 +55,6 @@
   //   //   logpath
   //   // });
 
-  //   await delay(200);
-
-  //   // Version that uses log produced by spider?? to run
-  //   // runAbstractFinderUsingLogStream({ corpusRoot, logpath, phase, prevPhase, filters });
-
-  //   // This is run by abstract finder, not needed
-  //   // normalizeHtmls(corpusRoot);
-
-  //   // const inputlog = path.resolve(path.join(scratchDir, 'qa-review-abstract-finder-log.json'));
-  //   // const outputlog = path.resolve(path.join(scratchDir, 'clean-abstracts.json'));
-  //   // const outputAbstractsFile = path.resolve(path.join(scratchDir, 'collected-abstracts.json'));
-  //   // const filters: string[] = [];
-  //   // prettyPrint({ inputlog, outputlog });
-
-  //   // await cleanAbstracts({ corpusRoot, logpath, inputlog, outputlog, filters });
-
-  //   // await collectAbstractExtractionStats(outputlog, outputAbstractsFile, [])
-
-  //   // app.close(() => {
-  //   //   console.log('we are done');
-  //   //   done();
-  //   // });
-  // });
   });
 
 #+END_SRC

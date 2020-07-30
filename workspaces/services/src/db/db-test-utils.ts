@@ -33,3 +33,8 @@ export async function createEmptyDB(): Promise<Database> {
   const freshDB = await db.unsafeResetDatabase();
   return freshDB;
 }
+
+export async function useEmptyDatabase(f: (db: Database) => Promise<void>): Promise<void> {
+  const db = await createEmptyDB();
+  return f(db).then(() => db.close());
+}

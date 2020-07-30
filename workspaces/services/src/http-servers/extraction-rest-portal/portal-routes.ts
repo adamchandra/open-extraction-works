@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { Context } from 'koa';
 import Router from 'koa-router';
+import fs from "fs-extra";
 
 import {
   csvStream,
@@ -11,6 +12,8 @@ import {
 
 import { createAppLogger } from './portal-logger';
 import { ServiceComm } from '~/workflow/service-comm';
+import { openDatabase } from '~/db/database';
+import { createAlphaRequest } from '~/db/db-api';
 
 export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
   const inputStream = csvStream(csvfile);
@@ -42,20 +45,24 @@ async function postBatchCsv(
 ): Promise<Router> {
   const { files } = ctx.request;
   prettyPrint({ mgs: 'postBatchCsv' })
+  const db = await openDatabase();
+  const body: Record<string, string> = {};
+  ctx.response.body = body;
 
   if (files) {
     const { data } = files;
     const alphaRecs = await readAlphaRecStream(data.path)
-    // const alphaRequest = await createAlphaRequest(alphaRecs); // <- just put input file into db
-    // TODO delete tmp upload file
-    ctx.response.body = {
-      status: 'ok'
-      // getBatchStatus: "/records/batch/${reqId}"
-    };
+    await db.runTransaction(async (_sql, transaction) => {
+      const newRecs = await createAlphaRequest(transaction, alphaRecs);
+    });
+
+    fs.unlinkSync(data.path);
+    body.status = 'ok';
   } else {
     ctx.response.body = { status: 'error' };
   }
 
+  // TODO this emit can be moved to middleware outside of here
   await serviceComm.emit('step');
   return next();
 }

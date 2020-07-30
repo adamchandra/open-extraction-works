@@ -1,14 +1,10 @@
 import _ from "lodash";
 import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub, SatelliteServiceDef } from './service-hub';
 
-import { getServiceLogger } from './service-comm';
-
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
 import { promisify } from 'util';
 import { createSpiderService, SpiderService } from '~/spidering/spider-service';
-
-// const log = getServiceLogger('service');
 
 type WorkflowServiceName = keyof {
   RestPortal: null,

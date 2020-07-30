@@ -1,4 +1,4 @@
-import {
+import winston, {
   createLogger,
   format,
   transports,
@@ -6,28 +6,18 @@ import {
 } from "winston";
 
 export function createAppLogger(): Logger {
+  const cli = winston.config.cli;
   return createLogger({
-    format: format.combine(
-      format.timestamp(),
-      format.json()
-    ),
+    level: 'silly',
+    levels: cli.levels,
     transports: [
-      new transports.Console(),
-      new transports.File({
-        filename: "portal-rest-service.log",
-        dirname: "./logs",
-        tailable: true,
+      new transports.Console({
+        format: format.combine(
+          format.colorize(),
+          format.label({ label: 'RestPortal', message: true }),
+          format.simple(),
+        ),
       })
-    ],
-  });
-}
-
-
-
-export function createConsoleLogger(): Logger {
-  return createLogger({
-    transports: [
-      new transports.Console(),
     ],
   });
 }
