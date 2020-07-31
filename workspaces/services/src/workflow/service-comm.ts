@@ -9,9 +9,12 @@ import winston, {
 } from "winston";
 
 export function getServiceLogger(label: string): winston.Logger {
+
+  const envLogLevel = process.env['service-comm.loglevel'];
+  const logLevel = envLogLevel || 'info';
   const cli = winston.config.cli;
   return createLogger({
-    level: 'silly',
+    level: logLevel,
     levels: cli.levels,
     transports: [
       new transports.Console({
@@ -142,7 +145,7 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       },
       async sendTo(recipient: string, msg: string): Promise<void> {
         const prefixedMsg = `${name}:${msg}`;
-        this.log.info(`sending> #${msg} -[to]-> ${recipient}`)
+        this.log.debug(`sending> #${msg} -[to]-> ${recipient}`)
         return this.send(recipient, 'inbox', prefixedMsg);
       },
       async sendSelf(selfMsg: string, channel: string, msg: string): Promise<void> {
@@ -154,7 +157,7 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       },
       async broadcast(msg: string): Promise<void> {
         const prefixedMsg = `${name}:${msg}`;
-        this.log.info(`broadcasting> #${msg}`)
+        this.log.debug(`broadcasting> #${msg}`)
         return this.send(name, 'broadcast', prefixedMsg);
       },
       addHandler(scope: HandlerScope, regex: string, handler: HandlerInstance): void {
@@ -173,7 +176,6 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
     };
 
     subscriber.on('message', (channel: string, msg: string) => {
-      // serviceComm.log.debug(`${name}.on('message', ('${channel}', '${msg}') => ...`);
 
       const channelParts = channel.split(/\./);
       const [, channelScope] = channelParts;
@@ -189,8 +191,21 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
 
       if (isLocalMessage) {
         const lm = unpackLocalMessage(msg);
-        serviceComm.log.info(`${lm.localMessage}:local> #${lm.sender}:${lm.message}`);
-        Async.mapSeries(handlersForMessage, async (handler) => handler())
+        switch (lm.localMessage) {
+          case 'received' :
+            serviceComm.log.debug(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
+            break;
+          case 'handled':
+            serviceComm.log.info(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
+            break;
+        }
+
+        Async.mapSeries(handlersForMessage, async (handler) => {
+          handler()
+            .catch(error => {
+              serviceComm.log.error(`${lm.localMessage}:local> #${lm.sender}:${lm.message}: ERROR: ${error}`);
+            })
+        })
           .catch((err) => {
             serviceComm.log.error(`> ${msg} on ${channel}: ${err}`)
           });

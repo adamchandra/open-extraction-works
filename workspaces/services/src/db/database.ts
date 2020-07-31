@@ -78,6 +78,7 @@ export async function openDatabase(): Promise<Database> {
 
       const run = _.curry(runQuery)(sql);
       const runT = _.curry(runTransaction)(sql);
+
       const unsafeResetDatabase = async () => {
         await sql.drop();
         return sql

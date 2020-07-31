@@ -43,7 +43,7 @@ describe("Url Parsing from scrapy spidering logs", () => {
         authorId: `auth-${n0}`,
         url: `url-${n0}`,
       })
-    })
+    });
 
     const uniqAlphaRecs = _.uniqWith(recs, (reca, recb) => {
       const recDiffs = diff(reca, recb);

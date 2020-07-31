@@ -2,15 +2,23 @@ import "chai/register-should";
 
 import _ from "lodash";
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
-import { prettyPrint, } from 'commons';
-import FormData from 'form-data';
-import fs from "fs-extra";
+import { prettyPrint, AlphaRecord, } from 'commons';
 import got from 'got';
-
 
 describe("End-to-end Extraction workflows", () => {
   const hubName = 'ServiceHub';
   const orderedServices = WorkflowServiceNames;
+
+  const sampleRecs: AlphaRecord[] = _.map(_.range(4), (n) => {
+    return ({
+      noteId: `note-${n}`,
+      dblpConfId: `dblp.org/conf/c-${n}/199${n}`,
+      title: `title-${n}`,
+      authorId: `auth-${n}`,
+      url: `http://foo.bar/${n}`,
+    })
+  })
+
 
   it("should demo end-to-end processing", async (done) => {
     const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
@@ -35,11 +43,10 @@ describe("End-to-end Extraction workflows", () => {
 
     prettyPrint({ response: getResponse.body });
 
-    const file = './test/resources/dblp_urls-10.csv';
-    const formData = new FormData();
-    formData.append('data', fs.readFileSync(file), 'dblp_urls.csv');
-
-    const retval = await got.post('http://localhost:3100/extractor/batch.csv', { body: formData });
+    const retval = await got.post(
+      'http://localhost:3100/extractor/fields.json', {
+      json: sampleRecs
+    });
     prettyPrint({ msg: "out of pipeline", response: retval.body });
   });
 });

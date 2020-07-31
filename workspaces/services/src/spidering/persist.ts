@@ -1,6 +1,6 @@
 import path from 'path';
-import hash from "object-hash";
 import { ScrapingContext } from './scraping-context';
+import { shaEncodeAsHex } from 'commons';
 
 export interface HashEncodedPath {
   source: string;
@@ -11,7 +11,7 @@ export interface HashEncodedPath {
 }
 
 export function makeHashEncodedPath(source: string, depth: number): HashEncodedPath {
-  const hashedSource = hash(source, { algorithm: "sha1", encoding: "hex" });
+  const hashedSource = shaEncodeAsHex(source);
   const leadingSegments = hashedSource
     .slice(0, depth)
     .split("");

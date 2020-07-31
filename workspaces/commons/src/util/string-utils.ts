@@ -4,7 +4,13 @@ import sliceAnsi from 'slice-ansi';
 import chalk from 'chalk';
 import wrapAnsi from 'wrap-ansi';
 import * as Diff from 'diff';
+import hash from "object-hash";
 
+
+
+export function shaEncodeAsHex(str: string): string {
+  return hash(str, { algorithm: "sha1", encoding: "hex" });
+}
 
 export function matchAll(re: RegExp, str: string): Array<[number, number]> {
   const re0 = RegExp(re);

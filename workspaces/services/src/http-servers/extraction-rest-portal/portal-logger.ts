@@ -6,9 +6,11 @@ import winston, {
 } from "winston";
 
 export function createAppLogger(): Logger {
+  const envLogLevel = process.env['rest-portal.loglevel'];
+  const logLevel = envLogLevel || 'info';
   const cli = winston.config.cli;
   return createLogger({
-    level: 'silly',
+    level: logLevel,
     levels: cli.levels,
     transports: [
       new transports.Console({

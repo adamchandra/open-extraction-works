@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import { Context } from 'koa';
 import Router from 'koa-router';
-import fs from "fs-extra";
 
 import {
   csvStream,
@@ -12,8 +11,9 @@ import {
 
 import { createAppLogger } from './portal-logger';
 import { ServiceComm } from '~/workflow/service-comm';
-import { openDatabase } from '~/db/database';
-import { createAlphaRequest } from '~/db/db-api';
+import { insertAlphaRecords } from '~/db/db-api';
+
+// const log = createAppLogger();
 
 export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
   const inputStream = csvStream(csvfile);
@@ -43,23 +43,21 @@ async function postBatchCsv(
   ctx: Context,
   next: () => Promise<any>
 ): Promise<Router> {
-  const { files } = ctx.request;
-  prettyPrint({ mgs: 'postBatchCsv' })
-  const db = await openDatabase();
-  const body: Record<string, string> = {};
-  ctx.response.body = body;
+  const requestBody = ctx.request.body;
+  const responseBody: Record<string, string> = {};
+  ctx.response.body = responseBody;
 
-  if (files) {
-    const { data } = files;
-    const alphaRecs = await readAlphaRecStream(data.path)
-    await db.runTransaction(async (_sql, transaction) => {
-      const newRecs = await createAlphaRequest(transaction, alphaRecs);
-    });
+  if (requestBody) {
+    // TODO validate requestBody as AlphaRecord[]
+    const alphaRecs: AlphaRecord[] = requestBody;
+    const newRecs = await insertAlphaRecords(alphaRecs);
+    // TODO return all field records for which we have already have extraction results
+    // TODO return status/error records for alpha requests for which there are no extraction results
 
-    fs.unlinkSync(data.path);
-    body.status = 'ok';
+    responseBody.insertionCount = newRecs.length.toString();
+    responseBody.status = 'ok';
   } else {
-    ctx.response.body = { status: 'error' };
+    responseBody.status = 'error';
   }
 
   // TODO this emit can be moved to middleware outside of here
@@ -82,6 +80,8 @@ async function getRoot(ctx: Context, next: () => Promise<any>): Promise<Router> 
   return next();
 }
 
+import koaBody from 'koa-body';
+
 export function initPortalRouter(serviceComm: ServiceComm): Router {
   const apiRouter = new Router({});
   const pathPrefix = '^/extractor'
@@ -91,7 +91,7 @@ export function initPortalRouter(serviceComm: ServiceComm): Router {
   apiRouter
     .get(new RegExp(`${pathPrefix}/batch.csv$`), getBatchCsv)
     .get(new RegExp(`${pathPrefix}/$`), getRoot)
-    .post(new RegExp(`${pathPrefix}/batch.csv$`), curriedPostBatchCsv)
+    .post(new RegExp(`${pathPrefix}/fields.json$`), koaBody(), curriedPostBatchCsv)
     ;
 
   return apiRouter;

@@ -1,12 +1,13 @@
 import Koa, { Context } from 'koa';
 import Router from 'koa-router';
 import json from 'koa-json';
-import koaBody from 'koa-body';
 import { initPortalRouter } from './portal-routes';
 import { Server } from 'http';
 import { ServiceComm } from '~/workflow/service-comm';
+import { createAppLogger } from './portal-logger';
 
 export async function startRestPortal(serviceComm: ServiceComm): Promise<Server> {
+  const log = createAppLogger();
   const app = new Koa();
   const rootRouter = new Router();
   const portalRouter = initPortalRouter(serviceComm);
@@ -18,7 +19,7 @@ export async function startRestPortal(serviceComm: ServiceComm): Promise<Server>
       ctx.set('Access-Control-Allow-Origin', '*');
       return next();
     }))
-    .use(koaBody({ multipart: true }))
+    // .use(koaBody({ multipart: true }))
     .use(portalRouter.routes())
     .use(portalRouter.allowedMethods())
     ;
@@ -31,7 +32,7 @@ export async function startRestPortal(serviceComm: ServiceComm): Promise<Server>
 
   return new Promise((resolve) => {
     const server = app.listen(port, function() {
-      console.log(`Koa is listening to http://localhost:${port}`);
+      log.info(`Koa is listening to http://localhost:${port}`);
       resolve(server);
     });
   });

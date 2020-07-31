@@ -1,5 +1,4 @@
 import _ from "lodash";
-import hash from "object-hash";
 import { Readable } from "stream";
 import path from "path";
 import fs from "fs-extra";
