@@ -1,67 +1,85 @@
 import "chai/register-should";
 
 import _ from "lodash";
-import { runServiceHub, runService, WorkflowServiceNames  } from './workflow-services';
-import { defineSatelliteService, createSatelliteService, SatelliteService, ServiceHub, createHubService } from './service-hub';
-import { putStrLn } from 'commons';
-import Async from 'async';
-
-
-async function createTestServices(n: number): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
-  const hubName = 'ServiceHub';
-  const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
-  const [hubPool, hubConnected] = await createHubService(hubName, serviceNames);
-
-
-  // TODO Async.mapXX seem to be buggy; if iterator fn is not declared as async (v) => {}, it doesn't work
-  const satelliteServices = await Async.map<string, SatelliteService<void>, Error>(
-    serviceNames, async (serviceName) => {
-      const serviceDef = defineSatelliteService<void>(
-        async () => undefined, {
-      });
-      return createSatelliteService(hubName, serviceName, serviceDef);
-    });
-
-  await hubConnected;
-  putStrLn('createSatelliteService: after satelliteInits resolved')
-  return [hubPool, satelliteServices];
-}
+import { createTestServices, assertAllStringsIncluded } from './service-test-utils';
 
 describe("Service Communication Hub lifecycle", () => {
-  it("should run hub, service lifecycles", async (done) => {
-    const [hub,] = await createTestServices(3);
+  process.env['service-comm.loglevel'] = 'warn';
 
-    await hub.commLink.broadcast('shutdown');
+  it("should startup, link, and shutdown service hub with satellites", async (done) => {
+    const logMessages: string[] = [];
+    const numServices = 3;
+    const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
+      return [
+        `service-${svcNum}: ServiceHub:link`,
+        `ServiceHub: service-${svcNum}:ack~link`,
+        `ServiceHub: service-${svcNum}:done~link`,
+        `service-${svcNum}: ServiceHub:shutdown`,
+        `ServiceHub: service-${svcNum}:ack~shutdown`,
+      ];
+    })
+    const [hub,] = await createTestServices(numServices, logMessages);
+
+    await hub.shutdownSatellites();
+
     await hub.commLink.quit();
+
+    const receivedAllExpectedMessages = assertAllStringsIncluded(expectedMessages, logMessages);
+    expect(receivedAllExpectedMessages).toBe(true);
     done();
   });
 
 
-  it("should demo end-to-end startup/run/shutdown", async (done) => {
-    const hubName = 'ServiceHub';
-    const orderedServices = WorkflowServiceNames;
-    const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
-    const satellitePs = _.map(
-      orderedServices, (service) => {
-        return runService(hubName, service, false);
-      }
-    );
+  it("should pass control between services on 'run' message", async (done) => {
+    const logMessages: string[] = [];
+    const numServices = 3;
+    const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
+      return [
+        `inbox: ServiceHub: service-${svcNum}:done~run`,
+        `inbox: service-${svcNum}: ServiceHub:run`,
+      ];
+    })
 
-    const satellites = await Promise.all(satellitePs);
-    const restPortal = _.filter(satellites, s => s.serviceName === 'rest-portal')[0];
-    await hubConnected;
+    const [hub] = await createTestServices(numServices, logMessages);
 
-    // Fake a 'done' message;
-    await restPortal.commLink.sendTo(hubName, 'done~run');
-
-    hubService.commLink.addHandler(
-      'inbox', 'field-extractor:done',
+    hub.commLink.addHandler(
+      'inbox', `service-${numServices - 1}:done~run`,
       async () => {
-        await hubService.commLink.broadcast('shutdown');
-        await hubService.commLink.quit();
+        await hub.shutdownSatellites();
+        await hub.commLink.quit();
+
+        const receivedAllExpectedMessages = assertAllStringsIncluded(expectedMessages, logMessages);
+        expect(receivedAllExpectedMessages).toBe(true);
         done();
       }
     );
+    await hub.commLink.sendTo('service-0', 'run');
   });
+
+  it("should pass control between services on 'step' message", async (done) => {
+    const logMessages: string[] = [];
+    const numServices = 3;
+    const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
+      return [
+        `inbox: ServiceHub: service-${svcNum}:done~step`,
+        `inbox: service-${svcNum}: ServiceHub:step`,
+      ];
+    })
+    const [hub] = await createTestServices(numServices, logMessages);
+
+    hub.commLink.addHandler(
+      'inbox', `service-${numServices - 1}:done~step`,
+      async () => {
+        await hub.shutdownSatellites();
+        await hub.commLink.quit();
+        const receivedAllExpectedMessages = assertAllStringsIncluded(expectedMessages, logMessages);
+        expect(receivedAllExpectedMessages).toBe(true);
+        done();
+      }
+    );
+
+    await hub.commLink.sendTo('service-0', 'step');
+  });
+
 
 });
