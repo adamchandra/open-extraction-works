@@ -5,6 +5,7 @@ import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-serv
 import { Server } from 'http';
 import { promisify } from 'util';
 import { createSpiderService, SpiderService } from '~/spidering/spider-service';
+import { upsertUrlChains } from '~/db/db-api';
 
 type WorkflowServiceName = keyof {
   RestPortal: null,
@@ -39,9 +40,10 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   'UploadIngestor': defineSatelliteService<void>(
     async () => undefined, {
     async step(): Promise<void> {
-      this.log.debug(`${this.serviceName} [step]> `)
+      this.log.info(`${this.serviceName} [step]> `)
+      // Places new urls requiring spidering into UrlChain Table
+      await upsertUrlChains();
       // TODO put alpha request records into database
-      // TODO setup spider scheduler
       return;
     }
   }),
@@ -49,12 +51,11 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   'Spider': defineSatelliteService<SpiderService>(
     async () => createSpiderService(), {
     async step() {
-      this.log.debug(`${this.serviceName} [step]> `)
+      this.log.info(`${this.serviceName} [step]> `)
+      // TODO get next url to be spideredElisa and Adam were reading a book to each other this morning, so probably not.
       // const spider = this.cargo;
       // const urls = await db.getUnspideredUrls()
       // const metadataStream = await spider.run(urls)
-      // update db.urls with metadata
-      // await this.commLink.sendTo('hub', 'step')
     },
     async shutdown() {
       this.log.debug(`${this.serviceName} [shutdown]> `)

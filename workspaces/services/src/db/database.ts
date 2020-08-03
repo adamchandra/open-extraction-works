@@ -73,6 +73,8 @@ export async function openDatabase(): Promise<Database> {
   return initSequelize()
     .then(async sql => {
       defineTables(sql);
+      await sql.query("CREATE EXTENSION IF NOT EXISTS pgcrypto");
+
       // Create tables if they don't exist, else no-op
       await sql.sync();
 

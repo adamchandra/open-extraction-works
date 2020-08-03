@@ -1,17 +1,10 @@
 import _ from "lodash";
 
 import 'chai/register-should';
-import { prettyPrint, AlphaRecord, putStrLn, shaEncodeAsHex } from 'commons';
+import { prettyPrint, AlphaRecord, shaEncodeAsHex } from 'commons';
 import * as T from './database-tables';
 import { useEmptyDatabase } from './db-test-utils';
-import { Database } from './database';
-import {
-  Model,
-  ModelStatic,
 
-} from 'sequelize';
-
-// import { createAlphaRequest, createAlphaUpload } from './db-api';
 
 
 describe('Database Tables Basics', () => {

@@ -31,6 +31,13 @@ const primaryKey = () => _.clone({
   autoIncrement: true
 });
 
+const primaryKeyString = () => _.clone({
+  type: DataTypes.STRING,
+  allowNull: false,
+  primaryKey: true,
+  unique: true
+});
+
 const uniqString = () => _.clone({
   type: DataTypes.STRING,
   allowNull: false,
@@ -81,10 +88,9 @@ export class UrlChain extends Model {
   public urlChainId!: string; // same as id iff this is seed url
   public url!: string;
 
-
   public static setup(sequelize: Sequelize) {
     UrlChain.init({
-      id: primaryKey(),
+      id: primaryKeyString(),
       urlChainId: requiredString(),
       url: uniqString(),
     }, {

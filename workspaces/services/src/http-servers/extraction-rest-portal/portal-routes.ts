@@ -1,11 +1,11 @@
 import _ from 'lodash';
 import { Context } from 'koa';
 import Router from 'koa-router';
+import koaBody from 'koa-body';
 
 import {
   csvStream,
   streamPump,
-  prettyPrint,
   AlphaRecord,
 } from "commons";
 
@@ -80,7 +80,6 @@ async function getRoot(ctx: Context, next: () => Promise<any>): Promise<Router> 
   return next();
 }
 
-import koaBody from 'koa-body';
 
 export function initPortalRouter(serviceComm: ServiceComm): Router {
   const apiRouter = new Router({});
