@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import * as DB from './database-tables';
-import { AlphaRecord, prettyPrint, shaEncodeAsHex } from 'commons';
+import { AlphaRecord } from 'commons';
 import ASync from 'async';
 import { openDatabase } from './database';
 

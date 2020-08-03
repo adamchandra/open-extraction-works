@@ -23,7 +23,6 @@
 
     "inlineSourceMap": true,
     "preserveConstEnums": true,
-    "jsx": "react",
 
     "types": [
       "jest",
@@ -42,6 +41,9 @@
   "include": [
     "./src",
     "./@types"
-  ]
+  ],
 
+  "exclude": [
+    "node_modules"
+  ]
 }

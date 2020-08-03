@@ -1,7 +1,7 @@
 import _ from "lodash";
 
 import { ServiceComm, createServiceComm, unpackLocalMessage } from './service-comm';
-import { delay, slidingWindow, putStrLn } from 'commons';
+import { delay, slidingWindow } from 'commons';
 import winston from "winston";
 import Async from 'async';
 

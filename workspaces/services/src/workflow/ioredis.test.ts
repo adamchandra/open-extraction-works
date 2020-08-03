@@ -1,9 +1,6 @@
 import "chai/register-should";
 
 import _ from "lodash";
-
-import { prettyPrint } from 'commons';
-
 import Redis from 'ioredis';
 
 describe("IORedis library tests and examples", () => {
@@ -11,18 +8,16 @@ describe("IORedis library tests and examples", () => {
   it("should do async set/get ", async (done) => {
     const rclient = new Redis();
     await rclient.set('mykey', 'my-value')
-      .then(() => {
-        console.log('okay!');
-      }).catch((error) => {
+      .catch((error) => {
         console.log('Error', error);
       });
 
-    await rclient.get('mykey')
-      .then((value) => {
-        console.log('got', value);
-      }).catch((error) => {
+    const value = await rclient.get('mykey')
+      .catch((error) => {
         console.log('Error', error);
       });
+
+    expect(value).toEqual('my-value');
 
     return rclient.quit()
       .then(() => done());
@@ -32,24 +27,26 @@ describe("IORedis library tests and examples", () => {
     const rclient =  new Redis();
     const subClient =  new Redis();
 
-    const subRet = await subClient.subscribe("topic.foo");
+    await subClient.subscribe("topic.foo");
     await subClient.subscribe("exit");
-    prettyPrint({ subRet });
-    const pubRet = await rclient.publish("topic.foo", "foo.msg");
-    prettyPrint({ pubRet });
 
     subClient.on("message", (channel, message) => {
-      console.log('got message', channel, message);
+      if (channel === 'exit') {
+        expect(message).toEqual('quit');
+      }
+      if (channel === 'topic.foo') {
+        expect(message).toEqual('foo.msg');
+      }
+      if (channel === 'exit' && message === 'quit') {
+        rclient.quit()
+          .then(() => subClient.quit())
+          .then(() => done());
+      }
     });
 
+    await rclient.publish("topic.foo", "foo.msg");
     rclient.publish('exit', 'quit');
 
-    subClient.on("message", (channel, message) => {
-      if (channel === 'exit' && message === 'quit')
-      rclient.quit()
-        .then(() => subClient.quit())
-        .then(() => done());
-    });
   });
 
 });

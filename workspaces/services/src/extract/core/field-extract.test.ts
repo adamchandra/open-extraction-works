@@ -12,19 +12,19 @@ describe("Field Extraction Pipeline", () => {
 
   const testEntryPath = './test/resources/scrapy-cache-entry';
 
-  it("should have a terse syntax", async (done) => {
+  // it("should have a terse syntax", async (done) => {
 
-    // doPipeline(
-    //   { ...initialEnv, entryPath: testEntryPath },
-    //   [readMetaProps,
-    //     filterUrl(/sdf/),
-    //     runFileVerification(/html/i),
-    //     runHtmlTidy],
-    // ).then((result) => {
-    //   prettyPrint({ result });
-    //   done();
-    // });
-  });
+  //   // doPipeline(
+  //   //   { ...initialEnv, entryPath: testEntryPath },
+  //   //   [readMetaProps,
+  //   //     filterUrl(/sdf/),
+  //   //     runFileVerification(/html/i),
+  //   //     runHtmlTidy],
+  //   // ).then((result) => {
+  //   //   prettyPrint({ result });
+  //   //   done();
+  //   // });
+  // });
 
   it("should run a single extraction stage", async (done) => {
     // TE.map((env: ExtractionEnv) => { prettyPrint({ env }); return env; } ),

@@ -79,19 +79,19 @@ describe("Extraction Records and Ground Records", () => {
     prettyPrint({ extractionRec, groundTruthRec });
   });
 
-  const sampleNestedExtractionRecord = (`
-| {
-|   "kind": "groups",
-|   "groups": [
-|       ${sampleExtractionRecord},
-|       ${sampleExtractionRecord}
-|   ]
-`);
+//   const sampleNestedExtractionRecord = (`
+// | {
+// |   "kind": "groups",
+// |   "groups": [
+// |       ${sampleExtractionRecord},
+// |       ${sampleExtractionRecord}
+// |   ]
+// `);
 
   it("should reconcile new values against ground-truth assertions", () => {
-    const gtRecs = [
-      { "og.path": ["fields", "abstract", "0", "value"], "og.value": "Author Summary...", "gt.isCorrect": true },
-    ];
+    // const gtRecs = [
+    //   { "og.path": ["fields", "abstract", "0", "value"], "og.value": "Author Summary...", "gt.isCorrect": true },
+    // ];
 
     // Possibilities:
     //   UpdatedValue         = _.get(og.path, new-rec);

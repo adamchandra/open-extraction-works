@@ -1,10 +1,9 @@
+import 'chai/register-should';
 
 import _ from "lodash";
 
-import 'chai/register-should';
-import { prettyPrint, AlphaRecord, putStrLn } from 'commons';
-import { createEmptyDB, useEmptyDatabase } from './db-test-utils';
-import { Database } from './database';
+import { AlphaRecord  } from 'commons';
+import { useEmptyDatabase } from './db-test-utils';
 import { insertAlphaRecords, upsertUrlChains } from './db-api';
 
 describe('High-level Database API', () => {

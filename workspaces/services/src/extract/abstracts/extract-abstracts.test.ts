@@ -6,7 +6,7 @@ import { prettyPrint } from "commons";
 import { getMatchingLines } from '../core/field-extract-utils';
 
 describe("Abstract Field Extraction", () => {
-  const testDirPath = './test/resources/htmls';
+  // const testDirPath = './test/resources/htmls';
 
   it("byLineMatch", () => {
     const block = `

@@ -1,7 +1,7 @@
 import _ from "lodash";
 import B from 'blessed';
 import { createScreen, appFrame } from './blessterm-widgets';
-import { layoutTreeWithInlineControls, layoutTreeAndMarginalControls } from './records-bterm';
+import { layoutTreeAndMarginalControls } from './records-bterm';
 
 const sampleRec2: Record<string, any> = {
   quux: [
@@ -30,11 +30,11 @@ const sampleRec2: Record<string, any> = {
 };
 
 
-const sampleRec4 = {
-  evidence: null,
-  value1: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
-  value2: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo ",
-};
+// const sampleRec4 = {
+//   evidence: null,
+//   value1: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
+//   value2: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo ",
+// };
 
 
 export async function promisifyBlessedApp(f: (screen: B.Widgets.Screen) => void): Promise<void> {
