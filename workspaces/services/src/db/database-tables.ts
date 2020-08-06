@@ -83,46 +83,46 @@ export class AlphaRecord extends Model {
   }
 }
 
+// All URLs known in the system are recorded here
+export class UrlQueue extends Model {
+  public url!: string;
+
+  public static setup(sequelize: Sequelize) {
+    UrlQueue.init({
+      url: uniqString(),
+    }, { sequelize });
+  }
+}
+
+
 export class UrlChain extends Model {
   public id!: string; // PrimaryKey, same as corpusId, hash of initial url
-  public urlChainId!: string; // same as id iff this is seed url
-  public url!: string;
+  public chainRoot!: string;
+  public requestUrl!: string;
+  public responseUrl!: string;
+  public httpStatus!: string;
 
   public static setup(sequelize: Sequelize) {
     UrlChain.init({
       id: primaryKeyString(),
       urlChainId: requiredString(),
       url: uniqString(),
-    }, {
-      sequelize,
-    });
+    }, { sequelize });
   }
 }
 
-// public httpStatus!: string; // 200/30x/40x
-// public spiderStatus!: string; // 'new|crawled'
-export class UrlChainLog extends Model {
-  public urlChainId!: string; // Primary Key
-  public key!: string; // fetch:status, extraction:status
-  public body!: string; // <- json record with status,
-
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+export class CorpusEntry extends Model {
+  public id!: string;
 
   public static setup(sequelize: Sequelize) {
-    UrlChainLog.init({
-      urlChainId: requiredString(),
-      key: requiredString(),
-      body: optionalString(),
-    }, {
-      sequelize, timestamps: true
-    });
+    CorpusEntry.init({
+    }, { sequelize });
   }
-
 }
 
 export class ExtractedField extends Model {
-  public urlChainId!: string; // Primary Key
+  public id!: number; // PK
+  public corpusEntryId!: string;
   public name!: string; // abstract, title, pdfLink, etc..
   public value!: string;
 
@@ -137,7 +137,6 @@ export class ExtractedField extends Model {
 
 export function defineTables(sql: Sequelize): void {
   UrlChain.setup(sql);
-  UrlChainLog.setup(sql);
   AlphaRecord.setup(sql);
   ExtractedField.setup(sql);
 }

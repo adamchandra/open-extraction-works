@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 
 import { initScraper, Scraper } from './scraper';
 import { CrawlScheduler, initCrawlScheduler } from './scheduler';
+import isUrl from 'is-url-superb';
 
 import {
   streamPump, readAlphaRecStream, AlphaRecord, putStrLn, delay,
@@ -58,7 +59,6 @@ export async function createSpiderService(): Promise<SpiderService> {
   return service;
 }
 
-import isUrl from 'is-url-superb';
 export async function runLocalSpider(
   alphaRecordCsv: string,
   workingDir: string

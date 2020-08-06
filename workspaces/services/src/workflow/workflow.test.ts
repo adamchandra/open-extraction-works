@@ -4,10 +4,14 @@ import _ from "lodash";
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
 import { prettyPrint, AlphaRecord, } from 'commons';
 import got from 'got';
+import { useEmptyDatabase } from '~/db/db-test-utils';
 
 describe("End-to-end Extraction workflows", () => {
   const hubName = 'ServiceHub';
   const orderedServices = WorkflowServiceNames;
+  process.env['service-comm.loglevel'] = 'info';
+  process.env['UploadIngestor.loglevel'] = 'debug';
+  process.env['Spider.loglevel'] = 'debug';
 
   const sampleRecs: AlphaRecord[] = _.map(_.range(4), (n) => {
     return ({
@@ -21,19 +25,23 @@ describe("End-to-end Extraction workflows", () => {
 
 
   it("should demo end-to-end processing", async (done) => {
+    await useEmptyDatabase(async () => undefined);
+
     const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
+
     _.each(
       orderedServices,
       (service) => runService(hubName, service, false)
     );
 
     await hubConnected;
+
     prettyPrint({ msg: 'services are running and connected' });
 
     hubService.commLink.addHandler(
-      'inbox', 'FieldExtractor:done~step',
+      'inbox', 'FieldBundler:done~step',
       async () => {
-        await hubService.commLink.broadcast('shutdown');
+        await hubService.shutdownSatellites();
         await hubService.commLink.quit();
         done();
       }

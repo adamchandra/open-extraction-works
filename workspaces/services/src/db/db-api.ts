@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import * as DB from './database-tables';
-import { AlphaRecord } from 'commons';
+import { AlphaRecord, stripMargin, prettyPrint } from 'commons';
 import ASync from 'async';
 import { openDatabase } from './database';
 
@@ -32,27 +32,29 @@ export async function insertAlphaRecords(
  */
 export async function upsertUrlChains(): Promise<void> {
   const db = await openDatabase();
-  await db.run(async (sql) => {
-    const results = await sql.query(
-      `
-INSERT INTO "UrlChains" (
-  SELECT DISTINCT
-    encode(digest(a.url :: bytea, 'sha1'), 'hex') AS id,
-    encode(digest(a.url :: bytea, 'sha1'), 'hex') AS urlChainId,
-    a.url AS url,
-    NOW(),
-    NOW()
-  FROM "AlphaRecords" a
-  LEFT JOIN "UrlChains" u
-  ON a.url=u.url
-  WHERE u.url IS NULL
-)
-`);
+  const [queryResults, queryMeta] = await db.run(async (sql) => {
+    const results = await sql.query(stripMargin(`
+|INSERT INTO "UrlChains" (
+|  SELECT DISTINCT
+|    encode(digest(a.url :: bytea, 'sha1'), 'hex') AS id,
+|    encode(digest(a.url :: bytea, 'sha1'), 'hex') AS urlChainId,
+|    a.url AS url,
+|    NOW(),
+|    NOW()
+|  FROM "AlphaRecords" a
+|  LEFT JOIN "UrlChains" u
+|  ON a.url=u.url
+|  WHERE u.url IS NULL
+|)
+|RETURNING id, url
+|`));
     return results;
   });
 
+  prettyPrint({ queryMeta, queryResults });
+
   await db.close();
-  return ;
+  return;
 }
 
 export async function getUnspideredUrl(): Promise<string> {

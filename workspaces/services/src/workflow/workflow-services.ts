@@ -21,6 +21,7 @@ export const WorkflowServiceNames: WorkflowServiceName[] = [
   'UploadIngestor',
   'Spider',
   'FieldExtractor',
+  'FieldBundler',
 ];
 
 const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> = {
@@ -52,7 +53,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
     async () => createSpiderService(), {
     async step() {
       this.log.info(`${this.serviceName} [step]> `)
-      // TODO get next url to be spideredElisa and Adam were reading a book to each other this morning, so probably not.
+      // TODO get next url to be spidered
       // const spider = this.cargo;
       // const urls = await db.getUnspideredUrls()
       // const metadataStream = await spider.run(urls)

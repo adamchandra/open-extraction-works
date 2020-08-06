@@ -59,10 +59,14 @@ export async function createSatelliteService<T>(
     .cargoInit(commLink)
     .then(async (cargo) => {
 
+      const logLevel = process.env['${satelliteName}.loglevel'] || 'info';
+
       const satService: SatelliteService<T> = {
         ...serviceDef.lifecyleHandlers,
         serviceName: satelliteName,
-        log: commLink.log,
+        log: commLink.log.child({
+          level: logLevel
+        }),
         commLink,
         cargo,
       };
