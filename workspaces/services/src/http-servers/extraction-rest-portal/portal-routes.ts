@@ -10,8 +10,8 @@ import {
 } from "commons";
 
 import { createAppLogger } from './portal-logger';
-import { ServiceComm } from '~/workflow/service-comm';
 import { insertAlphaRecords } from '~/db/db-api';
+import { ServiceComm } from '~/service-graphs/service-comm';
 
 // const log = createAppLogger();
 

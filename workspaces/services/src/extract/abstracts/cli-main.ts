@@ -6,7 +6,7 @@ import {
 
 import { initLogger } from '../logging/logging';
 import { extractAbstractTransform, ExtractionAppContext, skipIfAbstractLogExisits } from './extract-abstracts';
-import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';
+// import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';
 
 
 export async function runMainExtractAbstracts(
@@ -32,20 +32,21 @@ export async function runMainExtractAbstracts(
 }
 
 
-export async function runMainInteractiveFieldReview(
-  corpusRoot: string
-): Promise<void> {
+// TODO move this to qa-review module
+// export async function runMainInteractiveFieldReview(
+//   corpusRoot: string
+// ): Promise<void> {
 
-  const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
-  const pumpBuilder = streamPump.createPump()
-    .viaStream<string>(dirEntryStream)
-    .throughF(expandDir)
-    .tap((entryPath) => {
-      return interactiveUIAppMain(entryPath);
-    });
+//   const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
+//   const pumpBuilder = streamPump.createPump()
+//     .viaStream<string>(dirEntryStream)
+//     .throughF(expandDir)
+//     .tap((entryPath) => {
+//       return interactiveUIAppMain(entryPath);
+//     });
 
-  return pumpBuilder.toPromise()
-    .then(() => undefined);
+//   return pumpBuilder.toPromise()
+//     .then(() => undefined);
 
 
-}
+// }

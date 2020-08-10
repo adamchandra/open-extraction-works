@@ -49,7 +49,6 @@ type HandlerScope = keyof {
 
 type HandlerSets = Record<HandlerScope, HandlerSet[]>;
 
-
 export interface ServiceComm {
   name: string;
   log: winston.Logger;

@@ -20,8 +20,8 @@ describe("End-to-end Extraction workflows", () => {
       title: `title-${n}`,
       authorId: `auth-${n}`,
       url: `http://foo.bar/${n}`,
-    })
-  })
+    });
+  });
 
 
   it("should demo end-to-end processing", async (done) => {

@@ -3,8 +3,8 @@ import Router from 'koa-router';
 import json from 'koa-json';
 import { initPortalRouter } from './portal-routes';
 import { Server } from 'http';
-import { ServiceComm } from '~/workflow/service-comm';
 import { createAppLogger } from './portal-logger';
+import { ServiceComm } from '~/service-graphs/service-comm';
 
 export async function startRestPortal(serviceComm: ServiceComm): Promise<Server> {
   const log = createAppLogger();

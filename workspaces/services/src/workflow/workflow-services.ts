@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub, SatelliteServiceDef } from './service-hub';
+import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub, SatelliteServiceDef } from '~/service-graphs/service-hub';
 
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
@@ -84,8 +84,6 @@ export async function runServiceHub(hubName: string, dockerize: boolean, ordered
   }
   return createHubService(hubName, orderedServices);
 }
-
-
 
 export async function runService(
   hubName: string,

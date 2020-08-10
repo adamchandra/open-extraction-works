@@ -13,7 +13,6 @@ export type LifecycleName = keyof {
   ping: null,
 }
 
-
 export type LifecycleHandler<T, R> = (this: SatelliteService<T>) => Promise<R>;
 export type LifecycleHandlers<T> = Record<LifecycleName, LifecycleHandler<T, void>>;
 

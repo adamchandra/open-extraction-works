@@ -1,7 +1,7 @@
 import _ from "lodash";
 
 import { arglib } from "commons";
-import { runMainExtractAbstracts, runMainInteractiveFieldReview } from '~/extract/abstracts/cli-main';
+import { runMainExtractAbstracts } from '~/extract/abstracts/cli-main';
 
 const { opt, config, registerCmd } = arglib;
 
@@ -27,19 +27,18 @@ registerCmd(
   });
 });
 
-registerCmd(
-  arglib.YArgs,
-  "review-extraction",
-  "interactively review the extraction process",
-  config(
-    opt.cwd,
-    opt.existingDir("corpus-root: root directory for corpus files"),
-  )
-)((args: any) => {
-
-  const { corpusRoot } = args;
-
-  runMainInteractiveFieldReview(
-    corpusRoot
-  );
-});
+// TODO move this to qa-review module
+// registerCmd(
+//   arglib.YArgs,
+//   "review-extraction",
+//   "interactively review the extraction process",
+//   config(
+//     opt.cwd,
+//     opt.existingDir("corpus-root: root directory for corpus files"),
+//   )
+// )((args: any) => {
+//   const { corpusRoot } = args;
+//   runMainInteractiveFieldReview(
+//     corpusRoot
+//   );
+// });
