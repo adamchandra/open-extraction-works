@@ -10,6 +10,7 @@ import isUrl from 'is-url-superb';
 export interface WorkflowEnv {
   alphaRecord: AlphaRecord;
   corpusId: string;
+  errorMessage: string;
 }
 
 // TODO undo this copypasta
@@ -29,8 +30,8 @@ export type ExtractionFunction<A, Err, R> = (aenv: AWithEnv<A>) => ExtractionRes
 export type ModEnv<A, R, Env> = (env: WithEnv<A, Env>) => WithEnv<R, Env>;
 export type ReadEnv<A, R, Env> = (env: WithEnv<A, Env>) => R;
 
-export function success<A>(a: A): Success<A> {
-  const sdf =  T.of(E.right(a));
+export function success<A>(a: A): ExtractionResult<A> {
+  return T.of(E.right<string, A>(a));
 }
 
 export function failure<Err, A>(e: Err): TE.TaskEither<Err, A> {
@@ -68,20 +69,7 @@ export function readEnv<A, R, Env>(
 export async function runExtractionWorkflow(
   alphaRecords: AlphaRecord[]
 ): Promise<void> {
-  const perRecordTasks = _.map(alphaRecords, r0 => {
-    const prec = pipe(
-      success(r0),
-      // TE.chain(rec => {
-      //   const { url } = rec;
-      //   return isUrl(url)? success(rec) : failure('invalid url');
-      // })
-      // filterReadEnv(e => e.alphaRecord.url, validateUrl)
-      // chainReadEnv(e => e.alphaRecord.url, spiderUrl) // spiderUrl: (url: string) => MetaData
-      // extractFields: (corpusId: string) => MetaData
-    );
-
-    return prec;
-  });
+  // record recs
 }
 
 export interface FieldsResponse {
