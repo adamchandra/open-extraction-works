@@ -13,7 +13,19 @@ import { createAppLogger } from './portal-logger';
 import { insertAlphaRecords } from '~/db/db-api';
 import { ServiceComm } from '~/service-graphs/service-comm';
 
-// const log = createAppLogger();
+// REST response types
+export interface FieldsResponse {
+  kind: 'fields';
+}
+export interface ErrorResponse {
+  kind: 'error';
+}
+export interface PendingResponse {
+  kind: 'pending';
+}
+
+export type RestResponse =
+  FieldsResponse;
 
 export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
   const inputStream = csvStream(csvfile);
