@@ -1,11 +1,11 @@
 import _ from "lodash";
 import { AlphaRecord } from 'commons';
 
-import { pipe } from 'fp-ts/lib/pipeable';
+// import { pipe } from 'fp-ts/lib/pipeable';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as T from 'fp-ts/lib/Task';
 import * as E from 'fp-ts/lib/Either';
-import isUrl from 'is-url-superb';
+// import isUrl from 'is-url-superb';
 
 export interface WorkflowEnv {
   alphaRecord: AlphaRecord;
@@ -30,13 +30,13 @@ export type ExtractionFunction<A, Err, R> = (aenv: AWithEnv<A>) => ExtractionRes
 export type ModEnv<A, R, Env> = (env: WithEnv<A, Env>) => WithEnv<R, Env>;
 export type ReadEnv<A, R, Env> = (env: WithEnv<A, Env>) => R;
 
-export function success<A>(a: A): ExtractionResult<A> {
-  return T.of(E.right<string, A>(a));
-}
+// export function success<A>(a: A): ExtractionResult<A> {
+//   return T.of(E.right<string, A>(a));
+// }
 
-export function failure<Err, A>(e: Err): TE.TaskEither<Err, A> {
-  return TE.left(e);
-}
+// export function failure<Err, A>(e: Err): TE.TaskEither<Err, A> {
+//   return TE.left(e);
+// }
 
 export function readEnv<A, R, Env>(
   f: (e: Env) => R,
@@ -72,22 +72,6 @@ export async function runExtractionWorkflow(
   // record recs
 }
 
-export interface FieldsResponse {
-  kind: 'fields';
-
-}
-export interface ErrorResponse {
-  kind: 'error';
-
-}
-export interface PendingResponse {
-  kind: 'pending';
-
-}
-
-export type RestResponse =
-  FieldsResponse;
-
 export async function restPortalIngress(
   alphaRecords: AlphaRecord[]
 ): Promise<RestResponse[]> {
@@ -111,3 +95,18 @@ export async function filterValidURLs(
 ): Promise<void> {
   //
 }
+
+
+// REST response types
+export interface FieldsResponse {
+  kind: 'fields';
+}
+export interface ErrorResponse {
+  kind: 'error';
+}
+export interface PendingResponse {
+  kind: 'pending';
+}
+
+export type RestResponse =
+  FieldsResponse;

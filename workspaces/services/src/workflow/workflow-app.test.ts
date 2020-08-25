@@ -2,7 +2,8 @@ import "chai/register-should";
 
 import _ from "lodash";
 import { useEmptyDatabase } from '~/db/db-test-utils';
-import { AlphaRecord } from 'commons';
+import { AlphaRecord, prettyPrint } from 'commons';
+import got from 'got';
 
 describe("End-to-end Extraction workflows", () => {
 
@@ -19,6 +20,11 @@ describe("End-to-end Extraction workflows", () => {
   it.only("should create end-to-end extraction workflow", async (done) => {
 
     await useEmptyDatabase(async () => undefined);
+    const retval = await got.post(
+      'http://localhost:3100/extractor/fields.json', {
+        json: sampleRecs
+      });
+    prettyPrint({ msg: "out of pipeline", response: retval.body });
 
     // REST api input: AlphaRecord[]
     // map alphaRecs  r => Left('unavailable') | Right('field list | extraction/spidering/etc errors')

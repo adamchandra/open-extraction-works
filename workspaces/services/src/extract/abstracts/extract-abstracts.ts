@@ -11,11 +11,13 @@ import {
   readCachedNormalFile,
 } from "~/extract/core/field-extract";
 
-import { pipe } from 'fp-ts/lib/pipeable';
-import * as Arr from 'fp-ts/lib/Array';
-import * as TE from 'fp-ts/lib/TaskEither';
-import * as Task from 'fp-ts/lib/Task';
-import { isLeft } from 'fp-ts/lib/Either'
+import { pipe } from 'fp-ts/pipeable';
+import * as Arr from 'fp-ts/Array';
+import * as Opt from 'fp-ts/Option';
+import * as Ap from 'fp-ts/Apply';
+import * as TE from 'fp-ts/TaskEither';
+import * as Task from 'fp-ts/Task';
+import { isLeft } from 'fp-ts/Either'
 
 import {
   findByLineMatchTE,
@@ -300,7 +302,6 @@ const PipelineLeadingFunctions = [
   runCssNormalize,
 ];
 
-const sequenceArrOfTask = Arr.array.sequence(Task.task);
 
 export async function runAbstractFinders(
   extractionPipeline: ExtractionFunction[][],
@@ -347,7 +348,9 @@ export async function runAbstractFinders(
     );
   });
 
+  const sequenceArrOfTask = Arr.array.sequence(Task.taskSeq);
   const attemptedTasks = await sequenceArrOfTask(attemptTask)();
+
   const initRec: FieldInstances = {
     exists: false,
     count: 0,
