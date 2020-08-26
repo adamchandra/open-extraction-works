@@ -34,31 +34,26 @@ export function createRequestChain(request: Request): UrlChain {
   return urlChain;
 }
 
-export interface Metadata {
-  initialUrl: string;
+export interface Metadata extends UrlChainLink {
   responseUrl: string;
-  status: number;
   fetchChain: UrlChain;
-  method: string;
-  timestamp: string;
 }
 
-
-export function createMetadata(response: Response): Metadata {
+export function createMetadata(requestUrl: string, response: Response): Metadata {
   const request: Request = response.request();
   const fetchChain = createRequestChain(request);
 
   const responseUrl = response.url();
-  const status = response.status();
-  const method = request.method();
+  const status = response.status().toString();
+  // const method = request.method();
   const { date } = response.headers();
 
   const metadata: Metadata = {
-    initialUrl: responseUrl,
+    requestUrl,
     responseUrl,
     status,
     fetchChain,
-    method,
+    // method,
     timestamp: date,
   };
   return metadata;

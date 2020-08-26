@@ -5,7 +5,8 @@ import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-serv
 import { Server } from 'http';
 import { promisify } from 'util';
 import { createSpiderService, SpiderService } from '~/spidering/spider-service';
-import { upsertUrlChains } from '~/db/db-api';
+import { getNextUrlForSpidering, insertNewUrlChains } from '~/db/db-api';
+import { putStrLn } from 'commons';
 
 type WorkflowServiceName = keyof {
   RestPortal: null,
@@ -42,10 +43,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
     async () => undefined, {
     async step(): Promise<void> {
       this.log.info(`${this.serviceName} [step]> `)
-      // Places new urls requiring spidering into UrlChain Table
-      await upsertUrlChains();
-      // TODO put alpha request records into database
-      return;
+      await insertNewUrlChains()
     }
   }),
 
@@ -53,10 +51,25 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
     async () => createSpiderService(), {
     async step() {
       this.log.info(`${this.serviceName} [step]> `)
-      // TODO get next url to be spidered
-      // const spider = this.cargo;
-      // const urls = await db.getUnspideredUrls()
-      // const metadataStream = await spider.run(urls)
+      const spider = this.cargo;
+      let nextUrl = await getNextUrlForSpidering();
+      while (nextUrl !== undefined) {
+        const metaData = await spider
+          .scrape(nextUrl)
+          .catch((error) => {
+            putStrLn(`Error`, error)
+            return undefined;
+          });
+        if (metaData !== undefined) {
+          // Populate urlchains
+          const { requestUrl, responseUrl, status, fetchChain } = metaData;
+
+        } else {
+          putStrLn(`Metadata is undefined for url ${nextUrl}`);
+
+        }
+        nextUrl = await getNextUrlForSpidering();
+      }
     },
     async shutdown() {
       this.log.debug(`${this.serviceName} [shutdown]> `)

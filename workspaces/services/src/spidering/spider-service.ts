@@ -8,12 +8,14 @@ import isUrl from 'is-url-superb';
 import {
   streamPump, readAlphaRecStream, AlphaRecord, putStrLn, delay,
 } from "commons";
+import { Metadata } from './data-formats';
 
 
 export interface SpiderService {
   crawlScheduler: CrawlScheduler;
   scraper: Scraper;
   run(alphaRecordStream: Readable): Promise<Readable>; // Readable<Metadata|undefined>
+  scrape(url: string): Promise<Metadata|undefined>; 
   setWorkingDirectory(dir: string): void;
 }
 
@@ -30,6 +32,9 @@ export async function createSpiderService(): Promise<SpiderService> {
   const service: SpiderService = {
     scraper,
     crawlScheduler,
+    async scrape(url: string): Promise<Metadata|undefined> {
+      return this.scraper.scrapeUrl(url)
+    },
     async run(alphaRecordStream: Readable): Promise<Readable> {
       const urlCount = await this.crawlScheduler.addUrls(alphaRecordStream);
       const seedUrlStream = this.crawlScheduler.getUrlStream();

@@ -36,8 +36,6 @@ describe("End-to-end Extraction workflows", () => {
 
     await hubConnected;
 
-    prettyPrint({ msg: 'services are running and connected' });
-
     hubService.commLink.addHandler(
       'inbox', 'FieldBundler:done~step',
       async () => {
@@ -55,6 +53,5 @@ describe("End-to-end Extraction workflows", () => {
       'http://localhost:3100/extractor/fields.json', {
       json: sampleRecs
     });
-    prettyPrint({ msg: "out of pipeline", response: retval.body });
   });
 });

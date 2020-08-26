@@ -5,13 +5,6 @@ import {
 } from "commons";
 
 type UrlString = string
-// type Done = false;
-// type Yielded = string;
-// export function *getFoo(): Generator<UrlString, Done, Yielded> {
-//   const z: string = yield 'http://foo.bar';
-//   return false;
-// }
-
 
 export interface CrawlScheduler {
   addUrls(urlStream: Readable): Promise<number>;

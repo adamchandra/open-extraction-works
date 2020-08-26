@@ -2,10 +2,48 @@ import 'chai/register-should';
 
 import _ from "lodash";
 
-import { AlphaRecord } from 'commons';
+import { AlphaRecord, prettyPrint } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
-import { insertAlphaRecords, upsertUrlChains } from './db-api';
-import Async from 'async';
+import { getNextUrlForSpidering, insertAlphaRecords, insertNewUrlChains } from './db-api';
+import { Metadata } from '~/spidering/data-formats';
+import { UrlChainLink } from '~/extract/urls/url-fetch-chains';
+
+
+function mockUrl(n: number): string {
+  return `http://doi.org/${n}`;
+}
+
+function mockAlphaRecord(n: number): AlphaRecord {
+  return ({
+    noteId: `note-id-${n}`,
+    dblpConfId: `dblp/conf/conf-${n}`, // TODO rename to dblpKey
+    title: `The Title Paper #${n}`,
+    authorId: `auth-${n}`,
+    url: mockUrl(n)
+  });
+}
+
+function mockMetadata(n: number): Metadata {
+  const fetchChain: UrlChainLink[] = _.map(_.range(n), (n) => {
+    const link: UrlChainLink = {
+      requestUrl: mockUrl(n),
+      responseUrl: mockUrl(n+1),
+      status: `303`,
+      timestamp: '',
+    };
+    return link;
+  });
+
+  const metadata: Metadata = {
+    requestUrl: mockUrl(0),
+    responseUrl: mockUrl(n),
+    status: '200',
+    fetchChain,
+    timestamp: ''
+  };
+
+  return metadata;
+}
 
 describe('High-level Database API', () => {
   const inputRecs: AlphaRecord[] = _.map(_.range(40), (n) => {
@@ -20,71 +58,37 @@ describe('High-level Database API', () => {
   });
 
   beforeEach(async () => {
-    return useEmptyDatabase(async () => undefined);
+    return await useEmptyDatabase(async () => undefined);
   });
 
-  it('smokescreen', async (done) => {
+  it('should create new alpha records and insert new url chains', async (done) => {
+
     await insertAlphaRecords(inputRecs);
-    await upsertUrlChains();
+    await insertNewUrlChains();
 
     done();
   });
 
-  it('should use locking to pass resources through processing chains', async (done) => {
-    // TODO yieldData = createLock(serviceNodeName, dbTableName, 'step~yield', datum);
-    // TODO getYielded = select * from T where .='Spider' and .='step~init' limit 1;
-    // TODO yield/init may be expressed as a Marshall/Unmarshall type
-    // TODO ServiceHub transfer yielded = ..
-    //        transferLock(satellite1, satellite2, 'step~yield', 'step~init')
-    //        clearLock(satellite1, 'step~init')
+  it('should select next url for spidering', async (done) => {
 
-    // RestPortal: inserts some AlphaRecords
-    Async.map(inputRecs, async (rec) => {
-      const alphaRecs = await insertAlphaRecords([rec]);
-      // const alphaRecId = ...
-      // if (validate(alphaRec)) insertAlphaRecords() && yieldData<string>('AlphaRecord', alphaRecId);
-      // else parkData(alphaRec, 'invalid input record')
-    });
-    //   Run await collectParkedResults(timeout=10.seconds, inputRecs);
-    //     corpusEntry? = getCorpusEntryForUrl(url)
-    //     if (corpusEntry) response.body = readJson(corpusEntry, 'fields.json')
-    //     else             response.body = { 'msg': 'no available fields'}
+    await insertAlphaRecords(inputRecs);
+    await insertNewUrlChains();
+    const nextUrl = await getNextUrlForSpidering();
+    prettyPrint({ nextUrl });
 
-    // ServiceHub: transfer yielded
+    done();
+  });
 
-    // UploadIngestor marks all invalid new URLs
-    //   newUrl = getYielded<string>();
-    //   if (isValidUrl(newUrl))  yieldData<string>('UrlQueue', newUrl);
-    //   else parkData(url, 'invalid url')
 
-    // ServiceHub: transfer yielded
+  it.only('should commit spidering metadata to db', async (done) => {
+    const metadata = mockMetadata(3);
+    const alphaRecord =  mockAlphaRecord(0);
+    prettyPrint({ metadata, alphaRecord });
 
-    // Spider: process next unspidered Url
-    //   nextUrl = getYielded<string>();
-    //   ... run spider ...
-    //   if (status==200)  yieldData<string>('CorpusEntry', corpusHashId (=urlChainId));
-    //   else              parkData(nextUrl, 'url fetch status was ...')
-
-    // ServiceHub: transfer yielded
-
-    // FieldExtractor: run on file-system
-    //   corpusHashId = getYielded<string>();
-    //     ... run ... write extracted fields to json file on filesystem
-    //   yieldData<string>('CorpusEntry', corpusHashId);
-
-    // ServiceHub: transfer yielded
-
-    // FieldBundler: package fields/errors for delivery
-    //   corpusHashId = getYielded<string>();
-    //   for each field in fields.json: 
-    //     insert into 'ExtractedField' ('abstract', '...');
-    //     parkData<string>('FieldBundler', extractedFieldId);
-
-    // ServiceHub: transfer yielded
-
-    // ExtractionEndpoint: signal the completion of extraction workflow
-    //   corpusHashId = getYielded<string>();
-    //   parkData<string>(corpusHashId);
+    await insertAlphaRecords([alphaRecord]);
+    await insertNewUrlChains();
+    const nextUrl = await getNextUrlForSpidering();
+    prettyPrint({ nextUrl });
 
     done();
   });

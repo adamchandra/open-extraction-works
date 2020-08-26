@@ -1,8 +1,9 @@
 import _ from 'lodash';
 import * as DB from './database-tables';
-import { AlphaRecord, stripMargin, prettyPrint } from 'commons';
+import { AlphaRecord, prettyPrint, stripMargin } from 'commons';
 import ASync from 'async';
 import { openDatabase } from './database';
+import { Metadata } from '~/spidering/data-formats';
 
 export async function insertAlphaRecords(
   inputRecs: AlphaRecord[],
@@ -27,37 +28,81 @@ export async function insertAlphaRecords(
   return ins;
 }
 
-/**
- * Create UrlChain entries for all AlphaRecords
- */
-export async function upsertUrlChains(): Promise<void> {
+export async function insertNewUrlChains(): Promise<void> {
   const db = await openDatabase();
-  const [queryResults, queryMeta] = await db.run(async (sql) => {
+
+  // const [queryResults, queryMeta] =
+  await db.run(async (sql) => {
     const results = await sql.query(stripMargin(`
 |INSERT INTO "UrlChains" (
 |  SELECT DISTINCT
-|    encode(digest(a.url :: bytea, 'sha1'), 'hex') AS id,
-|    encode(digest(a.url :: bytea, 'sha1'), 'hex') AS urlChainId,
-|    a.url AS url,
-|    NOW(),
-|    NOW()
-|  FROM "AlphaRecords" a
-|  LEFT JOIN "UrlChains" u
-|  ON a.url=u.url
-|  WHERE u.url IS NULL
+|    ar.url AS url,
+|    ar.url AS "rootUrl",
+|    null as "responseUrl",
+|    'status:new' as "statusCode",
+|    NOW() as "createdAt",
+|    NOW() as "updatedAt"
+|  FROM "AlphaRecords" ar
+|  LEFT JOIN "UrlChains" uc
+|  ON ar.url=uc.url
+|  WHERE uc.url IS NULL
 |)
-|RETURNING id, url
+|RETURNING url
 |`));
     return results;
   });
 
+  // prettyPrint({ queryMeta, queryResults });
+  await db.close();
+}
+
+export async function getNextUrlForSpidering(): Promise<string | undefined> {
+  const db = await openDatabase();
+  const [queryResults, queryMeta] =
+    await db.run(async (sql) => {
+      const results = await sql.query(stripMargin(`
+| update "UrlChains"
+| set "statusCode" = 'spider:in-progress'
+| where url = (
+|   select url
+|   from "UrlChains"
+|   where "statusCode" = 'status:new'
+|   limit 1
+| )
+|RETURNING url
+|`));
+      return results;
+    });
+
+  // prettyPrint({ queryMeta, queryResults });
+  const results: Array<{ url: string }> = queryResults as any;
+
+  await db.close();
+  const nextUrl = results.length > 0 ? results[0].url : undefined;
+  return nextUrl;
+}
+
+export async function commitMetadata(metadata: Metadata): Promise<void> {
+  const db = await openDatabase();
+
+  const { requestUrl, responseUrl, status, fetchChain } = metadata;
+  const [queryResults, queryMeta] =
+    await db.run(async (sql) => {
+      const results = await sql.query(stripMargin(`
+| update "UrlChains"
+| set "statusCode" = 'spider:in-progress'
+| where url = (
+|   select url
+|   from "UrlChains"
+|   where "statusCode" = 'status:new'
+|   limit 1
+| )
+|RETURNING url
+|`));
+      return results;
+    });
+
   prettyPrint({ queryMeta, queryResults });
 
   await db.close();
-  return;
-}
-
-export async function getUnspideredUrl(): Promise<string> {
-
-  return 'todo';
 }

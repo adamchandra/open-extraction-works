@@ -91,8 +91,7 @@ async function scrapeUrl(
   const respBuffer = await response.buffer();
   writeCorpusTextFile(entryRootPath, '.', 'response-body', respBuffer.toString())
 
-  const metadata = createMetadata(response);
-  metadata.initialUrl = url;
+  const metadata = createMetadata(url, response);
   writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
   const status  = response.status();
 

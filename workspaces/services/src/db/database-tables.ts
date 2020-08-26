@@ -1,10 +1,11 @@
 import _ from 'lodash';
 
 import {
-  DataTypes,
   Model,
   Sequelize,
 } from 'sequelize';
+
+import { optionalString, primaryKey, primaryKeyString, requiredString } from './db-table-utils';
 
 /**
  *
@@ -25,36 +26,6 @@ import {
  */
 
 
-const primaryKey = () => _.clone({
-  type: DataTypes.INTEGER,
-  primaryKey: true,
-  autoIncrement: true
-});
-
-const primaryKeyString = () => _.clone({
-  type: DataTypes.STRING,
-  allowNull: false,
-  primaryKey: true,
-  unique: true
-});
-
-const uniqString = () => _.clone({
-  type: DataTypes.STRING,
-  allowNull: false,
-  unique: true
-});
-
-const requiredString = () => _.clone({
-  type: DataTypes.STRING,
-  allowNull: false,
-  unique: false
-});
-
-const optionalString = () => _.clone({
-  type: DataTypes.STRING,
-  allowNull: true,
-  unique: false
-});
 
 export class AlphaRecord extends Model {
   public id!: number;
@@ -83,40 +54,22 @@ export class AlphaRecord extends Model {
   }
 }
 
-// All URLs known in the system are recorded here
-export class UrlQueue extends Model {
-  public url!: string;
-
-  public static setup(sequelize: Sequelize) {
-    UrlQueue.init({
-      url: uniqString(),
-    }, { sequelize });
-  }
-}
-
-
 export class UrlChain extends Model {
-  public id!: string; // PrimaryKey, same as corpusId, hash of initial url
-  public chainRoot!: string;
-  public requestUrl!: string;
-  public responseUrl!: string;
-  public httpStatus!: string;
+  public url!: string; // Primary Key
+  public rootUrl!: string; //
+  public responseUrl!: string; // Nullable
+  public statusCode!: string; // http:2/4/5xx or spider:lock:xxx or ingestor:new
 
   public static setup(sequelize: Sequelize) {
     UrlChain.init({
-      id: primaryKeyString(),
-      urlChainId: requiredString(),
-      url: uniqString(),
-    }, { sequelize });
-  }
-}
-
-export class CorpusEntry extends Model {
-  public id!: string;
-
-  public static setup(sequelize: Sequelize) {
-    CorpusEntry.init({
-    }, { sequelize });
+      url: primaryKeyString(),
+      rootUrl: requiredString(),
+      responseUrl: optionalString(),
+      statusCode: requiredString(),
+    }, {
+      sequelize,
+      timestamps: true
+    });
   }
 }
 
@@ -138,5 +91,5 @@ export class ExtractedField extends Model {
 export function defineTables(sql: Sequelize): void {
   UrlChain.setup(sql);
   AlphaRecord.setup(sql);
-  ExtractedField.setup(sql);
+  // ExtractedField.setup(sql);
 }
