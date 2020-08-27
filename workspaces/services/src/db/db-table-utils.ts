@@ -17,6 +17,7 @@ export const primaryKeyString = () => _.clone({
   unique: true
 });
 
+// defaultValue = ''
 export const uniqString = () => _.clone({
   type: DataTypes.STRING,
   allowNull: false,

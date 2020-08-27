@@ -86,19 +86,26 @@ export async function commitMetadata(metadata: Metadata): Promise<void> {
   const db = await openDatabase();
 
   const { requestUrl, responseUrl, status, fetchChain } = metadata;
+
   const [queryResults, queryMeta] =
     await db.run(async (sql) => {
-      const results = await sql.query(stripMargin(`
-| update "UrlChains"
-| set "statusCode" = 'spider:in-progress'
-| where url = (
-|   select url
-|   from "UrlChains"
-|   where "statusCode" = 'status:new'
-|   limit 1
-| )
-|RETURNING url
-|`));
+
+      // TODO on conflict ...
+      const insertValues = _.map(_.tail(fetchChain), l => {
+        const resp = l.responseUrl || '';
+        const status = `http:${l.status}`;
+        return `(${sql.escape(requestUrl)}, ${sql.escape(l.requestUrl)}, ${sql.escape(resp)}, ${sql.escape(status)}, NOW(), NOW())`;
+      });
+      const valuesClause = _.join(insertValues, ', ');
+
+      const query = stripMargin(`
+|       insert into "UrlChains"
+|         ("rootUrl", "url", "responseUrl", "statusCode", "createdAt", "updatedAt")
+|         values ${valuesClause}
+|     `);
+
+      prettyPrint({ query });
+      const results = await sql.query(query);
       return results;
     });
 

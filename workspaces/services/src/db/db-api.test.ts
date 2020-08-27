@@ -4,7 +4,7 @@ import _ from "lodash";
 
 import { AlphaRecord, prettyPrint } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
-import { getNextUrlForSpidering, insertAlphaRecords, insertNewUrlChains } from './db-api';
+import { commitMetadata, getNextUrlForSpidering, insertAlphaRecords, insertNewUrlChains } from './db-api';
 import { Metadata } from '~/spidering/data-formats';
 import { UrlChainLink } from '~/extract/urls/url-fetch-chains';
 
@@ -89,6 +89,7 @@ describe('High-level Database API', () => {
     await insertNewUrlChains();
     const nextUrl = await getNextUrlForSpidering();
     prettyPrint({ nextUrl });
+    await commitMetadata(metadata);
 
     done();
   });
