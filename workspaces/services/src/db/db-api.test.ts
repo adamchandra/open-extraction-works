@@ -4,7 +4,7 @@ import _ from "lodash";
 
 import { AlphaRecord, prettyPrint } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
-import { commitMetadata, getNextUrlForSpidering, insertAlphaRecords, insertNewUrlChains } from './db-api';
+import { commitMetadata, getNextUrlForSpidering, insertAlphaRecords, insertCorpusEntry, insertNewUrlChains } from './db-api';
 import { Metadata } from '~/spidering/data-formats';
 import { UrlChainLink } from '~/extract/urls/url-fetch-chains';
 
@@ -83,13 +83,20 @@ describe('High-level Database API', () => {
   it.only('should commit spidering metadata to db', async (done) => {
     const metadata = mockMetadata(3);
     const alphaRecord =  mockAlphaRecord(0);
-    prettyPrint({ metadata, alphaRecord });
+    // prettyPrint({ metadata, alphaRecord });
 
     await insertAlphaRecords([alphaRecord]);
     await insertNewUrlChains();
     const nextUrl = await getNextUrlForSpidering();
     prettyPrint({ nextUrl });
-    await commitMetadata(metadata);
+    const commitedMeta = await commitMetadata(metadata);
+    prettyPrint({ commitedMeta });
+    const { requestUrl } = metadata;
+    const entryStatus = await insertCorpusEntry(requestUrl);
+    prettyPrint({ entryStatus });
+
+    const entryStatus2 = await insertCorpusEntry(requestUrl);
+    prettyPrint({ entryStatus2 });
 
     done();
   });

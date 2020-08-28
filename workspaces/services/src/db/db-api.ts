@@ -58,19 +58,19 @@ export async function insertNewUrlChains(): Promise<void> {
 
 export async function getNextUrlForSpidering(): Promise<string | undefined> {
   const db = await openDatabase();
-  const [queryResults, queryMeta] =
+  const [queryResults] =
     await db.run(async (sql) => {
       const results = await sql.query(stripMargin(`
-| update "UrlChains"
-| set "statusCode" = 'spider:in-progress'
-| where url = (
-|   select url
-|   from "UrlChains"
-|   where "statusCode" = 'status:new'
-|   limit 1
-| )
-|RETURNING url
-|`));
+|       UPDATE "UrlChains"
+|       SET "statusCode" = 'spider:in-progress'
+|       WHERE url = (
+|         SELECT url
+|         FROM "UrlChains"
+|         WHERE "statusCode" = 'status:new'
+|         LIMIT 1
+|       )
+|      RETURNING url
+|      `));
       return results;
     });
 
@@ -82,19 +82,64 @@ export async function getNextUrlForSpidering(): Promise<string | undefined> {
   return nextUrl;
 }
 
-export async function commitMetadata(metadata: Metadata): Promise<void> {
+export interface UrlStatus {
+  url: string;
+  statusCode: string;
+}
+export async function commitMetadata(metadata: Metadata): Promise<UrlStatus|undefined> {
   const db = await openDatabase();
 
-  const { requestUrl, responseUrl, status, fetchChain } = metadata;
+  const { requestUrl, responseUrl, status } = metadata;
+
+  const [queryResults] =
+    await db.run(async (sql) => {
+      const esc = (s: string) => sql.escape(s);
+      const httpStatus = `http:${status}`;
+
+      const query = stripMargin(`
+|       UPDATE "UrlChains"
+|         SET
+|           "statusCode" = ${esc(httpStatus)},
+|           "responseUrl" = ${esc(responseUrl)},
+|           "updatedAt" = NOW()
+|         WHERE
+|           url = ${esc(requestUrl)}
+|           AND "statusCode" = 'spider:in-progress'
+|         RETURNING "url", "statusCode"
+`);
+
+      const results = await sql.query(query);
+      return results;
+    });
+
+  const response: UrlStatus[] = queryResults as any[];
+
+  await db.close();
+  return response[0];
+}
+
+export async function commitMetadataUrlChain(metadata: Metadata): Promise<void> {
+  const db = await openDatabase();
+
+  const { requestUrl, fetchChain } = metadata;
 
   const [queryResults, queryMeta] =
     await db.run(async (sql) => {
+      const esc = (s: string) => sql.escape(s);
+      const rootUrl = requestUrl;
 
       // TODO on conflict ...
       const insertValues = _.map(_.tail(fetchChain), l => {
         const resp = l.responseUrl || '';
         const status = `http:${l.status}`;
-        return `(${sql.escape(requestUrl)}, ${sql.escape(l.requestUrl)}, ${sql.escape(resp)}, ${sql.escape(status)}, NOW(), NOW())`;
+        return stripMargin(`
+|         (
+|           ${esc(rootUrl)},
+|           ${esc(l.requestUrl)},
+|           ${esc(resp)},
+|           ${esc(status)},
+|           NOW(), NOW()
+|           )`);
       });
       const valuesClause = _.join(insertValues, ', ');
 
@@ -109,7 +154,44 @@ export async function commitMetadata(metadata: Metadata): Promise<void> {
       return results;
     });
 
-  prettyPrint({ queryMeta, queryResults });
+  // prettyPrint({ queryMeta, queryResults });
 
   await db.close();
+}
+
+export interface CorpusEntryStatus {
+  entryId: string;
+  statusCode: string;
+  fields?: string;
+}
+
+export async function insertCorpusEntry(url: string): Promise<CorpusEntryStatus> {
+  const db = await openDatabase();
+
+  const [queryResults, queryMeta] =
+    await db.run(async (sql) => {
+      const esc = (s: string) => sql.escape(s);
+      const query = stripMargin(`
+|       insert into "CorpusEntries" (id, "statusCode")
+|         values (
+|           encode(digest(${esc(url)} :: bytea, 'sha1'), 'hex'),
+|           'new'
+|         )
+|        on conflict do nothing
+|        returning id, "statusCode";
+|
+|       select * from "CorpusEntries"
+|         where id = encode(digest(${esc(url)} :: bytea, 'sha1'), 'hex');
+|     `);
+
+      // prettyPrint({ query });
+      const results = await sql.query(query);
+      return results;
+    });
+
+  prettyPrint({ queryMeta, queryResults });
+  const response: CorpusEntryStatus[] = queryResults as any[];
+
+  await db.close();
+  return response[0];
 }

@@ -4,9 +4,9 @@ import _ from "lodash";
 import { createTestServices, assertAllStringsIncluded } from './service-test-utils';
 
 describe("Service Communication Hub lifecycle", () => {
-  process.env['service-comm.loglevel'] = 'warn';
+  process.env['service-comm.loglevel'] = 'debug';
 
-  it("should startup, link, and shutdown service hub with satellites", async (done) => {
+  it.only("should startup, link, and shutdown service hub with satellites", async (done) => {
     const logMessages: string[] = [];
     const numServices = 3;
     const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
@@ -15,6 +15,7 @@ describe("Service Communication Hub lifecycle", () => {
         `ServiceHub: service-${svcNum}:ack~link`,
         `ServiceHub: service-${svcNum}:done~link`,
         `service-${svcNum}: ServiceHub:shutdown`,
+        // `service-${svcNum}: ServiceHub:shutdown`,
         `ServiceHub: service-${svcNum}:ack~shutdown`,
       ];
     })

@@ -44,7 +44,7 @@ type HandlerSet = Record<string, HandlerInstance>;
 type HandlerScope = keyof {
   'inbox': null,
   'local': null,
-  'broadcast': null
+  // 'broadcast': null
 };
 
 type HandlerSets = Record<HandlerScope, HandlerSet[]>;
@@ -56,7 +56,7 @@ export interface ServiceComm {
   sendTo(name: string, msg: string): Promise<void>;
   sendSelf(selfMsg: string, channel: string, msg: string): Promise<void>;
   emit(msg: string): Promise<void>;
-  broadcast(msg: string): Promise<void>;
+  // broadcast(msg: string): Promise<void>;
   quit: () => Promise<void>;
 
   // Internal use:
@@ -133,7 +133,7 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       handlerSets: {
         'inbox': [],
         'local': [],
-        'broadcast': []
+        // 'broadcast': []
       },
       async send(recipient: string, scope: HandlerScope, msg: string): Promise<void> {
         if (this.isShutdown) return;
@@ -154,11 +154,11 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         const prefixedMsg = `${name}:${msg}`;
         return this.sendSelf('emit', `${this.name}.inbox`, prefixedMsg);
       },
-      async broadcast(msg: string): Promise<void> {
-        const prefixedMsg = `${name}:${msg}`;
-        this.log.debug(`broadcasting> #${msg}`)
-        return this.send(name, 'broadcast', prefixedMsg);
-      },
+      // async broadcast(msg: string): Promise<void> {
+      //   const prefixedMsg = `${name}:${msg}`;
+      //   this.log.debug(`broadcasting> #${msg}`)
+      //   return this.send(name, 'broadcast', prefixedMsg);
+      // },
       addHandler(scope: HandlerScope, regex: string, handler: HandlerInstance): void {
         const handlerSet: HandlerSet = {};
         handlerSet[regex] = handler;

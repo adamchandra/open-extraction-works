@@ -57,12 +57,12 @@ export async function runTransaction<R>(
     const transaction = await db.transaction();
     return f(db, transaction)
       .then(async (r) => {
-        console.log('committing transaction');
+        // console.log('committing transaction');
         return transaction.commit().then(() => r);
       })
       .catch(async (error) => {
         return transaction.rollback().then(() => {
-          console.log('runTransaction: error:', error);
+          // console.log('runTransaction: error:', error);
           throw error;
         })
       })

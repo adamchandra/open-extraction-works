@@ -7,10 +7,16 @@ import Async from 'async';
 
 export type LifecycleName = keyof {
   startup: null,
-  shutdown: null,
+  // shutdown: null,
   run: null,
   step: null,
   ping: null,
+}
+
+// emit? yield?
+export type LifecyclePhase = keyof {
+  ack: null,
+  done: null,
 }
 
 export type LifecycleHandler<T, R> = (this: SatelliteService<T>) => Promise<R>;
@@ -95,27 +101,20 @@ export async function createSatelliteService<T>(
                 commLink.log.warn(`${satelliteName} [unhandled]> #${msg}`);
             }
           }
-          if (lm.scope === 'broadcast') {
-            switch (lm.localMessage) {
-              case 'received':
-                return commLink.sendTo(hubName, `ack~${lm.message}`);
-              case 'handled':
-                return commLink.sendTo(hubName, `done~${lm.message}`);
-              default:
-                commLink.log.warn(`${satelliteName} [unhandled]> #${msg}`);
-            }
-          }
+          // if (lm.scope === 'broadcast') {
+          //   switch (lm.localMessage) {
+          //     case 'received':
+          //       return commLink.sendTo(hubName, `ack~${lm.message}`);
+          //     case 'handled':
+          //       return commLink.sendTo(hubName, `done~${lm.message}`);
+          //     default:
+          //       commLink.log.warn(`${satelliteName} [unhandled]> #${msg}`);
+          //   }
+          // }
         });
 
       commLink.addHandler(
         'inbox', `${hubName}:.*`,
-        async (message: string) => {
-          const [, msg] = message.split(/:/);
-          await runHandler(msg);
-        });
-
-      commLink.addHandler(
-        'broadcast', `${hubName}:.*`,
         async (message: string) => {
           const [, msg] = message.split(/:/);
           await runHandler(msg);
@@ -124,7 +123,17 @@ export async function createSatelliteService<T>(
           }
         });
 
-      await commLink.subscriber.subscribe(`${hubName}.broadcast`);
+      // commLink.addHandler(
+      //   'broadcast', `${hubName}:.*`,
+      //   async (message: string) => {
+      //     const [, msg] = message.split(/:/);
+      //     await runHandler(msg);
+      //     if (msg === 'shutdown') {
+      //       await commLink.quit();
+      //     }
+      //   });
+
+      // await commLink.subscriber.subscribe(`${hubName}.broadcast`);
       await runHandler('startup');
 
       return satService;
@@ -186,7 +195,12 @@ export async function createHubService(
               });
             }).then(() => undefined);
 
-          await this.commLink.broadcast('shutdown');
+          Async.map<string, void, Error>(
+            orderedServices, async serviceName => {
+              await this.commLink.sendTo(serviceName, 'shutdown')
+            }).then(() => undefined);
+
+          // await this.commLink.broadcast('shutdown');
           return allAckedShutdown;
         }
       };

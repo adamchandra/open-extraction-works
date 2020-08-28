@@ -15,7 +15,7 @@ export interface SpiderService {
   crawlScheduler: CrawlScheduler;
   scraper: Scraper;
   run(alphaRecordStream: Readable): Promise<Readable>; // Readable<Metadata|undefined>
-  scrape(url: string): Promise<Metadata|undefined>; 
+  scrape(url: string): Promise<Metadata|undefined>;
   setWorkingDirectory(dir: string): void;
 }
 

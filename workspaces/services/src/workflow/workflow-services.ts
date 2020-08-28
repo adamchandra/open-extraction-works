@@ -5,7 +5,7 @@ import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-serv
 import { Server } from 'http';
 import { promisify } from 'util';
 import { createSpiderService, SpiderService } from '~/spidering/spider-service';
-import { getNextUrlForSpidering, insertNewUrlChains } from '~/db/db-api';
+import { commitMetadata, getNextUrlForSpidering, insertCorpusEntry, insertNewUrlChains } from '~/db/db-api';
 import { putStrLn } from 'commons';
 
 type WorkflowServiceName = keyof {
@@ -54,19 +54,24 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
       const spider = this.cargo;
       let nextUrl = await getNextUrlForSpidering();
       while (nextUrl !== undefined) {
-        const metaData = await spider
+        const metadata = await spider
           .scrape(nextUrl)
-          .catch((error) => {
-            putStrLn(`Error`, error)
+          .catch((error: Error) => {
+            putStrLn(`Error`, error.name, error.message);
             return undefined;
           });
-        if (metaData !== undefined) {
-          // Populate urlchains
-          const { requestUrl, responseUrl, status, fetchChain } = metaData;
 
+        if (metadata !== undefined) {
+          const committedMeta = await commitMetadata(metadata);
+          this.log.info(`committing Metadata ${committedMeta}`)
+          if (committedMeta) {
+            committedMeta.statusCode === 'http:200';
+            const corpusEntryStatus = await insertCorpusEntry(committedMeta.url);
+            this.log.info(`created new corpus entry ${corpusEntryStatus.entryId}: ${corpusEntryStatus.statusCode}`)
+            await this.commLink.emit('step');
+          }
         } else {
           putStrLn(`Metadata is undefined for url ${nextUrl}`);
-
         }
         nextUrl = await getNextUrlForSpidering();
       }
