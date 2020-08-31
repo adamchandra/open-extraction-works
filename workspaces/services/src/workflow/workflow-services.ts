@@ -42,7 +42,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   'UploadIngestor': defineSatelliteService<void>(
     async () => undefined, {
     async step(): Promise<void> {
-      this.log.info(`${this.serviceName} [step]> `)
+      this.log.info(`[step]> `)
       await insertNewUrlChains()
     }
   }),

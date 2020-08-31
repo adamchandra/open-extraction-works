@@ -5,18 +5,33 @@ import { delay, slidingWindow } from 'commons';
 import winston from "winston";
 import Async from 'async';
 
+
 export type LifecycleName = keyof {
   startup: null,
-  // shutdown: null,
-  run: null,
+  shutdown: null,
   step: null,
   ping: null,
-}
+};
 
-// emit? yield?
-export type LifecyclePhase = keyof {
+export type LifecycleMod = keyof {
   ack: null,
   done: null,
+  yield: null,
+}
+
+export const LifecyclePhase: Record<LifecycleName, LifecycleMod[]> = {
+  startup: ['done'],
+  shutdown: ['ack'],
+  step: ['yield', 'done'],
+  ping: ['ack'],
+};
+
+
+
+export interface SatelliteComm {
+  hubName: string;
+  satName: string;
+  commLink: ServiceComm;
 }
 
 export type LifecycleHandler<T, R> = (this: SatelliteService<T>) => Promise<R>;
@@ -34,7 +49,6 @@ export interface ServiceHub {
   commLink: ServiceComm;
   addSatelliteService(name: string): Promise<void>;
   shutdownSatellites(): Promise<void>;
-  serviceQuorum: string[];
 }
 
 export interface SatelliteServiceDef<T> {
@@ -101,16 +115,6 @@ export async function createSatelliteService<T>(
                 commLink.log.warn(`${satelliteName} [unhandled]> #${msg}`);
             }
           }
-          // if (lm.scope === 'broadcast') {
-          //   switch (lm.localMessage) {
-          //     case 'received':
-          //       return commLink.sendTo(hubName, `ack~${lm.message}`);
-          //     case 'handled':
-          //       return commLink.sendTo(hubName, `done~${lm.message}`);
-          //     default:
-          //       commLink.log.warn(`${satelliteName} [unhandled]> #${msg}`);
-          //   }
-          // }
         });
 
       commLink.addHandler(
@@ -123,17 +127,6 @@ export async function createSatelliteService<T>(
           }
         });
 
-      // commLink.addHandler(
-      //   'broadcast', `${hubName}:.*`,
-      //   async (message: string) => {
-      //     const [, msg] = message.split(/:/);
-      //     await runHandler(msg);
-      //     if (msg === 'shutdown') {
-      //       await commLink.quit();
-      //     }
-      //   });
-
-      // await commLink.subscriber.subscribe(`${hubName}.broadcast`);
       await runHandler('startup');
 
       return satService;
@@ -146,14 +139,12 @@ async function establishSatelliteConnection(hubComm: ServiceComm, satelliteName:
     'local',
     `${satelliteName}:done~link`,
     async () => {
-      // hubComm.log.info(`${hubComm.name} got ack from ${satelliteName}`);
       pingedSatellite = true;
     }
   );
   const tryPing: () => Promise<void> = async () => {
     hubComm.log.info(`${hubComm.name} pinging ${satelliteName}`);
     if (pingedSatellite) {
-      // hubComm.log.info(`pinged == true from ${satelliteName}`);
       return;
     }
     await hubComm.sendTo(satelliteName, 'link');
@@ -161,9 +152,7 @@ async function establishSatelliteConnection(hubComm: ServiceComm, satelliteName:
       return tryPing();
     });
   };
-  return tryPing().then(() => {
-    // hubComm.log.info(`established link to ${satelliteName}`);
-  });
+  return tryPing();
 }
 
 export async function createHubService(
@@ -176,9 +165,7 @@ export async function createHubService(
       const hubService: ServiceHub = {
         name: hubName,
         commLink,
-        serviceQuorum: [],
         async addSatelliteService(satelliteName: string): Promise<void> {
-          this.serviceQuorum.push(satelliteName);
           return establishSatelliteConnection(this.commLink, satelliteName);
         },
         async shutdownSatellites(): Promise<void> {
@@ -188,31 +175,28 @@ export async function createHubService(
               return new Promise(resolve => {
                 hubService.commLink.addHandler(
                   'local', `${serviceName}:ack~shutdown`,
-                  async () => {
-                    resolve();
-                  }
+                  async () => resolve()
                 );
               });
             }).then(() => undefined);
 
-          Async.map<string, void, Error>(
-            orderedServices, async serviceName => {
-              await this.commLink.sendTo(serviceName, 'shutdown')
-            }).then(() => undefined);
+          await Async.map<string, void, Error>(
+            orderedServices,
+            async serviceName => this.commLink.sendTo(serviceName, 'shutdown')
+          ).then(() => undefined);
 
-          // await this.commLink.broadcast('shutdown');
           return allAckedShutdown;
         }
       };
 
-      Async.map<string, void, Error>(
-        orderedServices,
-        async s => hubService.addSatelliteService(s)
-      ).then(() => {
-        commLink.sendSelf('handled', `${hubName}.inbox`, `${hubName}:sat-linked`);
-      });
-
       const connectedPromise = new Promise<void>(resolve => {
+        Async.map<string, void, Error>(
+          orderedServices,
+          async s => hubService.addSatelliteService(s)
+        ).then(() => {
+          return commLink.sendSelf('handled', `${hubName}.inbox`, `${hubName}:sat-linked`);
+        });
+
         hubService.commLink.addHandler(
           'local', `${hubName}:sat-linked`,
           async () => resolve()

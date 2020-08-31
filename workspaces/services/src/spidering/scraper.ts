@@ -69,36 +69,39 @@ async function scrapeUrl(
     return;
   }
 
-
   const page: Page = await browser.newPage();
+  try {
+    logPageEvents(scrapingContext, page);
 
-  logPageEvents(scrapingContext, page);
+    const response: Response | null = await page.goto(url);
 
-  const response: Response | null = await page.goto(url);
+    if (!response) {
+      rootLogger.warn(`no response ${url}`);
+      return;
+    }
 
-  if (!response) {
-    rootLogger.warn(`no response ${url}`);
-    return;
+    const request = response.request();
+    const requestHeaders = request.headers();
+    writeCorpusJsonFile(entryRootPath, '.', 'request-headers.json', requestHeaders);
+
+    const respHeaders = response.headers();
+    writeCorpusJsonFile(entryRootPath, '.', 'response-headers.json', respHeaders);
+
+    const respBuffer = await response.buffer();
+    writeCorpusTextFile(entryRootPath, '.', 'response-body', respBuffer.toString())
+
+    const metadata = createMetadata(url, response);
+    writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
+    const status  = response.status();
+    await page.close();
+    rootLogger.info(`Scraped ${url}: status: ${status}`);
+    return metadata;
+
+  } catch (error) {
+    await page.close();
+    rootLogger.error(`For ${url}: error: ${error}`);
   }
-
-  const request = response.request();
-  const requestHeaders = request.headers();
-  writeCorpusJsonFile(entryRootPath, '.', 'request-headers.json', requestHeaders);
-
-  const respHeaders = response.headers();
-  writeCorpusJsonFile(entryRootPath, '.', 'response-headers.json', respHeaders);
-
-  const respBuffer = await response.buffer();
-  writeCorpusTextFile(entryRootPath, '.', 'response-body', respBuffer.toString())
-
-  const metadata = createMetadata(url, response);
-  writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
-  const status  = response.status();
-
-  // TODO put in finally clause
-  await page.close();
-  rootLogger.info(`Scraped ${url}: status: ${status}`);
-  return metadata;
+  return undefined;
 }
 
 export async function scrapeUrlAndQuit(

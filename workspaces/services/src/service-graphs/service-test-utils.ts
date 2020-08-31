@@ -22,7 +22,6 @@ export async function createTestServices(n: number, runLog: string[]): Promise<[
 
       const satService = await createSatelliteService(hubName, serviceName, serviceDef);
       satService.commLink.addHandler('inbox', '.*', recordLogMsgHandler(serviceName, 'inbox'));
-      // satService.commLink.addHandler('broadcast', '.*', recordLogMsgHandler(serviceName, 'broadcast'));
       satService.commLink.addHandler('local', '.*', recordLogMsgHandler(serviceName, 'local'));
       return satService;
     });
@@ -30,7 +29,6 @@ export async function createTestServices(n: number, runLog: string[]): Promise<[
   const [hubPool, hubConnected] = await createHubService(hubName, serviceNames);
 
   hubPool.commLink.addHandler('inbox', '.*', recordLogMsgHandler(hubPool.name, 'inbox'));
-  // hubPool.commLink.addHandler('broadcast', '.*', recordLogMsgHandler(hubPool.name, 'broadcast'));
   hubPool.commLink.addHandler('local', '.*', recordLogMsgHandler(hubPool.name, 'local'));
 
   await hubConnected;

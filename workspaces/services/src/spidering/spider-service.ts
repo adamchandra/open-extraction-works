@@ -47,7 +47,7 @@ export async function createSpiderService(): Promise<SpiderService> {
           return this.scraper.scrapeUrl(urlString)
             .then((didScrape) => {
               if (didScrape) {
-                return delay(3000);
+                return delay(1000);
               }
               return;
             })

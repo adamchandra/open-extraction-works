@@ -1,32 +1,8 @@
 import _ from "lodash";
 import Redis from 'ioredis';
 import Async from 'async';
-
-import winston, {
-  createLogger,
-  transports,
-  format,
-} from "winston";
-
-export function getServiceLogger(label: string): winston.Logger {
-
-  const envLogLevel = process.env['service-comm.loglevel'];
-  const logLevel = envLogLevel || 'info';
-  const cli = winston.config.cli;
-  return createLogger({
-    level: logLevel,
-    levels: cli.levels,
-    transports: [
-      new transports.Console({
-        format: format.combine(
-          format.colorize(),
-          format.label({ label, message: true }),
-          format.simple(),
-        ),
-      })
-    ],
-  });
-}
+import winston from "winston";
+import { getServiceLogger } from './service-logger';
 
 const RedisConnectionEvents = [
   'ready',
@@ -44,7 +20,6 @@ type HandlerSet = Record<string, HandlerInstance>;
 type HandlerScope = keyof {
   'inbox': null,
   'local': null,
-  // 'broadcast': null
 };
 
 type HandlerSets = Record<HandlerScope, HandlerSet[]>;
@@ -56,7 +31,6 @@ export interface ServiceComm {
   sendTo(name: string, msg: string): Promise<void>;
   sendSelf(selfMsg: string, channel: string, msg: string): Promise<void>;
   emit(msg: string): Promise<void>;
-  // broadcast(msg: string): Promise<void>;
   quit: () => Promise<void>;
 
   // Internal use:
@@ -133,7 +107,6 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
       handlerSets: {
         'inbox': [],
         'local': [],
-        // 'broadcast': []
       },
       async send(recipient: string, scope: HandlerScope, msg: string): Promise<void> {
         if (this.isShutdown) return;
@@ -154,11 +127,6 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         const prefixedMsg = `${name}:${msg}`;
         return this.sendSelf('emit', `${this.name}.inbox`, prefixedMsg);
       },
-      // async broadcast(msg: string): Promise<void> {
-      //   const prefixedMsg = `${name}:${msg}`;
-      //   this.log.debug(`broadcasting> #${msg}`)
-      //   return this.send(name, 'broadcast', prefixedMsg);
-      // },
       addHandler(scope: HandlerScope, regex: string, handler: HandlerInstance): void {
         const handlerSet: HandlerSet = {};
         handlerSet[regex] = handler;
@@ -192,7 +160,11 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
         const lm = unpackLocalMessage(msg);
         switch (lm.localMessage) {
           case 'received' :
-            serviceComm.log.debug(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
+            if (haveHandlers) {
+              serviceComm.log.info(`${lm.localMessage}> #${lm.sender}:${lm.message} handler#${handlersForMessage.length}`);
+            } else {
+              serviceComm.log.debug(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
+            }
             break;
           case 'handled':
             serviceComm.log.info(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
@@ -204,10 +176,9 @@ export function createServiceComm(name: string): Promise<ServiceComm> {
             .catch(error => {
               serviceComm.log.error(`${lm.localMessage}:local> #${lm.sender}:${lm.message}: ERROR: ${error}`);
             })
-        })
-          .catch((err) => {
-            serviceComm.log.error(`> ${msg} on ${channel}: ${err}`)
-          });
+        }).catch((err) => {
+          serviceComm.log.error(`> ${msg} on ${channel}: ${err}`)
+        });
         return;
       }
 

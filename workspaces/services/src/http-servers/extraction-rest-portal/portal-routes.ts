@@ -73,6 +73,7 @@ async function postBatchCsv(
   }
 
   // TODO this emit can be moved to middleware outside of here
+  // TODO await serviceComm.emit('step', 'done');
   await serviceComm.emit('step');
   return next();
 }
@@ -88,7 +89,6 @@ async function getBatchCsv(ctx: Context, next: () => Promise<any>): Promise<Rout
 async function getRoot(ctx: Context, next: () => Promise<any>): Promise<Router> {
   const p = ctx.path;
   console.log('getRoot', p);
-
   return next();
 }
 

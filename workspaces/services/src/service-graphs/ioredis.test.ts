@@ -46,7 +46,6 @@ describe("IORedis library tests and examples", () => {
 
     await rclient.publish("topic.foo", "foo.msg");
     rclient.publish('exit', 'quit');
-
   });
 
 });
