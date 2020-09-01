@@ -1,11 +1,11 @@
 import _ from "lodash";
 
 import {
-  streamPump, expandDir, walkScrapyCacheCorpus, ensureArtifactDirectories
+  streamPump, walkScrapyCacheCorpus, ensureArtifactDirectories
 } from "commons";
 
-import { initLogger } from '../logging/logging';
 import { extractAbstractTransform, ExtractionAppContext, skipIfAbstractLogExisits } from './extract-abstracts';
+import { getBasicLogger } from '~/utils/basic-logging';
 // import { interactiveUIAppMain } from '~/qa-editing/interactive-ui';
 
 
@@ -15,7 +15,7 @@ export async function runMainExtractAbstracts(
 ): Promise<void> {
 
   const dirEntryStream = walkScrapyCacheCorpus(cacheRoot);
-  const log = initLogger(logpath, "abstract-finder", true);
+  const log = getBasicLogger(logpath, 'abstract-finder-log.json');
 
   const pumpBuilder = streamPump.createPump()
     .viaStream<string>(dirEntryStream)
@@ -30,23 +30,3 @@ export async function runMainExtractAbstracts(
     .then(() => undefined);
 
 }
-
-
-// TODO move this to qa-review module
-// export async function runMainInteractiveFieldReview(
-//   corpusRoot: string
-// ): Promise<void> {
-
-//   const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
-//   const pumpBuilder = streamPump.createPump()
-//     .viaStream<string>(dirEntryStream)
-//     .throughF(expandDir)
-//     .tap((entryPath) => {
-//       return interactiveUIAppMain(entryPath);
-//     });
-
-//   return pumpBuilder.toPromise()
-//     .then(() => undefined);
-
-
-// }

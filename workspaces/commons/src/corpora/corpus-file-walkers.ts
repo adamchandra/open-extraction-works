@@ -51,7 +51,7 @@ export function walkScrapyCacheCorpus(corpusRoot: string): Readable {
   const corpusDirStream = getDirWalkerStream(corpusRoot);
 
   const entryDirFilter = stringStreamFilter((dir: string) => {
-    const shaHexRE = /[\dabcdefABCDEF]{40}[/]?$/;
+    const shaHexRE = /[\dabcdefABCDEF]{40}(\.d)?[/]?$/;
     return shaHexRE.test(dir);
   });
 

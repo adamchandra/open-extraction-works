@@ -2,8 +2,8 @@ import "chai";
 import "chai/register-should";
 
 import _ from "lodash";
-import { makeHashEncodedPath } from './persist';
 import { prettyPrint } from 'commons';
+import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 
 describe("spider persistence", () => {
 

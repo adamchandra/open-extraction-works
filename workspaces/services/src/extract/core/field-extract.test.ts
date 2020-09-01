@@ -5,8 +5,9 @@ import _ from "lodash";
 import { prettyPrint } from "commons";
 import * as TE from 'fp-ts/lib/TaskEither';
 import { pipe } from 'fp-ts/lib/pipeable';
-import { readMetaProps, filterUrl, runFileVerification, runHtmlTidy, initialEnv } from './field-extract';
+import { readMetaProps, filterUrl, runFileVerification, runHtmlTidy } from './field-extract';
 import { ExtractionEnv } from './extraction-process';
+import { getBasicConsoleLogger } from '~/utils/basic-logging';
 
 describe("Field Extraction Pipeline", () => {
 
@@ -28,8 +29,16 @@ describe("Field Extraction Pipeline", () => {
 
   it("should run a single extraction stage", async (done) => {
     // TE.map((env: ExtractionEnv) => { prettyPrint({ env }); return env; } ),
+
+    const init: ExtractionEnv = {
+      log: getBasicConsoleLogger(),
+      entryPath: testEntryPath,
+      fileContentMap: {},
+      extractionRecord: { kind: "fields", fields: {} },
+      evidence: []
+    };
     const res = pipe(
-      TE.right<string, ExtractionEnv>({ ...initialEnv, entryPath: testEntryPath }),
+      TE.right<string, ExtractionEnv>(init),
       TE.chain(readMetaProps),
       TE.chain(filterUrl(/ieee.org/)),
       TE.chain(runFileVerification(/html/i)),

@@ -10,27 +10,32 @@ import { runFileCmd } from '~/utils/run-cmd-file';
 import { makeCssTreeNormalForm } from './html-to-css-normal';
 import { runTidyCmdBuffered } from '~/utils/run-cmd-tidy-html';
 import { ExtractionEnv, ExtractionFunction, NormalForm, extractionSuccess, fatalFailure, nonFatalFailure } from './extraction-process';
-import { readMetaFile } from '../logging/logging';
 import { readCorpusTextFileAsync, resolveCorpusFile, writeCorpusTextFile, readCorpusTextFile } from 'commons';
+import { readMetadata } from '../logging/logging';
 
 
-export const initialEnv: ExtractionEnv = {
-  entryPath: 'empty',
-  metaProps: {
-    url: 'empty',
-    responseUrl: 'empty',
-    status: 0
-  },
-  responseMimeType: '',
-  fileContentMap: {},
-  evidence: [],
-  extractionRecord: { kind: "fields", fields: {} },
-  verbose: false
-};
+// export const initialEnv: ExtractionEnv = {
+//   entryPath: 'empty',
+//   metaProps: {
+//     url: 'empty',
+//     responseUrl: 'empty',
+//     status: 0
+//   },
+//   responseMimeType: '',
+//   fileContentMap: {},
+//   evidence: [],
+//   extractionRecord: { kind: "fields", fields: {} },
+//   verbose: false
+// };
 
 export const filterUrl: (urlTest: RegExp) => ExtractionFunction =
   (urlTest: RegExp) => (env: ExtractionEnv) => {
-    const { metaProps: { responseUrl } } = env;
+    const responseUrl =  env.metaProps?.responseUrl;
+    if (!responseUrl) {
+      const msg = `${env.entryPath}: no metaProps available`;
+      env.log.error(msg);
+      return TE.left(msg);
+    }
     if (urlTest.test(responseUrl)) {
       env.evidence.push(`url~=/${urlTest.source}/`)
       return TE.right(env);
@@ -40,13 +45,16 @@ export const filterUrl: (urlTest: RegExp) => ExtractionFunction =
 
 export const verifyHttpResponseCode: ExtractionFunction =
   (env: ExtractionEnv) => {
-    const { metaProps: { status } } = env;
+    const status =  env.metaProps?.status;
 
-    if (env.verbose) {
-      console.log('verifyHttpResponseCode');
+    if (!status) {
+      const msg = `verifyHttpResponseCode: ${env.entryPath}: no status available`;
+      env.log.error(msg);
+      return TE.left(msg);
     }
 
-    if (status === 200) {
+
+    if (status === '200') {
       return extractionSuccess(env);
     }
     return fatalFailure(`response code: ${status}`)
@@ -75,10 +83,8 @@ export const runFileVerification: (urlTest: RegExp) => ExtractionFunction =
   (typeTest: RegExp) => (env: ExtractionEnv) => {
     const { entryPath } = env;
 
-    if (env.verbose) {
-      console.log('runFileVerification');
-    }
-    const file = path.resolve(entryPath, 'response_body');
+    env.log.debug('runFileVerification');
+    const file = path.resolve(entryPath, 'response-body');
 
     const fileTypeTask: TE.TaskEither<string, string> =
       TE.rightTask(() => runFileCmd(file));
@@ -98,18 +104,16 @@ export const runLoadResponseBody: ExtractionFunction =
   (env: ExtractionEnv) => {
     const { fileContentMap, entryPath } = env;
 
-    if (env.verbose) {
-      console.log('runLoadResponseBody');
-    }
+    env.log.debug('runLoadResponseBody');
     const normType = 'response-body';
 
     if (normType in fileContentMap) {
       return TE.right(env);
     }
 
-    const fileContent = readCorpusTextFile(entryPath, '.', 'response_body')
+    const fileContent = readCorpusTextFile(entryPath, '.', 'response-body')
     if (!fileContent) {
-      return TE.left(`Could not read file response_body`);
+      return TE.left(`Could not read file response-body`);
     }
     fileContentMap[normType] = {
       content: fileContent,
@@ -122,6 +126,12 @@ export const runCssNormalize: ExtractionFunction =
   (env: ExtractionEnv) => {
     const { fileContentMap, entryPath, responseMimeType } = env;
     const normType = 'css-normal';
+
+    if (!responseMimeType) {
+      const msg = `${env.entryPath}: no responseMimeType available`;
+      env.log.error(msg);
+      return TE.left(msg);
+    }
 
     if (normType in fileContentMap) {
       return TE.right(env);
@@ -157,9 +167,7 @@ function writeCachedNormalFile(entryPath: string, cacheKey: NormalForm, content:
 export const readCachedNormalFile: (cacheKey: NormalForm) => ExtractionFunction =
   (cacheKey: NormalForm) => (env: ExtractionEnv) => {
     const { fileContentMap, entryPath } = env;
-    if (env.verbose) {
-      console.log('readCachedNormalFile', cacheKey);
-    }
+    env.log.debug('readCachedNormalFile', cacheKey);
 
     const maybeContent = () =>
       readCorpusTextFileAsync(entryPath, 'cache', `${cacheKey}.norm`)
@@ -189,7 +197,7 @@ export const runHtmlTidy: ExtractionFunction =
       return TE.right(env);
     }
 
-    const file = path.resolve(entryPath, 'response_body');
+    const file = path.resolve(entryPath, 'response-body');
 
     const tidyOutput = runTidyCmdBuffered('./conf/tidy.cfg', file)
       .then(([stderr, stdout, exitCode]) => {
@@ -219,15 +227,32 @@ export const runHtmlTidy: ExtractionFunction =
 
 export const readMetaProps: ExtractionFunction =
   (env: ExtractionEnv) => {
-    const { entryPath } = env;
-    const file = path.resolve(entryPath, 'meta');
-    const metaProps = readMetaFile(file)
-    if (env.verbose) {
-      console.log('readMetaProps');
-    }
+    const { log, entryPath } = env;
+    const file = path.resolve(entryPath, 'metadata.json');
+    const metaProps = readMetadata(file)
     if (!metaProps) {
-      return TE.left(`meta file not found in ${entryPath}`);
+      const msg = `metadata.json file not found in ${entryPath}`;
+      log.debug(msg);
+      return TE.left(msg);
     }
     env.metaProps = metaProps;
     return TE.right(env);
   };
+
+
+// TODO trace logging for pipeline functions
+// export const traceEntryExit: (ef: ExtractionFunction) => ExtractionFunction =
+//   (ef: ExtractionFunction) => (env: ExtractionEnv) => {
+//     const { log } = env;
+//     pipe(
+//       env,
+//       ef,
+//       TE.mapLeft(xx => {
+//         log.debug(jkl);
+//       })
+//       // TE.chain(r => {}));
+//     // const result = ef(env);
+//     // const status = TE.isLeft(result)? 'error' : 'ok';
+//     // log.debug('')
+//     return result;
+//   };

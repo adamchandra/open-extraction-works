@@ -2,9 +2,10 @@ import * as TE from 'fp-ts/lib/TaskEither';
 import * as Arr from 'fp-ts/lib/Array';
 import { pipe } from 'fp-ts/lib/pipeable';
 import _ from "lodash";
-import { MetaFile } from '../logging/logging';
 import { diffByChars, Change } from 'commons';
 import { ExtractionRecord } from './extraction-records';
+import { Logger } from "winston";
+import { Metadata } from '~/spidering/data-formats';
 
 export interface Field {
   name: string;
@@ -60,15 +61,19 @@ interface FileContentValue {
   content: string;
 }
 
-export interface ExtractionEnv {
+interface ExtractionEnvRequired {
+  log: Logger;
   entryPath: string;
-  metaProps: MetaFile;
-  responseMimeType: string;
   fileContentMap: { [k in keyof NormalForms]?: FileContentValue };
   extractionRecord: ExtractionRecord;
   evidence: string[];
-  verbose: boolean;
 }
+
+interface ExtractionEnvOptional {
+  metaProps: Metadata;
+  responseMimeType: string;
+}
+export type ExtractionEnv = ExtractionEnvRequired & Partial<ExtractionEnvOptional>;
 
 export type ExtractionResult = TE.TaskEither<string, ExtractionEnv>;
 export type ExtractionFunction = (env: ExtractionEnv) => ExtractionResult;
@@ -88,10 +93,7 @@ export const modEnv: (f: (env: ExtractionEnv) => ExtractionEnv) => ExtractionFun
 
 export const resetEnvForAttemptChain: ExtractionFunction =
   env => {
-    // env.extractionEvidence = [];
-    if (env.verbose) {
-      console.log('resetEnvForAttemptChain');
-    }
+    env.log.debug('resetEnvForAttemptChain');
     return TE.right(env);
   };
 

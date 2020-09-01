@@ -1,12 +1,8 @@
 import _ from "lodash";
 import path from "path";
 import fs from "fs-extra";
-import { Stream } from "stream";
-import pumpify from "pumpify";
-import split from 'split';
-
 import { initBufferedLogger, BufferedLogger } from "commons";
-import { filterStream } from "commons";
+import { Metadata } from '~/spidering/data-formats';
 
 export function resolveLogfileName(logpath: string, phase: string): string {
   return path.resolve(logpath, logfileName(phase));
@@ -29,23 +25,9 @@ export function initLogger(logpath: string, phase: string, append = false): Buff
   return initBufferedLogger(logname);
 }
 
-export interface MetaFile {
-  url: string;
-  responseUrl: string;
-  status: number;
-}
 
-export function readMetaFile(metafile: string): MetaFile | undefined {
+export function readMetadata(metafile: string): Metadata | undefined {
   if (!fs.existsSync(metafile)) return;
-
-  const metaPropsBuf = fs.readFileSync(metafile);
-  const metaPropsStr = metaPropsBuf.toString();
-  const fixed = _.replace(metaPropsStr, /'/g, '"');
-  const metaProps = JSON.parse(fixed);
-  const { url, response_url, status } = metaProps;
-  return {
-    url,
-    status,
-    responseUrl: response_url,
-  };
+  const metaJson = fs.readJsonSync(metafile);
+  return metaJson;
 }

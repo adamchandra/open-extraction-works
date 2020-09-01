@@ -1,4 +1,4 @@
-import { makeHashEncodedPath, HashEncodedPath } from './persist';
+import { HashEncodedPath, makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 import { getSpiderLoggers, SpiderLoggers } from './spider-logging';
 
 export interface ScrapingContext extends SpiderLoggers {

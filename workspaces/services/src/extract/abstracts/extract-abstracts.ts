@@ -4,7 +4,6 @@ import {
   filterUrl,
   runFileVerification,
   runHtmlTidy,
-  initialEnv,
   runCssNormalize,
   runLoadResponseBody,
   verifyHttpResponseCode,
@@ -13,8 +12,8 @@ import {
 
 import { pipe } from 'fp-ts/pipeable';
 import * as Arr from 'fp-ts/Array';
-import * as Opt from 'fp-ts/Option';
-import * as Ap from 'fp-ts/Apply';
+// import * as Opt from 'fp-ts/Option';
+// import * as Ap from 'fp-ts/Apply';
 import * as TE from 'fp-ts/TaskEither';
 import * as Task from 'fp-ts/Task';
 import { isLeft } from 'fp-ts/Either'
@@ -24,10 +23,12 @@ import {
   findInMetaTE,
 } from "~/extract/core/field-extract-utils";
 
+import { Logger } from "winston";
 import { AbstractCleaningRules } from './data-clean-abstracts';
 import { ExtractionFunction, Field, ExtractionEnv, applyCleaningRules, flatMapTasksEA } from '../core/extraction-process';
-import { BufferedLogger, hasCorpusFile, writeCorpusJsonFile, readCorpusJsonFile } from 'commons';
+import { hasCorpusFile, writeCorpusJsonFile, readCorpusJsonFile } from 'commons';
 import { ExtractionRecord, ExtractionErrors, foldExtractionRec, ExtractedFields, FieldInstances, addFieldInstance } from '../core/extraction-records';
+
 
 export const findInGlobalDocumentMetadata: ExtractionFunction =
   env => {
@@ -104,7 +105,7 @@ export const skipIfAbstractLogExisits = (entryPath: string): boolean => {
 };
 
 export interface ExtractionAppContext {
-  log: BufferedLogger;
+  log: Logger;
 }
 
 const cleaningRuleExtractionFunction: ExtractionFunction = (env: ExtractionEnv) => {
@@ -147,17 +148,14 @@ const cleaningRuleExtractionFunction: ExtractionFunction = (env: ExtractionEnv) 
 };
 
 export const extractAbstractTransform =
-  async (entryPath: string, _ctx: ExtractionAppContext): Promise<void> => {
-    // const { log } = ctx;
-    // log.append('action', 'extract-field:abstract');
-    console.log(`starting extraction on ${entryPath}`);
-    // Append Cleaning rules to AbstractPipeline
+  async (entryPath: string, ctx: ExtractionAppContext): Promise<void> => {
+    const { log } = ctx;
+    log.info(`starting field extraction on ${entryPath}`);
 
-    return runAbstractFinders(AbstractPipeline, entryPath)
+    return runAbstractFinders(ctx, AbstractPipeline, entryPath)
       .then((extrFields) => writeExtractionRecord(entryPath, extrFields))
       .then(() => console.log(`extracted ${entryPath}`))
     ;
-      // .then(() => log.commitLogs());
   };
 
 export const AbstractPipeline: ExtractionFunction[][] = [
@@ -304,11 +302,20 @@ const PipelineLeadingFunctions = [
 
 
 export async function runAbstractFinders(
+  ctx: ExtractionAppContext,
   extractionPipeline: ExtractionFunction[][],
   entryPath: string
 ): Promise<ExtractionRecord> {
+  const { log } = ctx;
 
-  const init: ExtractionEnv = _.merge({}, initialEnv, { entryPath, verbose: false });
+  const init: ExtractionEnv = {
+    log,
+    entryPath,
+    fileContentMap: {},
+    extractionRecord: { kind: "fields", fields: {} },
+    evidence: []
+  };
+
   const leadingPipeline = flatMapTasksEA(PipelineLeadingFunctions);
   const maybeEnv = await leadingPipeline(init)();
 
