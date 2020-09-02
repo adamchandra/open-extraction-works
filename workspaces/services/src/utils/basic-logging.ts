@@ -9,13 +9,13 @@ import winston, {
 import path from 'path';
 const cli = winston.config.cli;
 
-export function getBasicConsoleLogger(): Logger {
+export function getBasicConsoleLogger(level: string = 'info'): Logger {
   const console = new transports.Console({
     format: format.combine(
       format.colorize(),
       format.simple(),
     ),
-    level: 'info'
+    level
   });
 
   const logger = createLogger({

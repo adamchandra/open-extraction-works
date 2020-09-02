@@ -7,6 +7,7 @@ import * as TE from 'fp-ts/lib/TaskEither';
 import { makeCssTreeNormalFormFromNode } from './html-to-css-normal';
 import { addFieldInstance } from './extraction-records';
 import { cheerioLoad } from './cheerio-loader';
+import { prettyPrint } from 'commons';
 
 export function readFile(
   leading: string,
@@ -53,7 +54,6 @@ export function findIndexForLines(
     return _.every(ms, (regex, matchNum) => {
       const currLine = fileLines[lineNum + matchNum];
       const haveMatch = regex.test(currLine); //  currLine.match(matchLine);
-      // prettyPrint({ msg: 'findIndexForLines', currLine, re: regex.source, haveMatch });
       return currLine && haveMatch;
     });
   });
@@ -94,14 +94,16 @@ export function queryContent(
 
 function _findByQuery(
   query: string,
-  _normLines: string[],
   fileContent: string,
 ): Field {
   const [field, maybeAbstract] = queryContent(query, fileContent);
   const cssNormal = makeCssTreeNormalFormFromNode(maybeAbstract);
+  const asdf = maybeAbstract.attr('data-abstract');
+  prettyPrint({ msg: '_findByQuery', query, field, cssNormal, asdf })
   field.value = getSubtextOrUndef(cssNormal);
   return field;
 }
+
 
 export interface LineMatchOptions {
   lineOffset: number;
@@ -155,7 +157,6 @@ export function _byLineMatch(
   };
 
   const matchingLines = getMatchingLines(anchoredEvidence, options, cssNormLines);
-  // prettyPrint({ matchingLines });
   if (matchingLines.length === 0) return field;
 
   const sub = findSubContentAtIndex(
@@ -173,7 +174,7 @@ export const findInMetaTE: (key: string) => ExtractionFunction =
   (key: string) => (env: ExtractionEnv) => {
     const { fileContentMap } = env;
 
-    const fileContent = fileContentMap['css-normal'];
+    const fileContent = fileContentMap['css-norm'];
     if (!fileContent) {
       return TE.left('findInMetaTE');
     }
@@ -211,7 +212,7 @@ export function findByLineMatchTE(
 
   return (env: ExtractionEnv) => {
     const { fileContentMap } = env;
-    const fileContent = fileContentMap['css-normal'];
+    const fileContent = fileContentMap['css-norm'];
     if (!fileContent) {
       return TE.left('findByLineMatchTE: no css-normal-form available');
     }
@@ -225,8 +226,53 @@ export function findByLineMatchTE(
     return TE.left('findByLineMatchTE');
   }
 }
+export function findByQuery(
+  query: string,
+): ExtractionFunction {
+  return (env: ExtractionEnv) => {
+    const { fileContentMap } = env;
 
-export const findByQuery = _.curry(_findByQuery);
+    const fileContent = fileContentMap['tidy-norm'];
+    if (!fileContent) {
+      return TE.left('findByQuery: no tidy-normal-form available');
+    }
+
+    const field = _findByQuery(query, fileContent.content)
+    if (field.value) {
+      field.evidence.unshift(`use-input:tidy-norm`)
+      addFieldInstance(env.extractionRecord, field);
+      return TE.right(env);
+    }
+    return TE.left('findByQuery');
+  }
+}
+
+export function selectElemAttr(
+  elemQuery: string,
+  attr: string,
+): ExtractionFunction {
+  return (env: ExtractionEnv) => {
+    const { fileContentMap } = env;
+
+    const fileContent = fileContentMap['tidy-norm'];
+    if (!fileContent) {
+      return TE.left('selectElemAttr: no tidy-normal-form available');
+    }
+
+    const [field, maybeAbstract] = queryContent(elemQuery, fileContent.content);
+    field.value = maybeAbstract.attr(attr);
+    if (field.value) {
+      field.evidence.unshift(`use-input:tidy-norm`);
+      field.evidence.push(`select-attr:${attr}`);
+      field.evidence.push('score:+1');
+      addFieldInstance(env.extractionRecord, field);
+      return TE.right(env);
+    }
+    return TE.left('selectElemAttr');
+  }
+}
+
+
 
 export function getSubtextOrUndef(strs: string[]): string | undefined {
   const justText = filterText(strs);

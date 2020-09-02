@@ -14,9 +14,9 @@ export interface Field {
 }
 
 interface NormalForms {
-  'css-normal': null;
-  'response-body': null;
-  'html-tidy': null
+  'css-norm': null;
+  'original': null;
+  'tidy-norm': null
 }
 
 export interface CleaningRule {
@@ -64,6 +64,7 @@ interface FileContentValue {
 interface ExtractionEnvRequired {
   log: Logger;
   entryPath: string;
+  inputFile: string;
   fileContentMap: { [k in keyof NormalForms]?: FileContentValue };
   extractionRecord: ExtractionRecord;
   evidence: string[];
@@ -91,12 +92,6 @@ export const modEnv: (f: (env: ExtractionEnv) => ExtractionEnv) => ExtractionFun
     return TE.right(newEnv);
   };
 
-export const resetEnvForAttemptChain: ExtractionFunction =
-  env => {
-    env.log.debug('resetEnvForAttemptChain');
-    return TE.right(env);
-  };
-
 export function extractionSuccess(result: ExtractionEnv): ExtractionResult {
   return TE.right<string, ExtractionEnv>(result);
 }
@@ -104,6 +99,7 @@ export function extractionSuccess(result: ExtractionEnv): ExtractionResult {
 export function fatalFailure(result: string): ExtractionResult {
   return TE.left<string, ExtractionEnv>(`FATAL: ${result}`);
 }
+
 export function nonFatalFailure(result: string): ExtractionResult {
   return TE.left<string, ExtractionEnv>(`WARN: ${result}`);
 }

@@ -50,7 +50,7 @@
 
 var home = {	
 			metadata:{
-				searchCount: '5,112,076',
+				searchCount: '5,180,468',
 				logoRelPath: '/customer_logos',
 				thirdParthAuth: false,
 				currentPage:  '',
@@ -59,7 +59,10 @@ var home = {
 		};
 		
 	
-	home.metadata.userInfo={"customerNameRaw":"University of Massachusetts Amherst","institutionName":"University of Massachusetts Amherst","institute":true,"member":false,"individual":false,"guest":false,"subscribedContent":false,"fileCabinetContent":false,"fileCabinetUser":false,"institutionalFileCabinetUser":false,"instType":"Academic","userIds":[11089],"showPatentCitations":true,"showGet802Link":true,"openUrlImgLoc":"http://www.library.umass.edu/assets/branding/sfxbutton80.gif","openUrlLink":"http://sfxhosted.exlibrisgroup.com/umass","instLogoFile":"11089_umawordmark200x50.gif","showOpenUrlLink":true,"marketingInfoCaptured":false,"tracked":false,"ringGoldId":"14707","delegatedAdmin":false,"isInstitutionDashboardEnabled":false,"isInstitutionProfileEnabled":false,"isRoamingEnabled":true,"isDelegatedAdmin":false,"isMdl":false};
+	home.metadata.userInfo={"customerNameRaw":"University of Massachusetts Amherst","institutionName":"University of Massachusetts Amherst","institute":true,"member":false,"individual":false,"guest":false,"subscribedContent":false,"fileCabinetContent":false,"fileCabinetUser":false,"institutionalFileCabinetUser":false,"instType":"Academic","userIds":[11089],"showPatentCitations":true,"showGet802Link":true,"openUrlImgLoc":"http://www.library.umass.edu/assets/branding/sfxbutton80.gif","openUrlLink":"http://sfxhosted.exlibrisgroup.com/umass","instLogoFile":"11089_umawordmark200x50.gif","showOpenUrlLink":true,"marketingInfoCaptured":false,"tracked":false,"ringGoldId":"14707","delegatedAdmin":false,"desktop":false,"isInstitutionDashboardEnabled":false,"isInstitutionProfileEnabled":false,"isRoamingEnabled":true,"isDelegatedAdmin":false,"isMdl":false,"isCwg":false};
+
+
+
 
 		
 </script>
@@ -73,7 +76,7 @@ var home = {
 				
 			 
 			
-		
+				
 		<meta name="Description" id="meta-description" content="IEEE Xplore, delivering full text access to the world's highest quality technical literature in engineering and technology. | IEEE Xplore">
 		
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -84,8 +87,12 @@ var home = {
 		<meta name="customerIndustry" content="Other" />
 		
 
-		<title>Magic Glasses: From 2D to 3D - IEEE Journals &amp; Magazine</title>
+		<title>Entropy-driven optimization dynamics for Gaussian vector multiple access channels - IEEE Conference Publication</title>
 		
+
+	
+
+
 		
 
 
@@ -182,10 +189,10 @@ window.addEventListener("load", function(){
 
 
 <g:compress>
-	<link rel="stylesheet" href="/assets/css/simplePassMeter.min.css?cv=20200505_000001" />
-	<link rel="stylesheet" type="text/css" media="screen, print" href="/assets/css/styles.css?cv=20200505_000001"/>
-	<link rel="stylesheet" href="/assets/vendor/swiper/dist/idangerous.swiper.css?cv=20200505_000001">
-	<link rel="stylesheet" type="text/css" media="screen, print" href="/assets/css/jquery-ui-1.8.19.custom.css?cv=20200505_000001"/>
+	<link rel="stylesheet" href="/assets/css/simplePassMeter.min.css?cv=20200728_000003" />
+	<link rel="stylesheet" type="text/css" media="screen, print" href="/assets/css/styles.css?cv=20200728_000003"/>
+	<link rel="stylesheet" href="/assets/vendor/swiper/dist/idangerous.swiper.css?cv=20200728_000003">
+	<link rel="stylesheet" type="text/css" media="screen, print" href="/assets/css/jquery-ui-1.8.19.custom.css?cv=20200728_000003"/>
 </g:compress>
 
 
@@ -208,7 +215,7 @@ window.addEventListener("load", function(){
 		})();
 	</script>
 
-		<script type="text/javascript" src="/assets/vendor/jquery/jquery.js?cv=20200505_000001" charset="utf-8"></script>
+		<script type="text/javascript" src="/assets/vendor/jquery/jquery.js?cv=20200728_000003" charset="utf-8"></script>
 		
 	</head>
 	<body class="body-resp">
@@ -269,13 +276,6 @@ window.addEventListener("load", function(){
 
 
 	
-		<div id="maintenance-notification" class="row">
-			<div class="col Notification Notification--global">
-				<a href class="Notification-close js-close" aria-label="close message button"><i class="fa fa-close"></i></a>
-				<p style="margin: 10px 0; font-size: 120%; font-weight: bold">INSTITUTIONAL SUBSCRIBERS: Are you having difficulty accessing IEEE <em>Xplore</em> when working remotely? <a href="https://innovate.ieee.org/tips-to-access-your-organizations-ieee-xplore-subscription-when-working-remotely" style="text-decoration: underline; color: #17445A; white-space: nowrap;">Try These Tips</a></p><style> #maintenance-notification .Notification-close.js-close .fa.fa-close { display: none; } </style>
-			</div>
-		</div>
-	
 
 
 
@@ -320,7 +320,7 @@ window.addEventListener("load", function(){
 					
 						
 									
-							<li class="Menu-item stats-mnEvLinks hide-mobile"><a class="create-account-new stats-Unav_CreateAcct" href="https://www.ieee.org/profile/public/createwebaccount/showCreateAccount.html?sourceCode=xplore&car=IEEE-Xplore&autoSignin=Y&signinurl=https%3A%2F%2Fieeexplore.ieee.org%2FXplore%2Flogin.jsp%3Furl%3D%2FXplore%2Fhome.jsp%26reason%3Dauthenticate&url=https%3A%2F%2Fieeexplore.ieee.org%2Fdocument%2F7457667%2F" title="Create Account">Create Account</a></li>
+							<li class="Menu-item stats-mnEvLinks hide-mobile"><a class="create-account-new stats-Unav_CreateAcct" href="https://www.ieee.org/profile/public/createwebaccount/showCreateAccount.html?sourceCode=xplore&car=IEEE-Xplore&autoSignin=Y&signinurl=https%3A%2F%2Fieeexplore.ieee.org%2FXplore%2Flogin.jsp%3Furl%3D%2FXplore%2Fhome.jsp%26reason%3Dauthenticate&url=https%3A%2F%2Fieeexplore.ieee.org%2Fdocument%2F6649456%2F" title="Create Account">Create Account</a></li>
 						
 						
 						
@@ -387,7 +387,7 @@ window.addEventListener("load", function(){
         
         
                		<span id="gdpr-hidden-personal-signin-SpinnerImage" class="hide">
-						<img  src="/assets/img/move-spinner.gif?cv=20200505_000001"  ></img>
+						<img  src="/assets/img/move-spinner.gif?cv=20200728_000003"  ></img>
 					</span>
                 </button>
             </div>
@@ -500,6 +500,9 @@ window.addEventListener("load", function(){
 
 
 
+
+
+
 <script type="text/javascript">
 	
 	
@@ -534,7 +537,7 @@ if (AUTHOR_PROFILE.toUpperCase() == "OFF"){
 var global = {
 	document: {
 		disqus:{
-			remote_auth_s3 : 'KHt9KQ== c54b0ac779f5f4ea2fd9b11d2f8cb9a847d1acd4 1590643788',
+			remote_auth_s3 : 'KHt9KQ== 4b2ae46a6ecc72edcdb36276aa248b2b48445320 1598920772',
 			public_api_key:'1lxKgMbpNIbQvfk2tqLcWeSVloE8rgIY2CV1tCu3Vp641oL4eEITYBbkViJJGNYY',
 			short_name:'ieeexplore',
 			client_url:'https://ieeexplore.ieee.org',
@@ -547,7 +550,7 @@ var global = {
 	}
 };
 	
-	global.document.metadata={"userInfo":{"customerNameRaw":"University of Massachusetts Amherst","institutionName":"University of Massachusetts Amherst","institute":true,"member":false,"individual":false,"guest":false,"subscribedContent":false,"fileCabinetContent":false,"fileCabinetUser":false,"institutionalFileCabinetUser":false,"instType":"Academic","userIds":[11089],"showPatentCitations":true,"showGet802Link":true,"openUrlImgLoc":"http://www.library.umass.edu/assets/branding/sfxbutton80.gif","openUrlLink":"http://sfxhosted.exlibrisgroup.com/umass","instLogoFile":"11089_umawordmark200x50.gif","showOpenUrlLink":true,"marketingInfoCaptured":false,"tracked":false,"ringGoldId":"14707","delegatedAdmin":false,"isInstitutionDashboardEnabled":false,"isInstitutionProfileEnabled":false,"isRoamingEnabled":true,"isDelegatedAdmin":false,"isMdl":false},"authors":[{"name":"Xiaoyun Yuan","affiliation":"The Hong Kong University of Science and Technology, Hong Kong","bio":{"graphic":"/mediastore_new/IEEE/content/freeimages/76/7891656/7457667/yuan-2556439-small.gif","p":["Xiaoyun Yuan received the B.S. degree from the Department of Electronics Science and Technology, School for Information Science and Technology, University of Science and Technology of China, Hefei, China, in 2014. He is currently working toward the Ph.D. degree with the Department of Electronic and Computer Engineering, The Hong Kong University of Science and Technology, Hong Kong."]},"firstName":"Xiaoyun","lastName":"Yuan","affiliation":"The Hong Kong University of Science and Technology, Hong Kong","id":"37086060324"},{"name":"Difei Tang","affiliation":"University of Science and Technology of China, Hefei, China","bio":{"graphic":"/mediastore_new/IEEE/content/freeimages/76/7891656/7457667/tang-2556439-small.gif","p":["Difei Tang received the B.S. degree from the School for the Gifted Young, University of Science and Technology of China, Hefei, China, in 2013, where she is currently working toward the M.S. degree with the Department of Electronic Engineering and Information Science."]},"firstName":"Difei","lastName":"Tang","affiliation":"University of Science and Technology of China, Hefei, China","id":"37085442429"},{"name":"Yebin Liu","affiliation":"Tsinghua University, Beijing, China","bio":{"graphic":"/mediastore_new/IEEE/content/freeimages/76/7891656/7457667/liu-2556439-small.gif","p":["Yebin Liu received the B.E. degree from Beijing University of Posts and Telecommunications, Beijing, China, in 2002 and the Ph.D. degree from the Automation Department, Tsinghua University, Beijing, in 2009.","He has been a Research Fellow with the Computer Graphics Group, Max Planck Institute for Informatik, Saarbrücken, Germany, in 2010. He is currently an Associate Professor with Tsinghua University. His research interests include computer vision and computer graphics."]},"firstName":"Yebin","lastName":"Liu","affiliation":"Tsinghua University, Beijing, China","id":"37086081873"},{"name":"Qing Ling","affiliation":"University of Science and Technology of China, Hefei, China","bio":{"graphic":"/mediastore_new/IEEE/content/freeimages/76/7891656/7457667/ling-2556439-small.gif","p":["Qing Ling received the B.S. degree in automation and the Ph.D. degree in control theory and control engineering from University of Science and Technology of China, Hefei, China, in 2001 and 2006, respectively.","He was a Post-Doctoral Research Fellow with the Department of Electrical and Computer Engineering, Michigan Technological University, Houghton, MI, USA, from 2006 to 2009. Since 2009, he has been an Associate Professor with the Department of Automation, University of Science and Technology of China. His research interests include decentralized network optimization and its applications."]},"firstName":"Qing","lastName":"Ling","affiliation":"University of Science and Technology of China, Hefei, China","id":"37086086664"},{"name":"Lu Fang","affiliation":"The Hong Kong University of Science and Technology, Hong Kong","bio":{"graphic":"/mediastore_new/IEEE/content/freeimages/76/7891656/7457667/fang-2556439-small.gif","p":["Lu Fang received the B.E. degree from the University of Science and Technology of China (USTC), Hefei, China, in 2007, and the Ph.D. degree in electronic and computer engineering from The Hong Kong University of Science and Technology, Hong Kong, in 2011.","Her current research interests include image/video processing, vision computing for intelligent robot, and 3-D motion tracking and reconstruction.","Dr. Fang serves as a TC Member of the Multimedia Signal Processing Technical Committee in the IEEE Signal Processing Society."]},"firstName":"Lu","lastName":"Fang","affiliation":"The Hong Kong University of Science and Technology, Hong Kong","orcid":"0000-0002-8258-784X","id":"37085392377"}],"issn":[{"format":"Print ISSN","value":"1051-8215"},{"format":"Electronic ISSN","value":"1558-2205"}],"articleNumber":"7457667","dbTime":"2 ms","metrics":{"citationCountPaper":2,"citationCountPatent":0,"totalDownloads":927},"sponsors":[{"packageNumber":0,"name":"IEEE Circuits and Systems Society","url":"http://www.ieee-cas.org/"}],"pdfUrl":"/stamp/stamp.jsp?tp=&arnumber=7457667","purchaseOptions":{"showOtherFormatPricingTab":false,"showPdfFormatPricingTab":true,"pdfPricingInfoAvailable":true,"otherPricingInfoAvailable":false,"mandatoryBundle":false,"optionalBundle":false,"pdfPricingInfo":[{"memberPrice":"$14.95","nonMemberPrice":"$33.00","partNumber":"7457667","type":"PDF/HTML"}],"openUrlFullLink":"http://sfxhosted.exlibrisgroup.com/umass?url_ver=Z39.88-2004&rfr_id=info:sid/IEEE.org:XPLORE&rft_id=info:doi/10.1109/TCSVT.2016.2556439&url_ctx_fmt=info:ofi/fmt:kev:mtx:ctx&rft_val_fmt=info:ofi/fmt:kev:mtx:journal&rft.atitle=Magic Glasses: From 2D to 3D&rft.jtitle=IEEE Transactions on Circuits and Systems for Video Technology&rft.date=2017&rft.volume=27&rft.issue=4&rft.spage=843&rft.epage=854&rft.issn=1051-8215&rft.eissn=1558-2205&rft.au=Xiaoyun Yuan&rft.aulast=Xiaoyun Yuan"},"formulaStrippedArticleTitle":"Magic Glasses: From 2D to 3D","getProgramTermsAccepted":false,"sections":{"abstract":"true","authors":"true","figures":"true","multimedia":"false","references":"true","citedby":"true","keywords":"true","definitions":"false","algorithm":"false","dataset":"false","cadmore":"false","footnotes":"false","disclaimer":"false","metrics":"true"},"keywords":[{"type":"IEEE Keywords","kwd":["Three-dimensional displays","Solid modeling","Glass","Face","Image reconstruction","Image segmentation"]},{"type":"INSPEC: Controlled Indexing","kwd":["face recognition","feature extraction","image motion analysis","image segmentation","Internet","neural nets","optimisation","smart pixels","stereo image processing","virtual reality"]},{"type":"INSPEC: Non-Controlled Indexing","kwd":["moving target face","input 2D eyeglasses","predefined 3D model database","silhouette-based 3D deformation method","silhouette image extraction","symmetry-based level-set optimization algorithm","glasses pixels","convolutional neural network-based parsing algorithm","2D glasses","frontal human face","automatic 3D eyeglasses model reconstruction","virtual 3D eyeglasses","2D Internet image","magic glasses"]},{"type":"Author Keywords ","kwd":["3D reconstruction","deformation","object extraction","virtual try-on"]}],"title":"Magic Glasses: From 2D to 3D","abstract":"This paper proposes a virtual 3D eyeglasses try-on system driven by a 2D Internet image of a human face wearing with a pair of eyeglasses. The main technical challenge of this system is the automatic 3D eyeglasses model reconstruction from the 2D glasses on a frontal human face. Against this challenge, this paper first proposes an eyeglasses segmentation method using a convolutional neural network-based parsing algorithm to label the glasses pixels, followed with a proposed symmetry-based level-set optimization algorithm to refine the contour of the eyeglasses. With the precisely extracted silhouette image, we take advantages of the smoothness and the symmetry priors of the eyeglasses, and propose a silhouette-based 3D deformation method to deform a 3D eyeglasses model selected from a predefined 3D model database. The obtained model is plausibly approximated to the input 2D eyeglasses after a texture mapping step. Finally, we develop a virtual try-on system to interactively synthesize the reconstructed eyeglasses on a moving target face in real time. The experimental results demonstrate the efficient and convincing virtual try-on performance of our approach and the commercial potential of our proposed system.","allowComments":false,"doi":"10.1109/TCSVT.2016.2556439","publicationTitle":"IEEE Transactions on Circuits and Systems for Video Technology","displayPublicationTitle":"IEEE Transactions on Circuits and Systems for Video Technology","pdfPath":"/iel7/76/7891656/07457667.pdf","startPage":"843","endPage":"854","rightsLink":"http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=1051-8215&title=Magic+Glasses%3A+From+2D+to+3D&isbn=&publicationDate=April+2017&author=Xiaoyun+Yuan&ContentID=10.1109/TCSVT.2016.2556439&orderBeanReset=true&startPage=843&endPage=854&volumeNum=27&issueNum=4","pubLink":"/xpl/RecentIssue.jsp?punumber=76","issueLink":"/xpl/tocresult.jsp?isnumber=7891656","standardTitle":"Magic Glasses: From 2D to 3D","isJournal":true,"isConference":false,"isBook":false,"dateOfInsertion":"03 April 2017","isGetArticle":false,"isGetAddressInfoCaptured":false,"isMarketingOptIn":false,"xploreDocumentType":"Journals & Magazine","applyOUPFilter":false,"pubTopics":[{"name":"Components, Circuits, Devices and Systems"},{"name":"Communication, Networking and Broadcast Technologies"},{"name":"Computing and Processing"},{"name":"Signal Processing and Analysis"}],"publisher":"IEEE","htmlAbstractLink":"/document/7457667/","isOUP":false,"isDynamicHtml":true,"isStandard":false,"isNotDynamicOrStatic":false,"isFreeDocument":false,"isSAE":false,"isNow":false,"isCustomDenial":false,"chronOrPublicationDate":"April  2017","journalDisplayDateOfPublication":"21 April 2016","isOpenAccess":false,"isProduct":false,"isEphemera":false,"isMorganClaypool":false,"volume":"27","issue":"4","isChapter":false,"isEarlyAccess":false,"isStaticHtml":false,"publicationDate":"April 2017","htmlLink":"/document/7457667/","accessionNumber":"16807012","persistentLink":"https://ieeexplore.ieee.org/servlet/opac?punumber=76","isSMPTE":false,"isACM":false,"isPromo":false,"startPage":"843","fundingAgencies":{"fundingAgency":[{"fundingId":"","fundingName":"973 Program"},{"fundingId":"10.13039/501100001809","fundingName":"Natural Science Foundation of China"},{"fundingId":"","fundingName":"General Research Fund"}]},"openAccessFlag":"F","ephemeraFlag":"false","chorusFlag":"false","title":"Magic Glasses: From 2D to 3D","accessionNumber":"16807012","html_flag":"false","ml_html_flag":"true","promoFlag":"false","sourcePdf":"tcsvt-fang-2556439-x.pdf","content_type":"Journals & Magazines","mlTime":"PT0.078477S","chronDate":"April  2017","xplore-pub-id":"76","pdfPath":"/iel7/76/7891656/07457667.pdf","isNumber":"7891656","rightsLinkFlag":"1","dateOfInsertion":"03 April 2017","contentType":"periodicals","publicationDate":"April 2017","publicationNumber":"76","citationCount":"2","xplore-issue":"7891656","issue":"4","articleId":"7457667","publicationTitle":"IEEE Transactions on Circuits and Systems for Video Technology","sections":{"abstract":"true","authors":"true","figures":"true","multimedia":"false","references":"true","citedby":"true","keywords":"true","definitions":"false","algorithm":"false","dataset":"false","cadmore":"false","footnotes":"false","disclaimer":"false","metrics":"true"},"volume":"27","onlineDate":"21 April 2016","publicationYear":"2017","subType":"IEEE Transaction","lastupdate":"2020-05-17","mediaPath":"/mediastore_new/IEEE/content/media/76/7891656/7457667","endPage":"854","displayPublicationTitle":"IEEE Transactions on Circuits and Systems for Video Technology","doi":"10.1109/TCSVT.2016.2556439"};
+	global.document.metadata={"userInfo":{"customerNameRaw":"University of Massachusetts Amherst","institutionName":"University of Massachusetts Amherst","institute":true,"member":false,"individual":false,"guest":false,"subscribedContent":false,"fileCabinetContent":false,"fileCabinetUser":false,"institutionalFileCabinetUser":false,"instType":"Academic","userIds":[11089],"showPatentCitations":true,"showGet802Link":true,"openUrlImgLoc":"http://www.library.umass.edu/assets/branding/sfxbutton80.gif","openUrlLink":"http://sfxhosted.exlibrisgroup.com/umass","instLogoFile":"11089_umawordmark200x50.gif","showOpenUrlLink":true,"marketingInfoCaptured":false,"tracked":false,"ringGoldId":"14707","delegatedAdmin":false,"desktop":false,"isInstitutionDashboardEnabled":false,"isInstitutionProfileEnabled":false,"isRoamingEnabled":true,"isDelegatedAdmin":false,"isMdl":false,"isCwg":false},"authors":[{"name":"Panayotis Mertikopoulos","affiliation":["Centre National de la Recherche Scientifique (CNRS), University of Grenoble (LIG laboratory), France"],"firstName":"Panayotis","lastName":"Mertikopoulos","id":"37572926100"},{"name":"Aris L. Moustakas","affiliation":["National & Kapodistrian University of Athens, Department of Physics, Greece"],"firstName":"Aris L.","lastName":"Moustakas","id":"37285086100"}],"isbn":[{"format":"Electronic ISBN","value":"978-1-4673-5753-1","isbnType":""}],"issn":[{"format":"Print ISSN","value":"2164-7038"}],"articleNumber":"6649456","dbTime":"2 ms","metrics":{"citationCountPaper":0,"citationCountPatent":0,"totalDownloads":40},"purchaseOptions":{"showOtherFormatPricingTab":false,"showPdfFormatPricingTab":true,"pdfPricingInfoAvailable":true,"otherPricingInfoAvailable":false,"mandatoryBundle":false,"optionalBundle":false,"pdfPricingInfo":[{"memberPrice":"$14.95","nonMemberPrice":"$33.00","partNumber":"6649456","type":"PDF/HTML"}],"openUrlFullLink":"http://sfxhosted.exlibrisgroup.com/umass?url_ver=Z39.88-2004&rfr_id=info:sid/IEEE.org:XPLORE&rft_id=info:doi/10.1109/ICCW.2013.6649456&url_ctx_fmt=info:ofi/fmt:kev:mtx:ctx&rft_val_fmt=info:ofi/fmt:kev:mtx:journal&rft.atitle=Entropy-driven optimization dynamics for Gaussian vector multiple access channels&rft.jtitle=2013 IEEE International Conference on Communications Workshops (ICC)&rft.date=2013&rft.spage=1398&rft.epage=1402&rft.issn=2164-7038&rft.au=Panayotis Mertikopoulos&rft.aulast=Panayotis Mertikopoulos&rft.isbn=978-1-4673-5753-1"},"getProgramTermsAccepted":false,"sections":{"abstract":"true","authors":"true","figures":"true","multimedia":"false","references":"true","citedby":"false","keywords":"true","definitions":"false","algorithm":"false","dataset":"false","cadmore":"false","footnotes":"true","disclaimer":"false","metrics":"true"},"formulaStrippedArticleTitle":"Entropy-driven optimization dynamics for Gaussian vector multiple access channels","standardTitle":"Entropy-driven optimization dynamics for Gaussian vector multiple access channels","pubLink":"/xpl/conhome/6637583/proceeding","allowComments":false,"pdfUrl":"/stamp/stamp.jsp?tp=&arnumber=6649456","keywords":[{"type":"IEEE Keywords","kwd":["Entropy","Convergence","Covariance matrices","MIMO","Optimization","Heuristic algorithms","Vectors"]},{"type":"INSPEC: Controlled Indexing","kwd":["channel capacity","covariance matrices","entropy","Gaussian channels","Hessian matrices","MIMO communication","multi-access systems","optimisation"]},{"type":"INSPEC: Non-Controlled Indexing","kwd":["spectral geometry","entropy function","channel capacity","gradient-like flow","game-theoretic formulation","Gaussian vector multiple access channels","input signal covariance matrices","distributed optimization method"]},{"type":"Author Keywords ","kwd":["Distributed optimization","entropy functions","Hessian gradient flows","multiple access channel","MIMO"]}],"title":"Entropy-driven optimization dynamics for Gaussian vector multiple access channels","abstract":"We develop a distributed optimization method for finding optimum input signal covariance matrices in Gaussian vector multiple access channels (solving also an equivalent game-theoretic formulation of the problem). Since ordinary gradient ascent violates the problem's semidefiniteness constraints, we introduce an entropic barrier term whose Hessian allows us to write a gradient-like flow which behaves well with respect to the problem's constraints, and which allows users to achieve the channel's capacity. The algorithm's convergence speed can be tuned by adjusting the underlying entropy function (and thus changing the spectral geometry of the cone of semidefinite matrices), so, in practice, users are able to achieve capacity within a few iterations, even for large numbers of users and/or antennas per user.","rightsLink":"http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=proceedings&title=Entropy-driven+optimization+dynamics+for+Gaussian+vector+multiple+access+channels&isbn=978-1-4673-5753-1&publicationDate=June+2013&author=Panayotis+Mertikopoulos&ContentID=10.1109/ICCW.2013.6649456&orderBeanReset=true&startPage=1398&endPage=1402&proceedingName=2013+IEEE+International+Conference+on+Communications+Workshops+%28ICC%29","startPage":"1398","endPage":"1402","doi":"10.1109/ICCW.2013.6649456","publicationTitle":"2013 IEEE International Conference on Communications Workshops (ICC)","displayPublicationTitle":"2013 IEEE International Conference on Communications Workshops (ICC)","issueLink":"/xpl/tocresult.jsp?isnumber=6649166","pdfPath":"/iel7/6637583/6649166/06649456.pdf","doiLink":"https://doi.org/10.1109/ICCW.2013.6649456","isGetArticle":false,"isGetAddressInfoCaptured":false,"isMarketingOptIn":false,"applyOUPFilter":false,"pubTopics":[{"name":"Communication, Networking and Broadcast Technologies"}],"publisher":"IEEE","isNotDynamicOrStatic":false,"isACM":false,"isOUP":false,"isPromo":false,"isNow":false,"isCustomDenial":false,"htmlAbstractLink":"/document/6649456/","chronOrPublicationDate":"9-13 June 2013","xploreDocumentType":"Conference Publication","isFreeDocument":false,"isSAE":false,"conferenceDate":"9-13 June 2013","isDynamicHtml":true,"isOpenAccess":false,"isConference":true,"publicationDate":"June 2013","accessionNumber":"13887289","isEarlyAccess":false,"isJournal":false,"isBook":false,"isBookWithoutChapters":false,"isChapter":false,"isStaticHtml":true,"isProduct":false,"isEphemera":false,"isMorganClaypool":false,"dateOfInsertion":"31 October 2013","htmlLink":"/document/6649456/","persistentLink":"https://ieeexplore.ieee.org/servlet/opac?punumber=6637583","isSMPTE":false,"isStandard":false,"startPage":"1398","openAccessFlag":"F","ephemeraFlag":"false","title":"Entropy-driven optimization dynamics for Gaussian vector multiple access channels","confLoc":"Budapest, Hungary","accessionNumber":"13887289","html_flag":"true","ml_html_flag":"true","sourcePdf":"1569710355.pdf","content_type":"Conferences","mlTime":"PT0.056887S","chronDate":"9-13 June 2013","xplore-pub-id":"6637583","pdfPath":"/iel7/6637583/6649166/06649456.pdf","isNumber":"6649166","rightsLinkFlag":"1","dateOfInsertion":"31 October 2013","contentType":"conferences","publicationDate":"June 2013","publicationNumber":"6637583","xplore-issue":"6649166","articleId":"6649456","publicationTitle":"2013 IEEE International Conference on Communications Workshops (ICC)","sections":{"abstract":"true","authors":"true","figures":"true","multimedia":"false","references":"true","citedby":"false","keywords":"true","definitions":"false","algorithm":"false","dataset":"false","cadmore":"false","footnotes":"true","disclaimer":"false","metrics":"true"},"onlineDate":"","conferenceDate":"9-13 June 2013","publicationYear":"2013","subType":"IEEE Conference","_value":"IEEE","lastupdate":"2020-02-10","mediaPath":"/mediastore_new/IEEE/content/media/6637583/6649166/6649456","endPage":"1402","displayPublicationTitle":"2013 IEEE International Conference on Communications Workshops (ICC)","doi":"10.1109/ICCW.2013.6649456"};
 
 
 	global.document.userLoggedIn=true;
@@ -737,8 +740,8 @@ var global = {
 			})();
 			</script>
 
-			<script type="text/javascript" src="/assets/js/analytics/tealiumTagsData.js?cv=20200505_000001"></script>
-			<script type="text/javascript" src="/assets/js/analytics/tealiumAnalytics.js?cv=20200505_000001"></script>
+			<script type="text/javascript" src="/assets/js/analytics/tealiumTagsData.js?cv=20200728_000003"></script>
+			<script type="text/javascript" src="/assets/js/analytics/tealiumAnalytics.js?cv=20200728_000003"></script>
 
 
 		
@@ -767,10 +770,10 @@ var global = {
 
 
 
-<link rel="stylesheet" href="/assets/css/ie7Sniffer.css?cv=20200505_000001">
-<script type="text/javascript" src="/assets/vendor/js-cookie/src/js.cookie.js?cv=20200505_000001"></script>
-<script type="text/javascript" src="/assets/vendor/fingerprintjs2/fingerprint2.js?cv=20200505_000001"></script>
-<script type="text/javascript" src="/assets/js/lib/core/fingerprint.js?cv=20200505_000001"></script>
+<link rel="stylesheet" href="/assets/css/ie7Sniffer.css?cv=20200728_000003">
+<script type="text/javascript" src="/assets/vendor/js-cookie/src/js.cookie.js?cv=20200728_000003"></script>
+<script type="text/javascript" src="/assets/vendor/fingerprintjs2/fingerprint2.js?cv=20200728_000003"></script>
+<script type="text/javascript" src="/assets/js/lib/core/fingerprint.js?cv=20200728_000003"></script>
 
 <!-- Usabilla Combicode for IEEE-->
 <!-- Begin Usabilla for Websites embed code -->
@@ -835,14 +838,14 @@ var global = {
 				
 					
 					
-								<script type="text/javascript" src='/assets/vendor/modernizr/modernizr.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/vendor/modernizr/modernizr.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/js/vendor.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/js/vendor.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
@@ -891,6 +894,8 @@ var global = {
 	
 	var SearchMapperParamNewSearch = 'newsearch';
 	var SearchMapperParamArticleNumber = 'arnumber';	
+		
+	
 	
 	var NTPT_IMAGE_LOCATION = '';
 	var XPLORE_SSL_HOST = 'https://ieeexplore.ieee.org';	
@@ -921,7 +926,7 @@ var global = {
 	var IBP_MEMBEER_SIGNIN_TIME_WAIT_IN_MILLIES = '800';
 	var ASSETS_RELATIVE_PATH = '/assets'; // NOTE: AngularJS code relies on this
 	var ASSETS_RELATIVE_PATH_NO_SERVER = '/assets';
-	var ASSETS_VERSION = '20200505_000001'; // NOTE: AngularJS code relies on this
+	var ASSETS_VERSION = '20200728_000003'; // NOTE: AngularJS code relies on this
 	var IBP_WS_ASSETS='https://www.ieee.org';
 	var IBP_WS_ENABLED_FLAG = true;
 	var ENTERPRISE_CART_URL = 'https://www.ieee.org/cart/public/myCart/page.html?refSite=http://ieeexplore.ieee.org&refSiteName=IEEE%20Xplore';
@@ -945,7 +950,7 @@ var global = {
 
 	var MAX_WILDCARDS = '6';
 	var MAX_SEARCH_TERMS = '20';
-	var ALL_SEARCH_FIELDS = 'Search_Index_Terms:Index Terms,Search_All_Text:Full Text & Metadata,Search_All:All Metadata,fullText:Full Text Only,Search_Publication_Title:Search Publication Title,Search_Related_Terms:Search Related Terms,Search_Authors:Author Name,Search_Standard_Ics_Title:ICE Terms,promoTopic:Custom Search,id:Article Number,id:ID,moduleNumber:Module Number,part_num:Part_Num,issn:ISSN,isbn:ISBN,eisbn:EISBN,issueId:IS Number,pubIssueId:Pub Issue Id,accessionNumber:Accession Number,copyrightHolder:Copyright Holder,copyrightYear:Copyright Year,license:License,documentAbstract:Abstract,publicationId:Publication Number,parentPublicationId:Parent Publication Number,parentId:Parent Id,standardArticleId:Standard Article Id,title:Document Title,parentTitle:Parent Publication Title,publicationTitle:Publication Title,publicationDisplayTitle:Publication Display Title,volume:Volume,issue:Issue,paddedIssueNumber:Padded Issue Number,part:Part,startPage:Start Page,endPage:End Page,filePath:File Path,publicationDate:Publication Date,PublicationYear:Publication Year,onlineDate:Online Date,month:Month,Author:Author Pref Names,authorNormNames:Author Norm Names,author:Authors,authorIds:Author Ids,firstName:First Name,middleName:Middle Name,lastName:Last Name,Affiliation:Author Affiliations,authorBio:Author Bio,authorImg:Author Img,referenceCount:Reference Count,citationCount:Citation Count,downloadCount:Download Count,patentCount:Patent Count,multimediaFlag:Multimedia Flag,biomedicalEngFlag:Biomedical Eng Flag,nonIeee:Non IEEE,stdsProductNumber:STDS Product Number,bmsProductNumber:Bms Product Number,status:Status,doi:DOI,articleDoi:Article DOI,publicationDoi:Publication DOI,pdfPath:Pdf Path,pdfSize:Pdf Size,contentType:Content Type,Publisher:Publisher,ControlledTerms:INSPEC Controlled Terms,freeTerms:INSPEC Non-Controlled Terms,ieeeTerms:IEEE Terms,authorTerms:Author Keywords,maiTerms:MAI Terms,meshTerms:Mesh_Terms,pacsTerms:PACS Terms,insertDate:Insert Date,ConferenceLocation:Conference Location,indexContent:Index Content,coden:CODEN,documentText:Document Text,standardNumber:Standard Number,preprintFlag:Preprint Flag,rapidPostFlag:Rapid Post Flag,lastUpdate:Last Update,newFlag:New Flag,openAccessFlag:Open Access Flag,publicationOpenAccess:Publication Open Access,promoFlag:Promo Flag,pubmedId:Pubmed Id,duration:Duration,society:Society,conference:Conference,ConferenceCountry:ConferenceCountry,societyUrl:Society URL,idSubject:Id Subject,bookNumber:Book Number,pages:Pages,editionNumber:Edition Number,sequence:Sequence,relatedInfoType:Related Info Type,relatedInfo:Related Info,formatIsbn:Format ISBN,meetingDate:Meeting Date,courseLevel:Course level,courseParts:Course Parts,courseId:Course ID,aboutUrl:About Url,additionalUrl:Additional Url,authorsUrl:Authors Url,openAccessUrl:Open Access Url,openAccessFlag:Open Access flag,partnumVendorurlMediatype:Partnum VendorURL MediaType,brandingImageFile:Branding Image File,coverImageFile:Cover Image File,frequency:Frequency,fieldOfInterest:Field Of Interest,gParentPublicationNumber:G Parent Publication Number,msUrl:Ms Url,publicationRelationship:Relationship,societyImage:Society Image,visitUrl:Visit Url,visitWebsite:Visit Website,startYear:Start Year,endYear:End Year,publicationInactive:Publication Inactive,recordType:Record Type,epub:Epub,picCodeDescription:Pic Code Description,picCode:Pic Code,sponsors:Sponsors,issueNotes:Notes,conferenceDate:Conference Date,publicationContact:Publication Contact,isbuyable:isBuyable,standardRelationships:Standard Relationships,unavailableForSale:Unavailable for Sale,availableForSale:Available for Sale,standardFamily:Standard Family,standardGroup:Standard Group,productUrl:Product Url,isbnMediatype:ISBN MediaType,htmlFlag:Html Flag,rightslinkFlag:Rightslink Flag,pageCount:Page Count,name:Name,tableOfContents:Table of Contents,timeStamp:Time Stamp,subTitle:Sub Title,relatedItem:Related Item,referenceMaterial:Reference Material,latestIssueTime:Latest Issue Time,insertDate:Search Latest Date,pbdFlag:Pbd Flag,lmsUrl:Lms Url,currentVolume:Current Volume,graphicalFile:Graphical File,graphicalCoverImage:Graphical Cover Image,graphicalSummary:Graphical Summary,graphicalType:Graphical Type,authorNativeNames:Native Name,externalId:Article Page Number,standardBundles:Standard Bundles,standardBundleParts:Standard Bundle Parts,virtualTitle:Virtual Title,seriesName:Series Name,seriesId:Series Id,mlHtmlFlag:ML Html flag,promoDates:Promo Dates,promoStartDate:Promo Start Date,promoEndDate:Promo End Date,issueCompleteFlag:Issue Complete Flag,scope:Scope,purpose:Purpose,standardFamilyTitle:Standard Family Title,thumbnailImg:Thumbnail Img,supplementFile:Supplement File,courseFile:Course File,supplement:Supplement,courseAuthor:Course Author,pdhs:Pdhs,ceus:Ceus,courseFirstFrame:FirstFrame Img,idSubTopic:Id Sub Topic,certificateUrl:Certificate Url,standardRoot:Standard Root,icsTerms:Standards ICS Terms,impactStatement:Impact Statement,plagiarizedFlag:Plagiarized Flag,affirmedDate:Affirmed Date,sourcePdf:Source Pdf,orcid:Author ORCID,algorithmFlag:Algorithm Flag,fundingAgency:Funding Agency,pricingKey:Map Pricing Key,publicationRollup:Rollup Key,collection:Collection,previewImage:Preview Image,regularDate:Regular Date,ContentType:Content Type,ringgoldIds:Ringgold ID,Search_All:All Metadata,Search_All_Text:Full Text & Metadata,fullText:Full Text Only,TypeAheadTerms:Type Ahead Terms,IeeeTerm:IEEE Term,ContentType:Content Type,Author:Author,Affiliation:Affiliation,Topic:Topic,PublicationTitle:Publication Title,PublicationYear:Year,Publisher:Publisher,ConferenceCountry:Conference Country,ConferenceLocation:Conference Location,StandardStatus:Standard Status,ConferenceYear:Conference Year,PublicationPackage:Subscribed Content,StandardPackage:Standard Package,StandardTitle:Standard Title,StdDictionaryTerms:Standards Dictionary Terms,TitleRange:Publication Range,StandardRange:Standard Range,RecordType:Record Type,MediaType:Media Type,BookType:Book Type,CourseType:Course Type,PublicationStandardRange:Publication Standard Range,PerpetualYear:Perpetual Year,OpacTitleRange:Opac Title Range,BookSeries:Book Series,SubjectCategory:Subject Category,Sessions:Sessions,TypeAheadPublication:Type Ahead Publication,SubTopic:Sub Topic,CourseDuration:Course Duration,CourseLevel:Course Level,StandardType:Standard Type,StandardSubtype:Standard SubType,StandardTopic:Standard Topic,StandardModifier:Standard Modifier,IcsTerms1:Ics Terms 1,IcsTerms2:Ics Terms 2,IcsTerms3:Ics Terms 3,SupplementalItem:Supplemental Items,CourseDuration:Course Duration,SpecialSection:Topics,SocietySection:Society Sections,ControlledTerms:Publication Topics';
+	var ALL_SEARCH_FIELDS = 'Search_Index_Terms:Index Terms,Search_All_Text:Full Text & Metadata,Search_All:All Metadata,fullText:Full Text Only,Search_Publication_Title:Search Publication Title,Search_Related_Terms:Search Related Terms,Search_Authors:Author Name,Search_Standard_Ics_Title:ICE Terms,promoTopic:Custom Search,id:Article Number,id:ID,moduleNumber:Module Number,part_num:Part_Num,issn:ISSN,isbn:ISBN,eisbn:EISBN,issueId:IS Number,pubIssueId:Pub Issue Id,accessionNumber:Accession Number,copyrightHolder:Copyright Holder,copyrightYear:Copyright Year,license:License,documentAbstract:Abstract,publicationId:Publication Number,parentPublicationId:Parent Publication Number,parentId:Parent Id,standardArticleId:Standard Article Id,title:Document Title,parentTitle:Parent Publication Title,publicationTitle:Publication Title,publicationDisplayTitle:Publication Display Title,volume:Volume,issue:Issue,paddedIssueNumber:Padded Issue Number,part:Part,startPage:Start Page,endPage:End Page,filePath:File Path,publicationDate:Publication Date,PublicationYear:Publication Year,onlineDate:Online Date,month:Month,Author:Author Pref Names,authorNormNames:Author Norm Names,author:Authors,authorIds:Author Ids,firstName:First Name,middleName:Middle Name,lastName:Last Name,Affiliation:Author Affiliations,authorBio:Author Bio,authorImg:Author Img,referenceCount:Reference Count,citationCount:Citation Count,downloadCount:Download Count,patentCount:Patent Count,multimediaFlag:Multimedia Flag,biomedicalEngFlag:Biomedical Eng Flag,nonIeee:Non IEEE,stdsProductNumber:STDS Product Number,bmsProductNumber:Bms Product Number,status:Status,doi:DOI,articleDoi:Article DOI,publicationDoi:Publication DOI,pdfPath:Pdf Path,pdfSize:Pdf Size,contentType:Content Type,Publisher:Publisher,ControlledTerms:INSPEC Controlled Terms,freeTerms:INSPEC Non-Controlled Terms,ieeeTerms:IEEE Terms,authorTerms:Author Keywords,maiTerms:MAI Terms,meshTerms:Mesh_Terms,pacsTerms:PACS Terms,insertDate:Insert Date,ConferenceLocation:Conference Location,indexContent:Index Content,coden:CODEN,documentText:Document Text,standardNumber:Standard Number,preprintFlag:Preprint Flag,rapidPostFlag:Rapid Post Flag,lastUpdate:Last Update,newFlag:New Flag,openAccessFlag:Open Access Flag,publicationOpenAccess:Publication Open Access,promoFlag:Promo Flag,pubmedId:Pubmed Id,duration:Duration,society:Society,conference:Conference,ConferenceCountry:ConferenceCountry,societyUrl:Society URL,idSubject:Id Subject,bookNumber:Book Number,pages:Pages,editionNumber:Edition Number,sequence:Sequence,relatedInfoType:Related Info Type,relatedInfo:Related Info,formatIsbn:Format ISBN,meetingDate:Meeting Date,courseLevel:Course level,courseParts:Course Parts,courseId:Course ID,aboutUrl:About Url,additionalUrl:Additional Url,authorsUrl:Authors Url,openAccessUrl:Open Access Url,openAccessFlag:Open Access flag,partnumVendorurlMediatype:Partnum VendorURL MediaType,brandingImageFile:Branding Image File,coverImageFile:Cover Image File,frequency:Frequency,fieldOfInterest:Field Of Interest,gParentPublicationNumber:G Parent Publication Number,msUrl:Ms Url,publicationRelationship:Relationship,societyImage:Society Image,visitUrl:Visit Url,visitWebsite:Visit Website,startYear:Start Year,endYear:End Year,publicationInactive:Publication Inactive,recordType:Record Type,epub:Epub,picCodeDescription:Pic Code Description,picCode:Pic Code,sponsors:Sponsors,issueNotes:Notes,conferenceDate:Conference Date,publicationContact:Publication Contact,isbuyable:isBuyable,standardRelationships:Standard Relationships,unavailableForSale:Unavailable for Sale,availableForSale:Available for Sale,standardFamily:Standard Family,standardGroup:Standard Group,productUrl:Product Url,isbnMediatype:ISBN MediaType,htmlFlag:Html Flag,rightslinkFlag:Rightslink Flag,pageCount:Page Count,name:Name,tableOfContents:Table of Contents,timeStamp:Time Stamp,subTitle:Sub Title,relatedItem:Related Item,referenceMaterial:Reference Material,latestIssueTime:Latest Issue Time,firstPublishedYear:First Published Year,insertDate:Search Latest Date,pbdFlag:Pbd Flag,lmsUrl:Lms Url,currentVolume:Current Volume,graphicalFile:Graphical File,graphicalCoverImage:Graphical Cover Image,graphicalSummary:Graphical Summary,graphicalType:Graphical Type,authorNativeNames:Native Name,externalId:Article Page Number,standardBundles:Standard Bundles,standardBundleParts:Standard Bundle Parts,virtualTitle:Virtual Title,seriesName:Series Name,seriesId:Series Id,mlHtmlFlag:ML Html flag,promoDates:Promo Dates,promoStartDate:Promo Start Date,promoEndDate:Promo End Date,issueCompleteFlag:Issue Complete Flag,scope:Scope,purpose:Purpose,standardFamilyTitle:Standard Family Title,thumbnailImg:Thumbnail Img,supplementFile:Supplement File,courseFile:Course File,supplement:Supplement,courseAuthor:Course Author,pdhs:Pdhs,ceus:Ceus,courseFirstFrame:FirstFrame Img,idSubTopic:Id Sub Topic,certificateUrl:Certificate Url,standardRoot:Standard Root,icsTerms:Standards ICS Terms,impactStatement:Impact Statement,plagiarizedFlag:Plagiarized Flag,affirmedDate:Affirmed Date,sourcePdf:Source Pdf,orcid:Author ORCID,algorithmFlag:Algorithm Flag,fundingAgency:Funding Agency,pricingKey:Map Pricing Key,publicationRollup:Rollup Key,collection:Collection,previewImage:Preview Image,regularDate:Regular Date,ContentType:Content Type,ringgoldIds:Ringgold ID,Search_All:All Metadata,Search_All_Text:Full Text & Metadata,fullText:Full Text Only,TypeAheadTerms:Type Ahead Terms,IeeeTerm:IEEE Term,ContentType:Content Type,Author:Author,Affiliation:Affiliation,Topic:Topic,PublicationTitle:Publication Title,PublicationYear:Year,Publisher:Publisher,ConferenceCountry:Conference Country,ConferenceLocation:Conference Location,StandardStatus:Standard Status,ConferenceYear:Conference Year,PublicationPackage:Subscribed Content,StandardPackage:Standard Package,StandardTitle:Standard Title,StdDictionaryTerms:Standards Dictionary Terms,TitleRange:Publication Range,StandardRange:Standard Range,RecordType:Record Type,MediaType:Media Type,BookType:Book Type,CourseType:Course Type,PublicationStandardRange:Publication Standard Range,PerpetualYear:Perpetual Year,OpacTitleRange:Opac Title Range,BookSeries:Book Series,SubjectCategory:Subject Category,Sessions:Sessions,TypeAheadPublication:Type Ahead Publication,SubTopic:Sub Topic,CourseDuration:Course Duration,CourseLevel:Course Level,StandardType:Standard Type,StandardSubtype:Standard SubType,StandardTopic:Standard Topic,StandardModifier:Standard Modifier,IcsTerms1:Ics Terms 1,IcsTerms2:Ics Terms 2,IcsTerms3:Ics Terms 3,SupplementalItem:Supplemental Items,CourseDuration:Course Duration,SpecialSection:Topics,SocietySection:Society Sections,ControlledTerms:Publication Topics';
 	var SEARCH_FIELD_REFERENCES = new Array();
 	var SEARCH_FIELD_DISPLAYS = new Array();
 	var searchFields = ALL_SEARCH_FIELDS.split(",");
@@ -986,6 +991,7 @@ var global = {
 	var citFormat = "";
 	var dlFormat = "";
 	
+	
 	//Google ReCaptcha public Key 
 	var RECAPTCHA_PUBLIC_KEY = '6Ld6GEUUAAAAALdaAmeGUhZyz1KFFHnd5oCaTW-t';
 </script>
@@ -1002,70 +1008,70 @@ var global = {
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/js/history.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/js/history.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/js/lib/conditional/cartScroll.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/js/lib/conditional/cartScroll.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/js/lib/conditional/minicart.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/js/lib/conditional/minicart.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/js/core.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/js/core.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/ng-new/inline.bundle.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/ng-new/inline.bundle.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/ng-new/polyfills.bundle.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/ng-new/polyfills.bundle.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/ng-new/vendor.bundle.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/ng-new/vendor.bundle.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/ng-new/main.bundle.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/ng-new/main.bundle.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/js/ads.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/js/ads.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			
 				
 					
 					
-								<script type="text/javascript" src='/assets/dist/js/master.js?cv=20200505_000001' charset="utf-8"></script>
+								<script type="text/javascript" src='/assets/dist/js/master.js?cv=20200728_000003' charset="utf-8"></script>
 					
 								
 			

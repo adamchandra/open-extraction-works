@@ -3,100 +3,48 @@ import "chai/register-should";
 import _ from "lodash";
 
 import { prettyPrint } from "commons";
-import * as TE from 'fp-ts/lib/TaskEither';
-import { pipe } from 'fp-ts/lib/pipeable';
-import { readMetaProps, filterUrl, runFileVerification, runHtmlTidy } from './field-extract';
-import { ExtractionEnv } from './extraction-process';
 import { getBasicConsoleLogger } from '~/utils/basic-logging';
+import { ExtractionAppContext, runAbstractFinders } from '../abstracts/extract-abstracts';
+import fs from 'fs-extra';
+import cproc from 'child_process';
+import path from "path";
+import { AbstractPipeline } from '../abstracts/rules-pipeline';
+import Async from 'async';
 
 describe("Field Extraction Pipeline", () => {
 
-  const testEntryPath = './test/resources/scrapy-cache-entry';
+  const testCorpus = './test/resources/spidered-corpus';
+  const testScratchDir = './test-scratch.d';
 
-  // it("should have a terse syntax", async (done) => {
-
-  //   // doPipeline(
-  //   //   { ...initialEnv, entryPath: testEntryPath },
-  //   //   [readMetaProps,
-  //   //     filterUrl(/sdf/),
-  //   //     runFileVerification(/html/i),
-  //   //     runHtmlTidy],
-  //   // ).then((result) => {
-  //   //   prettyPrint({ result });
-  //   //   done();
-  //   // });
-  // });
-
-  it("should run a single extraction stage", async (done) => {
-    // TE.map((env: ExtractionEnv) => { prettyPrint({ env }); return env; } ),
-
-    const init: ExtractionEnv = {
-      log: getBasicConsoleLogger(),
-      entryPath: testEntryPath,
-      fileContentMap: {},
-      extractionRecord: { kind: "fields", fields: {} },
-      evidence: []
-    };
-    const res = pipe(
-      TE.right<string, ExtractionEnv>(init),
-      TE.chain(readMetaProps),
-      TE.chain(filterUrl(/ieee.org/)),
-      TE.chain(runFileVerification(/html/i)),
-      TE.chain(runHtmlTidy),
-      // TE.chain(parseJson(global.document.metadata)),
-      TE.map((env: ExtractionEnv) => {
-        prettyPrint({ msg: "success", env });
-        done()
-        return env;
-      }),
-      TE.mapLeft((err: string) => {
-        prettyPrint({ msg: "error", err });
-        done();
-        return err;
-      }),
-    );
-
-    res();
+  beforeEach(() => {
+    fs.emptyDirSync(testScratchDir);
+    fs.rmdirSync(testScratchDir);
+    fs.mkdirpSync(testScratchDir);
+    // TODO don't use linux shell commands here:
+    cproc.execSync(`cp -rl ${testCorpus} ${testScratchDir}/`)
   });
 
-  it.only("should extract from embedded json rec global.document.metadata", async (done) => {
-    // const finderFunctions: ExtractionFunction[][] = [
-    //   [
-    //     readMetaProps,
-    //     filterUrl(/ieee.org/),
-    //     runFileVerification(/html/i),
-    //     runHtmlTidy,
-    //     findInGlobalDocumentMetadata,
-    //     // findByLineMatchTE(
-    //     //   [' +|', ' +p', ' +p', ' +|'],
-    //     //   { lineOffset: 1 }
-    //     // )
-    //   ]
-    // ];
 
-    // await runAbstractFinders(AbstractPipelineUpdate, testEntryPath)
-    // await runAbstractFinders(finderFunctions, testEntryPath)
+  it("should run the abstract finder", async (done) => {
+    const examples = [
+      '22dae',
+      '22133',
+      '22168'
+    ];
+
+    const log = getBasicConsoleLogger('silly');
+    const ctx: ExtractionAppContext = {
+      log,
+    };
+
+    await Async.mapSeries(examples, async example => {
+      const entryPath = path.join(testScratchDir, 'spidered-corpus', example);
+      const extractedFields = await runAbstractFinders(ctx, AbstractPipeline, entryPath);
+      prettyPrint({ extractedFields });
+
+    });
 
     done();
-
-    // const res = pipe(
-    //   TE.right<string, ExtractionEnv>({ ...initialEnv, entryPath: testEntryPath }),
-    //   TE.chain(readMetaProps),
-    //   TE.chain(filterUrl(/ieee.org/)),
-    //   TE.chain(runFileVerification(/html/i)),
-    //   TE.chain(runHtmlTidy),
-    //   // TE.chain(parseJson(global.document.metadata)),
-    //   TE.map((env: ExtractionEnv) => {
-    //     prettyPrint({ msg: "success", env });
-    //     done()
-    //     return env;
-    //   }),
-    //   TE.mapLeft((err: string) => {
-    //     prettyPrint({ msg: "error", err });
-    //     done();
-    //     return err;
-    //   }),
-    // );
-
   });
+
 });
