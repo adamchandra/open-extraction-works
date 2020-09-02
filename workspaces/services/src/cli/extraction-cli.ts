@@ -1,7 +1,7 @@
 import _ from "lodash";
 
 import { arglib } from "commons";
-import { runMainExtractAbstracts } from '~/extract/abstracts/cli-main';
+import { runMainExtractAbstracts, runMainGatherAbstracts } from '~/extract/abstracts/cli-main';
 
 const { opt, config, registerCmd } = arglib;
 
@@ -22,6 +22,27 @@ registerCmd(
   runMainExtractAbstracts(
     corpusRoot,
     logpath,
+  ).then(() => {
+    console.log('done');
+  });
+});
+
+registerCmd(
+  arglib.YArgs,
+  "gather-abstracts",
+  "gather all extracted abstracts",
+  config(
+    opt.cwd,
+    opt.existingDir("corpus-root: root directory for corpus files"),
+    opt.existingFile("alpha-recs: csv file with alpha records")
+  )
+)((args: any) => {
+
+  const { corpusRoot, alphaRecs } = args;
+
+  runMainGatherAbstracts(
+    corpusRoot,
+    alphaRecs
   ).then(() => {
     console.log('done');
   });

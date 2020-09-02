@@ -16,8 +16,13 @@ describe("spider persistence", () => {
       _.each(_.range(2, 4), (n) => {
         const encPath = makeHashEncodedPath(example, n);
         const asPath = encPath.toPath();
-        // const asResolvedPath = encPath.toResolvedPath();
-        prettyPrint({ encPath, asPath });
+        expect(encPath.leadingSegments.length).toEqual(n);
+        expect(
+          asPath.startsWith(
+            encPath.leadingSegments.join('/')
+          )
+        ).toEqual(true);
+        // prettyPrint({ encPath, asPath });
       });
     });
   });
