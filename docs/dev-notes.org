@@ -9,6 +9,15 @@
 
 
 #+BEGIN_SRC javascript
+  // <a href="/doi/pdf/10.1145/3306346.3323011"
+
+  // pipeline functions: 
+  [selectElemAttr('meta[name=citation_pdf_url]', 'content')],
+
+  $('a[href^="/doi/pdf"]').attr('href')
+
+  select('meta[name=citation_pdf_url]')
+     .attr('content'),
 
 
   /**
@@ -57,4 +66,4 @@
 
   });
 
-#+END_SRC
+  #+END_SRC

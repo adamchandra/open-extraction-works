@@ -61,9 +61,9 @@ export async function runMainGatherAbstracts(
           const { name, value } = abstractInstance0;
           return ({
             url,
-            id: noteId,
+            noteId,
             fields: [
-              { kind: name, value }
+              { name, value }
             ]
           });
         }

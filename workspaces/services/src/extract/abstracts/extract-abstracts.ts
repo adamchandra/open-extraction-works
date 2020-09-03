@@ -26,7 +26,6 @@ import { ExtractionRecord, ExtractionErrors, foldExtractionRec, ExtractedFields,
 import { AbstractPipeline } from './rules-pipeline';
 
 
-
 // TODO: track how often a rule 'fires' (use log entry which tracks evidence (as a string), and index#)
 // TODO: figure out how to review abstract finding filtered by rule/url/author/year/venue/etc
 //       : rule    filter=[(/evidence=/) && /meta/ && /@DCTerms/]

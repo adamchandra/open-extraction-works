@@ -8,6 +8,13 @@ import {
 import { ExtractionFunction } from '../core/extraction-process';
 import { filterUrl, findInGlobalDocumentMetadata } from '../core/field-extract';
 
+export const PdfLinkPipeline: ExtractionFunction[][] = [
+  [selectElemAttr('meta[name=citation_pdf_url]', 'content')],
+
+  // sel('a[href^=/doi/pdf/])
+  // <a href="/doi/pdf/10.1145/3306346.3323011"
+];
+
 export const AbstractPipeline: ExtractionFunction[][] = [
 
   [findInMetaTE('@description content')],
