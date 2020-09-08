@@ -81,6 +81,29 @@ export function stripMargins(lines: string[]): string[] {
     });
 }
 
+import { parseJSON, isLeft, toError } from 'fp-ts/lib/Either';
+export function parseJsonStripMargin(s: string): any | undefined {
+  const s0 = stripMargin(s);
+  const parsed = parseJSON(s0, toError);
+
+  if (isLeft(parsed)) {
+    const syntaxError = parsed.left;
+    const posRE = /position (\d+)/;
+    const posMatch = syntaxError.message.match(posRE);
+
+    if (posMatch && posMatch.length > 1) {
+      const errIndex = parseInt(posMatch[1]);
+      const begin = Math.max(0, errIndex-50);
+      const end = Math.min(s.length, errIndex+50);
+      const pre = s0.slice(begin, errIndex+1)
+      const post = s0.slice(errIndex+1, end)
+      console.log(`${syntaxError}\nContext:\n${pre} <-- Error\n${post}`);
+    }
+    return;
+  }
+  return parsed.right;
+}
+
 type DiffCharsArgs = {
   brief: boolean
 }
