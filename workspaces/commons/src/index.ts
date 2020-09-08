@@ -12,6 +12,7 @@ export * from "./util/string-utils";
 export * from "./util/tree-shapers";
 export * from "./workflow/index";
 export * from "./util/array-utils";
+export * from "./util/to-pairs-deep";
 
 export * as radix from "./util/radix-tree";
 export * as arglib from "./cli/arglib";

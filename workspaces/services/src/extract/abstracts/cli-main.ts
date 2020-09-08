@@ -8,14 +8,14 @@ import {
   ensureArtifactDirectories,
   readAlphaRecStream,
   AlphaRecord,
-  prettyPrint, putStrLn
+  prettyPrint, putStrLn, readCorpusJsonFile, writeCorpusJsonFile
 } from "commons";
 
 import { extractAbstractTransform, ExtractionAppContext, readExtractionRecord, skipIfAbstractLogExisits } from './extract-abstracts';
 import { getBasicLogger } from '~/utils/basic-logging';
-import isUrl from 'is-url-superb';
 import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 import { Field } from '../core/extraction-process';
+import { initGroundTruthAssertions } from '../core/ground-truth-records';
 
 export async function runMainExtractAbstracts(
   cacheRoot: string,
@@ -83,4 +83,36 @@ export async function runMainGatherAbstracts(
     return;
   }
   fs.writeJsonSync('gather-abstracts.json', result);
+}
+
+const groundTruthFilename = 'ground-truth-labels.json';
+
+export async function runMainUpdateGroundTruths(
+  corpusRoot: string,
+): Promise<void> {
+  const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
+  const logpath = corpusRoot;
+  const log = getBasicLogger(logpath, 'ground-truth-update-log.json');
+
+  const pumpBuilder = streamPump.createPump()
+    .viaStream<string>(dirEntryStream)
+    .initEnv<ExtractionAppContext>(() => ({
+      log,
+    }))
+    .tap((entryPath: string, ctx) => {
+      const extractionRecord = readExtractionRecord(entryPath);
+      const existingGroundTruths = readCorpusJsonFile(entryPath, 'ground-truth', groundTruthFilename);
+      if (extractionRecord) {
+        if (existingGroundTruths) {
+          ctx.log.warn(`TODO Make sure ground truth data does not conflict with extraction record `);
+          return;
+        }
+        const initGroundTruth = initGroundTruthAssertions(extractionRecord);
+        ctx.log.warn(`initializing ground-truth for ${entryPath}`);
+        writeCorpusJsonFile(entryPath, 'ground-truth', groundTruthFilename, initGroundTruth);
+      }
+    });
+
+  return pumpBuilder.toPromise()
+    .then(() => undefined);
 }

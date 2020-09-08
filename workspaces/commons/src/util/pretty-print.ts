@@ -99,7 +99,7 @@ const inspectOptionDefaults = {
   maxArrayLength: 100,
   breakLength: 80,
   compact: 10,
-  sorted: true,
+  sorted: false,
   getters: false,
   showContext: false,
 };

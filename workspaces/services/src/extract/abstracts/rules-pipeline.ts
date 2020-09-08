@@ -17,6 +17,12 @@ export const PdfLinkPipeline: ExtractionFunction[][] = [
 
 export const AbstractPipeline: ExtractionFunction[][] = [
 
+  // load('meta.json')
+  // filter(meta => meta.url ~ /sciencedirect.com.science.article/ )
+  //  sel('meta[property=og:description]')    <-- selMetaContentAs(...)
+  //    .andThen(elem => attr('content')(elem))
+  //    .andThen(text => saveAs('abs-short')(text))
+
   [findInMetaTE('@description content')],
   [findInMetaTE('@DCTERMS.abstract content')],
   [findInMetaTE('@citation_abstract content')],
@@ -149,4 +155,3 @@ export const AbstractPipeline: ExtractionFunction[][] = [
 
   [findByLineMatchTE(["p", "span .subAbstract"])],
 ];
-
