@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 import { defineSatelliteService, createSatelliteService, SatelliteService, ServiceHub, createHubService } from './service-hub';
 import Async from 'async';
 

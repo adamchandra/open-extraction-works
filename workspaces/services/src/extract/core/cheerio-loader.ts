@@ -1,5 +1,5 @@
 //
-import * as cheerio from "cheerio";
+import * as cheerio from 'cheerio';
 
 export function cheerioLoad(
   fileContent: string,

@@ -1,12 +1,12 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import { prettyPrint, parseJsonStripMargin, stripMargin } from 'commons';
 import { ExtractionRecord } from './extraction-records';
 import { initGroundTruthAssertions } from './ground-truth-records';
 
 
-describe("Extraction Records and Ground Records", () => {
+describe('Extraction Records and Ground Records', () => {
   const sampleExtractionRecord = (`
 | {
 |   "kind": "fields",
@@ -50,7 +50,7 @@ describe("Extraction Records and Ground Records", () => {
 | }
 `);
 
-  it("should traverse extraction records", () => {
+  it('should traverse extraction records', () => {
 
     const extractionRec: ExtractionRecord = parseJsonStripMargin(sampleExtractionRecord);
 
@@ -59,7 +59,7 @@ describe("Extraction Records and Ground Records", () => {
     // prettyPrint({ groundTruthRec });
   });
 
-  it("should construct initial ground-truth records", () => {
+  it('should construct initial ground-truth records', () => {
     const extractionRec: ExtractionRecord = parseJsonStripMargin(sampleExtractionRecord);
 
     const initGroundTruths = initGroundTruthAssertions(extractionRec);

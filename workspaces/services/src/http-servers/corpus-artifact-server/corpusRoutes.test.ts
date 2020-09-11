@@ -1,21 +1,21 @@
 import _ from 'lodash';
-import path from "path";
+import path from 'path';
 
 // import { readCorpusEntries } from "./corpusRoutes";
-import fs from "fs-extra";
+import fs from 'fs-extra';
 
-const scratchDir = path.join(".", "scratch.d");
+const scratchDir = path.join('.', 'scratch.d');
 const corpusRoot = path.join(scratchDir, 'corpus-root.d')
 
 
-describe("read corpus entries", () => {
+describe('read corpus entries', () => {
   const dirnames = _.map(_.range(1, 10), (i) => `entry_${i}.d`);
   const artifactPaths = [
-    "pdf",
-    "page-images",
-    "page-thumbs",
-    "textgrids",
-    "tracelogs",
+    'pdf',
+    'page-images',
+    'page-thumbs',
+    'textgrids',
+    'tracelogs',
   ];
 
   fs.mkdirpSync(corpusRoot);
@@ -49,7 +49,7 @@ describe("read corpus entries", () => {
   });
 
 
-  it("read entries", () => {
+  it('read entries', () => {
     // const entries = readCorpusEntries(corpusRoot, 0, 20);
     // console.log(entries);
   });

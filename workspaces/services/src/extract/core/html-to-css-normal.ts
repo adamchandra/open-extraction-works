@@ -1,5 +1,5 @@
 //
-import _ from "lodash";
+import _ from 'lodash';
 import { cheerioLoad } from './cheerio-loader';
 
 type Attrs = { [k: string]: string };
@@ -9,21 +9,21 @@ function parseAttrs(attrs: Attrs): string[][] {
 
   const kvs: string[][] = [];
   const stdKeys = [
-    ["id", "#"],
-    ["class", "."],
-    ["href", "href"],
-    ["src", "src"],
-    ["name", "@"],
-    ["lang", "lang"],
-    ["xml:lang", "xml:lang"],
-    ["property", "prop"],
+    ['id', '#'],
+    ['class', '.'],
+    ['href', 'href'],
+    ['src', 'src'],
+    ['name', '@'],
+    ['lang', 'lang'],
+    ['xml:lang', 'xml:lang'],
+    ['property', 'prop'],
   ];
   _.each(stdKeys, ([k, abbr]) => {
     const v = attrs[k];
     if (v) {
-      if (v.includes(" ")) {
+      if (v.includes(' ')) {
         const words = v
-          .split(" ")
+          .split(' ')
           .map(_.trim)
           .filter(_.negate(_.isEmpty));
 
@@ -54,8 +54,8 @@ function parseAttrs(attrs: Attrs): string[][] {
 
 function indentStrings(strs: string[], lpad: string | number): string[] {
   let p = lpad;
-  if (typeof lpad === "number") {
-    p = "".padStart(lpad);
+  if (typeof lpad === 'number') {
+    p = ''.padStart(lpad);
   }
   return _.map(strs, str => p + str);
 }
@@ -69,11 +69,11 @@ export function makeCssTreeNormalFormFromNode(root: Cheerio): string[] {
 
     mapHtmlTree(elem, (node: CheerioElement, depth, _index, _sibcount) => {
       const tn = node.tagName;
-      const tp = node["type"];
+      const tp = node['type'];
 
-      const lpad = "".padStart(depth * 2);
+      const lpad = ''.padStart(depth * 2);
       const attrs = node.attribs;
-      let attrsStr = "";
+      let attrsStr = '';
       if (attrs) {
         const attrPairs = parseAttrs(attrs);
 
@@ -83,24 +83,24 @@ export function makeCssTreeNormalFormFromNode(root: Cheerio): string[] {
           }
           return `${abbr}='${v}'`;
         });
-        attrsStr = _.join(attrstr0, " ");
+        attrsStr = _.join(attrstr0, ' ');
       }
 
       // prettyPrint({ depth, tn, tp, attrs });
 
       switch (tp) {
-        case "tag": {
+        case 'tag': {
           const line = `${lpad}${tn} ${attrsStr}`;
           finalTree.push(line);
           break;
         }
 
-        case "text": {
+        case 'text': {
           const d = node.data ? node.data.trim() : undefined;
           if (d && d.length > 0) {
-            const lines = d.split("\n");
+            const lines = d.split('\n');
             const indentedLines = indentStrings(
-              indentStrings(lines, "| "),
+              indentStrings(lines, '| '),
               depth * 2,
             );
             _.each(indentedLines, l => finalTree.push(l));
@@ -108,14 +108,14 @@ export function makeCssTreeNormalFormFromNode(root: Cheerio): string[] {
           break;
         }
 
-        case "comment": {
+        case 'comment': {
           const line = `${lpad}comment`;
           finalTree.push(line);
           const d = node.data ? node.data.trim() : undefined;
           if (d && d.length > 0) {
-            const lines = d.split("\n");
+            const lines = d.split('\n');
             const indentedLines = indentStrings(
-              indentStrings(lines, "## "),
+              indentStrings(lines, '## '),
               (depth + 1) * 2,
             );
             _.each(indentedLines, l => finalTree.push(l));
@@ -136,7 +136,7 @@ export function makeCssTreeNormalFormFromNode(root: Cheerio): string[] {
 
 export function makeCssTreeNormalForm(htmlFile: string, useXmlMode: boolean = true): string[] {
   const $ = cheerioLoad(htmlFile, useXmlMode);
-  const root: Cheerio = $(":root");
+  const root: Cheerio = $(':root');
   return makeCssTreeNormalFormFromNode(root);
 }
 

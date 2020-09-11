@@ -1,13 +1,13 @@
-import "chai";
-import "chai/register-should";
+import 'chai';
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import { prettyPrint } from 'commons';
 import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 
-describe("spider persistence", () => {
+describe('spider persistence', () => {
 
-  it("should create hash-encoded paths of specified depth", () => {
+  it('should create hash-encoded paths of specified depth', () => {
     const examples = [
       'http://example.com',
       'qwerty',

@@ -2,8 +2,13 @@
  * Logs and Records generated during field extraction and Url scraping
  */
 
-import _ from "lodash";
-import { Field } from './extraction-process';
+import _ from 'lodash';
+
+export interface Field {
+  name: string;
+  evidence: string[];
+  value?: string;
+}
 
 export interface FieldInstances {
   exists: boolean;
@@ -12,21 +17,21 @@ export interface FieldInstances {
 }
 
 export interface ExtractedFields {
-  kind: "fields";
+  kind: 'fields';
   fields: Record<string, FieldInstances>;
 }
 
 export interface ExtractedStanzas {
-  kind: "stanzas";
+  kind: 'stanzas';
   stanzas: string[];
 }
 
 export interface ExtractedGroups {
-  kind: "groups";
+  kind: 'groups';
   groups: ExtractedFields[];
 }
 export interface ExtractionErrors {
-  kind: "errors";
+  kind: 'errors';
   errors: string[];
 }
 
@@ -58,10 +63,10 @@ export function foldExtractionRec<A>(
 ): A | undefined {
   const cs = _.merge({}, emptyFoldCases, cases);
   switch (rec.kind) {
-    case "fields": return cs.onFields(rec);
-    case "stanzas": return cs.onStanzas(rec);
-    case "groups": return cs.onGroups(rec);
-    case "errors": return cs.onErrors(rec);
+    case 'fields': return cs.onFields(rec);
+    case 'stanzas': return cs.onStanzas(rec);
+    case 'groups': return cs.onGroups(rec);
+    case 'errors': return cs.onErrors(rec);
   }
 }
 

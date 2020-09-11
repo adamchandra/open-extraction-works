@@ -17,12 +17,12 @@ const app = new Koa();
 //   ;
 
 // const { corpus } = opts;
-const corpus = "TODO";
+const corpus = 'TODO';
 
 const apiRouter = initFileBasedRoutes(corpus);
 
 rootRouter
-  .use("/", ((ctx: Context, next) => {
+  .use('/', ((ctx: Context, next) => {
     ctx.set('Access-Control-Allow-Origin', '*');
     return next();
   }))

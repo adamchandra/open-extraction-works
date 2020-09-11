@@ -1,17 +1,17 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
-import path from "path";
+import _ from 'lodash';
+import path from 'path';
 
-import { prettyPrint, throughFunc,  } from "commons";
+import { prettyPrint, throughFunc,  } from 'commons';
 import { runTidyCmd, runTidyCmdBuffered } from './run-cmd-tidy-html';
 import { runFileCmd } from './run-cmd-file';
 
-describe("run command-line utils ", () => {
+describe('run command-line utils ', () => {
   const testDirPath = './test/resources/htmls';
   const configFile = './conf/tidy.cfg';
 
-  it("should run Html5 Tidy to re-write htmls", async (done) => {
+  it('should run Html5 Tidy to re-write htmls', async (done) => {
     const htmlFile = path.resolve(testDirPath, 'nospace.html');
 
     const { outStream, completePromise } =
@@ -35,7 +35,7 @@ describe("run command-line utils ", () => {
 
   });
 
-  it("should get file types using file cmd", async (done) => {
+  it('should get file types using file cmd', async (done) => {
     const htmlFile = path.resolve(testDirPath, 'nospace.html');
 
     const fileType = await runFileCmd(htmlFile);
@@ -43,7 +43,7 @@ describe("run command-line utils ", () => {
     done();
   });
 
-  it("should handle process err output", async (done) => {
+  it('should handle process err output', async (done) => {
     const htmlFile = path.resolve(testDirPath, 'nospace.html');
 
     const [err, out, exitCode] = await runTidyCmdBuffered(configFile, htmlFile);

@@ -1,17 +1,11 @@
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as Arr from 'fp-ts/lib/Array';
 import { pipe } from 'fp-ts/lib/pipeable';
-import _ from "lodash";
+import _ from 'lodash';
 import { diffByChars, Change } from 'commons';
 import { ExtractionRecord } from './extraction-records';
-import { Logger } from "winston";
+import { Logger } from 'winston';
 import { Metadata } from '~/spidering/data-formats';
-
-export interface Field {
-  name: string;
-  evidence: string[];
-  value?: string;
-}
 
 interface NormalForms {
   'css-norm': null;

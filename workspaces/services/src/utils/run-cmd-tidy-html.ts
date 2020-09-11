@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 import { spawn } from 'child_process';
 import { streamPump, TransformProcess, streamifyProcess } from 'commons';

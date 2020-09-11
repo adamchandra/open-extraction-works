@@ -1,14 +1,14 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 
-import { prettyPrint } from "commons";
+import { prettyPrint } from 'commons';
 import { getMatchingLines } from '../core/field-extract-utils';
 
-describe("Abstract Field Extraction", () => {
+describe('Abstract Field Extraction', () => {
   // const testDirPath = './test/resources/htmls';
 
-  it("byLineMatch", () => {
+  it('byLineMatch', () => {
     const block = `
 html
   head prefix='og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/article#'
@@ -20,7 +20,7 @@ html
     meta @description content='This monograph presents a mathematical theory of concentration inequalities ..'
     meta content='Concentration Inequalities' property='http://purl.org/dc/terms/title' typeof='http://schema.org/Book'
 `;
-    const lines = block.split("\n");
+    const lines = block.split('\n');
     const opts = {
       lineOffset: -1,
       lineCount: 1,

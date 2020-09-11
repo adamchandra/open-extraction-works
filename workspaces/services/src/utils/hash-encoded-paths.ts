@@ -13,7 +13,7 @@ export function makeHashEncodedPath(source: string, depth: number): HashEncodedP
   const hashedSource = shaEncodeAsHex(source);
   const leadingSegments = hashedSource
     .slice(0, depth)
-    .split("");
+    .split('');
 
   return {
     source,

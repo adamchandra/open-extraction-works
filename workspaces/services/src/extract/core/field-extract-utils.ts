@@ -1,13 +1,13 @@
-import _ from "lodash";
-import fs from "fs-extra";
-import path from "path";
-import { Field, ExtractionEnv, ExtractionFunction } from "./extraction-process";
+import _ from 'lodash';
+import fs from 'fs-extra';
+import path from 'path';
+import { ExtractionEnv, ExtractionFunction } from './extraction-process';
 
 import * as TE from 'fp-ts/lib/TaskEither';
 import { makeCssTreeNormalFormFromNode } from './html-to-css-normal';
-import { addFieldInstance } from './extraction-records';
+import { addFieldInstance, Field } from './extraction-records';
 import { cheerioLoad } from './cheerio-loader';
-import { prettyPrint } from 'commons';
+import { prettyPrint, putStrLn } from 'commons';
 
 export function readFile(
   leading: string,
@@ -28,14 +28,14 @@ export function indentLevel(s: string): number {
 
   let i = 0;
   const l = s.length;
-  while (i < l && s.charAt(i) === " ") i++;
+  while (i < l && s.charAt(i) === ' ') i++;
   return i;
 }
 
 export function filterText(lines: string[]): string[] {
   return _
     .map(lines, _.trim)
-    .filter(l => l.startsWith("|"))
+    .filter(l => l.startsWith('|'))
     .map(l => l.substr(1));
 }
 
@@ -85,7 +85,7 @@ export function queryContent(
   fileContent: string,
 ): [Field, Cheerio, CheerioStatic] {
   const field: Field = {
-    name: "abstract",
+    name: 'abstract',
     evidence: [`jquery:[${query}]`],
   };
   const $ = cheerioLoad(fileContent);
@@ -149,10 +149,10 @@ export function _byLineMatch(
 ): Field {
   const { indentOffset } = options;
   const anchoredEvidence = _.map(evidence, ev => `^ +${_.escapeRegExp(ev)}`)
-  const evType = _.join(_.map(anchoredEvidence, (e) => `/${e}/`), " _ ");
+  const evType = _.join(_.map(anchoredEvidence, (e) => `/${e}/`), ' _ ');
 
   const field: Field = {
-    name: "abstract",
+    name: 'abstract',
     evidence: [`lines:[${evType}]`],
   };
 
@@ -193,8 +193,8 @@ export const findInMetaTE: (key: string) => ExtractionFunction =
       const justValue = keyValueLine.slice(i + start.length, ilast);
 
       const field: Field = {
-        name: "abstract",
-        evidence: [`use-input:html-tidy`, `meta:[${key}]`],
+        name: 'abstract',
+        evidence: ['use-input:html-tidy', `meta:[${key}]`],
         value: justValue,
       };
       addFieldInstance(env.extractionRecord, field);
@@ -219,7 +219,7 @@ export function findByLineMatchTE(
     const fileContentLines = fileContent.lines;
     const field = _byLineMatch(evidence, opts, fileContentLines)
     if (field.value) {
-      field.evidence.unshift(`use-input:css-norm`)
+      field.evidence.unshift('use-input:css-norm')
       addFieldInstance(env.extractionRecord, field);
       return TE.right(env);
     }
@@ -239,7 +239,7 @@ export function findByQuery(
 
     const field = _findByQuery(query, fileContent.content)
     if (field.value) {
-      field.evidence.unshift(`use-input:tidy-norm`)
+      field.evidence.unshift('use-input:tidy-norm')
       addFieldInstance(env.extractionRecord, field);
       return TE.right(env);
     }
@@ -262,7 +262,7 @@ export function selectElemAttr(
     const [field, maybeAbstract] = queryContent(elemQuery, fileContent.content);
     field.value = maybeAbstract.attr(attr);
     if (field.value) {
-      field.evidence.unshift(`use-input:tidy-norm`);
+      field.evidence.unshift('use-input:tidy-norm');
       field.evidence.push(`select-attr:${attr}`);
       field.evidence.push('score:+1');
       addFieldInstance(env.extractionRecord, field);
@@ -276,10 +276,132 @@ export function selectElemAttr(
 
 export function getSubtextOrUndef(strs: string[]): string | undefined {
   const justText = filterText(strs);
-  const abs = _.join(justText, " ").trim();
+  const abs = _.join(justText, ' ').trim();
 
   if (abs.length > 0) {
     return abs;
   }
   return undefined;
 }
+
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+// import { pipe,  } from 'fp-ts/lib/pipeable';
+// TODO copypasta
+function mockUrl(n: number): string {
+  return `http://doi.org/${n}`;
+}
+function mockMetadata(n: number): Metadata {
+  const fetchChain: UrlChainLink[] = _.map(_.range(n), (n) => {
+    const link: UrlChainLink = {
+      requestUrl: mockUrl(n),
+      responseUrl: mockUrl(n + 1),
+      status: '303',
+      timestamp: '',
+    };
+    return link;
+  });
+
+  const metadata: Metadata = {
+    requestUrl: mockUrl(0),
+    responseUrl: mockUrl(n),
+    status: '200',
+    fetchChain,
+    timestamp: ''
+  };
+
+  return metadata;
+}
+
+import { flow, Predicate } from 'fp-ts/function'
+import { Metadata } from '~/spidering/data-formats';
+import { UrlChainLink } from '../urls/url-fetch-chains';
+
+export interface DummyEnv {
+  dummyVar: string;
+}
+
+export type LoadFile<A> = (f: string) => A;
+
+export type LoadHtml<A> = (f: string) => A;
+
+export type Filter<A> = (a: A) => boolean;
+
+
+export function loadFile<A>(f: string): () => A {
+  return () => ({} as A);
+}
+
+export const urlFilter: (urlTest: RegExp) => Predicate<Metadata> =
+  (urlTest) => (m) => {
+    const responseUrl = m.responseUrl;
+    return urlTest.test(responseUrl);
+  };
+
+export const urlFilterExpand1: (urlTest: RegExp) => () => Predicate<Metadata> =
+  (urlTest) => () => (m) => {
+    const responseUrl = m.responseUrl;
+    return urlTest.test(responseUrl);
+  };
+
+// export type Enved = [m: Metadata, env: DummyEnv];
+export type Enved<W> = [W, DummyEnv];
+
+
+export const urlFilterExpand2: (urlTest: RegExp) => () => Predicate<Enved<Metadata>> =
+  (urlTest) => () => ([m, env]) => {
+    const responseUrl = m.responseUrl;
+    return urlTest.test(responseUrl);
+  };
+
+export type Record1<K extends string, T> = {
+  [P in K]: T;
+};
+
+export function bracketFunction<A, R>(
+  fnrec: Record1<string, (a: A) => R>,
+  pre: (fname: string, a: A) => void,
+  post: (fname: string, a: A, r: R) => void
+): (a: A) => R {
+
+  const props = Object.getOwnPropertyNames(fnrec);
+  const fname = props[0];
+  const f = fnrec[fname];
+
+  return (a: A) => {
+    pre(fname, a);
+    const r = f(a);
+    post(fname, a, r);
+    return r;
+  };
+}
+
+
+export function exampleExtractionAttempt() {
+  const bracketedUrlFilter = bracketFunction(
+    { urlFilter },
+    (fn, a) => { putStrLn(`pre: ${fn} ${a}`); },
+    (fn, a, r) => { putStrLn(`post ${fn}(${a}) ==> ${r}`); return r; }
+  )
+
+  const asdf = flow(
+    loadFile<Metadata>('asdf'),
+    bracketedUrlFilter(/openreview.org/),
+  );
+  // const metadata = mockMetadata(3);
+  const sdf = asdf();
+
+  // load('meta.json')
+  // filter(meta => meta.url ~ /sciencedirect.com.science.article/ )
+  //  sel('meta[property=og:description]')    <-- selMetaContentAs(...)
+  //    .andThen(elem => attr('content')(elem))
+  //    .andThen(text => saveAs('abs-short')(text))
+
+
+
+}
+
+// export const doJquery = (query: string) => ExtractionFunction {}
+

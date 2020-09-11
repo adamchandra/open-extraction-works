@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub, SatelliteServiceDef } from '~/service-graphs/service-hub';
 
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
@@ -42,7 +42,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   'UploadIngestor': defineSatelliteService<void>(
     async () => undefined, {
     async step(): Promise<void> {
-      this.log.info(`[step]> `)
+      this.log.info('[step]> ')
       await insertNewUrlChains()
     }
   }),
@@ -57,7 +57,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
         const metadata = await spider
           .scrape(nextUrl)
           .catch((error: Error) => {
-            putStrLn(`Error`, error.name, error.message);
+            putStrLn('Error', error.name, error.message);
             return undefined;
           });
 

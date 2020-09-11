@@ -1,6 +1,6 @@
 import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 
 import { AlphaRecord, prettyPrint } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
@@ -28,7 +28,7 @@ function mockMetadata(n: number): Metadata {
     const link: UrlChainLink = {
       requestUrl: mockUrl(n),
       responseUrl: mockUrl(n+1),
-      status: `303`,
+      status: '303',
       timestamp: '',
     };
     return link;

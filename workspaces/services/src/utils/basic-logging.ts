@@ -4,7 +4,7 @@ import winston, {
   transports,
   format,
   Logger,
-} from "winston";
+} from 'winston';
 
 import path from 'path';
 const cli = winston.config.cli;

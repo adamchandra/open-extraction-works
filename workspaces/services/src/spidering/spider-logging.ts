@@ -1,4 +1,4 @@
-import { Logger } from "winston";
+import { Logger } from 'winston';
 import path from 'path';
 import { getBasicLogger } from '~/utils/basic-logging';
 import { HashEncodedPath } from '~/utils/hash-encoded-paths';

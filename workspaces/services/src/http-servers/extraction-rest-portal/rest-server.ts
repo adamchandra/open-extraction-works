@@ -15,7 +15,7 @@ export async function startRestPortal(serviceComm: ServiceComm): Promise<Server>
   const port = 3100;
 
   rootRouter
-    .use("/", ((ctx: Context, next) => {
+    .use('/', ((ctx: Context, next) => {
       ctx.set('Access-Control-Allow-Origin', '*');
       return next();
     }))

@@ -1,17 +1,18 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 
-import { prettyPrint } from "commons";
+import { prettyPrint } from 'commons';
 import { getBasicConsoleLogger } from '~/utils/basic-logging';
 import { ExtractionAppContext, runAbstractFinders } from '../abstracts/extract-abstracts';
 import fs from 'fs-extra';
 import cproc from 'child_process';
-import path from "path";
+import path from 'path';
 import { AbstractPipeline } from '../abstracts/rules-pipeline';
 import Async from 'async';
+import { exampleExtractionAttempt } from './field-extract-utils';
 
-describe("Field Extraction Pipeline", () => {
+describe('Field Extraction Pipeline', () => {
 
   const testCorpus = './test/resources/spidered-corpus';
   const testScratchDir = './test-scratch.d';
@@ -25,7 +26,7 @@ describe("Field Extraction Pipeline", () => {
   });
 
 
-  it("should run the abstract finder", async (done) => {
+  it('should run the abstract finder', async (done) => {
     const examples = [
       '22dae',
       '22133',
@@ -47,4 +48,9 @@ describe("Field Extraction Pipeline", () => {
     done();
   });
 
+  it.only('trying env function composition ', () => {
+    //
+    exampleExtractionAttempt();
+
+  });
 });

@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 import { CleaningRule } from '../core/extraction-process';
 
@@ -10,7 +10,7 @@ export const AbstractCleaningRules: CleaningRule[] = [
       /^abstract/i
     ],
     run: (str) => {
-      return str.replace(/^abstract */i, "");
+      return str.replace(/^abstract */i, '');
     }
   },
 
@@ -21,7 +21,7 @@ export const AbstractCleaningRules: CleaningRule[] = [
     ],
     run: (str) => {
       const regex = /(References|REFERENCES).*$/;
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
 
@@ -33,23 +33,23 @@ export const AbstractCleaningRules: CleaningRule[] = [
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
 
   {
-    name: "starts w/non-word",
+    name: 'starts w/non-word',
     guards: [
       /^\W+/i
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
 
   {
-    name: "clip @ Cite This Paper",
+    name: 'clip @ Cite This Paper',
     guards: [
       /Cite This Paper Abstract/i
     ],
@@ -62,47 +62,47 @@ export const AbstractCleaningRules: CleaningRule[] = [
   },
 
   {
-    name: "clip @ Disqus comments",
+    name: 'clip @ Disqus comments',
     guards: [
       /Comments[\d ]+Comments.*$/i
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
   {
-    name: "clip @ trailing tags <.. />",
+    name: 'clip @ trailing tags <.. />',
     guards: [
       /<ETX.*$/i
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
   {
-    name: "clip @ trailing <",
+    name: 'clip @ trailing <',
     guards: [
       /<$/i
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
   {
-    name: "trim extra space",
+    name: 'trim extra space',
     guards: [
       /[ ][ ]+/g
     ],
     run: (str) => {
       const regex = /[ ]+/g;
-      return str.replace(regex, " ");
+      return str.replace(regex, ' ');
     }
   },
   {
-    name: "remove newlines",
+    name: 'remove newlines',
     guards: [
     ],
     run: (str) => {
@@ -117,7 +117,7 @@ export const AbstractCleaningRules: CleaningRule[] = [
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
   {
@@ -127,12 +127,12 @@ export const AbstractCleaningRules: CleaningRule[] = [
     ],
     run: (str, guards) => {
       const regex = guards[0];
-      return str.replace(regex, "");
+      return str.replace(regex, '');
     }
   },
 
   {
-    name: "clip before /Graphical abstract Download/",
+    name: 'clip before /Graphical abstract Download/',
     guards: [
       /Graphical abstract Download/i
     ],
@@ -146,7 +146,7 @@ export const AbstractCleaningRules: CleaningRule[] = [
   },
 
   {
-    name: "Catch-alls: e.g., /^Home Page Papers|^Complexity/..",
+    name: 'Catch-alls: e.g., /^Home Page Papers|^Complexity/..',
     guards: [
       /Home Page Papers/i,
       /Complexity . Journal Menu/,
@@ -160,7 +160,7 @@ export const AbstractCleaningRules: CleaningRule[] = [
     run: () => ''
   },
   {
-    name: "/Home Archives/ >> maybe /Abstract.*/",
+    name: '/Home Archives/ >> maybe /Abstract.*/',
     guards: [
       /^Home Archives/
     ],
@@ -173,7 +173,7 @@ export const AbstractCleaningRules: CleaningRule[] = [
   },
 
   {
-    name: "abstract too short",
+    name: 'abstract too short',
     guards: [],
     run: (str) => {
       if (str.length < 200) return '';

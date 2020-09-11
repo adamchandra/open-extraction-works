@@ -3,7 +3,7 @@ import winston, {
   format,
   transports,
   Logger,
-} from "winston";
+} from 'winston';
 
 export function createAppLogger(): Logger {
   const envLogLevel = process.env['rest-portal.loglevel'];

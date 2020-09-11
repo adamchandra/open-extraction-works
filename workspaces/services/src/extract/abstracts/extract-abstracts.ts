@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 import {
   readMetaProps,
   runFileVerification,
@@ -8,7 +8,7 @@ import {
   verifyHttpResponseCode,
   readCachedNormalFile,
   traceLog
-} from "~/extract/core/field-extract";
+} from '~/extract/core/field-extract';
 
 import { pipe } from 'fp-ts/pipeable';
 import * as Arr from 'fp-ts/Array';
@@ -18,7 +18,7 @@ import { isLeft } from 'fp-ts/Either'
 import Async from 'async';
 
 
-import { Logger } from "winston";
+import { Logger } from 'winston';
 import { AbstractCleaningRules } from './data-clean-abstracts';
 import { ExtractionFunction, ExtractionEnv, applyCleaningRules, flatMapTasksEA } from '../core/extraction-process';
 import { hasCorpusFile, writeCorpusJsonFile, readCorpusJsonFile, expandDir } from 'commons';
@@ -215,7 +215,7 @@ export async function runAbstractFindersOnFile(
     entryPath,
     inputFile,
     fileContentMap: {},
-    extractionRecord: { kind: "fields", fields: {} },
+    extractionRecord: { kind: 'fields', fields: {} },
     evidence: []
   };
 
@@ -300,8 +300,8 @@ export async function runAbstractFindersOnFile(
   );
 
   const combinedFields: ExtractedFields = {
-    kind: "fields",
-    fields: { "abstract": combinedInstances }
+    kind: 'fields',
+    fields: { 'abstract': combinedInstances }
   }
 
   return combinedFields;

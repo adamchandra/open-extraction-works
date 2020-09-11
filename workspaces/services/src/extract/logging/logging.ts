@@ -1,7 +1,7 @@
-import _ from "lodash";
-import path from "path";
-import fs from "fs-extra";
-import { initBufferedLogger, BufferedLogger } from "commons";
+import _ from 'lodash';
+import path from 'path';
+import fs from 'fs-extra';
+import { initBufferedLogger, BufferedLogger } from 'commons';
 import { Metadata } from '~/spidering/data-formats';
 
 export function resolveLogfileName(logpath: string, phase: string): string {

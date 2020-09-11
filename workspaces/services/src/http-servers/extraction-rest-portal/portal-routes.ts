@@ -7,7 +7,7 @@ import {
   csvStream,
   streamPump,
   AlphaRecord,
-} from "commons";
+} from 'commons';
 
 import { createAppLogger } from './portal-logger';
 import { insertAlphaRecords } from '~/db/db-api';

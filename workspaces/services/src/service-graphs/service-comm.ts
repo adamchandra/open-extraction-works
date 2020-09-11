@@ -1,7 +1,7 @@
-import _ from "lodash";
+import _ from 'lodash';
 import Redis from 'ioredis';
 import Async from 'async';
-import winston from "winston";
+import winston from 'winston';
 import { getServiceLogger } from './service-logger';
 
 const RedisConnectionEvents = [

@@ -1,11 +1,11 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import Redis from 'ioredis';
 
-describe("IORedis library tests and examples", () => {
+describe('IORedis library tests and examples', () => {
 
-  it("should do async set/get ", async (done) => {
+  it('should do async set/get ', async (done) => {
     const rclient = new Redis();
     await rclient.set('mykey', 'my-value')
       .catch((error) => {
@@ -23,14 +23,14 @@ describe("IORedis library tests and examples", () => {
       .then(() => done());
   });
 
-  it("should do pub/sub", async (done) => {
+  it('should do pub/sub', async (done) => {
     const rclient =  new Redis();
     const subClient =  new Redis();
 
-    await subClient.subscribe("topic.foo");
-    await subClient.subscribe("exit");
+    await subClient.subscribe('topic.foo');
+    await subClient.subscribe('exit');
 
-    subClient.on("message", (channel, message) => {
+    subClient.on('message', (channel, message) => {
       if (channel === 'exit') {
         expect(message).toEqual('quit');
       }
@@ -44,7 +44,7 @@ describe("IORedis library tests and examples", () => {
       }
     });
 
-    await rclient.publish("topic.foo", "foo.msg");
+    await rclient.publish('topic.foo', 'foo.msg');
     rclient.publish('exit', 'quit');
   });
 

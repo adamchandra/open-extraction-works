@@ -1,18 +1,18 @@
-import _ from "lodash";
-import path from "path";
+import _ from 'lodash';
+import path from 'path';
 
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as E from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/pipeable';
 
-import fs from "fs-extra";
+import fs from 'fs-extra';
 import { runFileCmd } from '~/utils/run-cmd-file';
 import { makeCssTreeNormalForm } from './html-to-css-normal';
 import { runTidyCmdBuffered } from '~/utils/run-cmd-tidy-html';
-import { ExtractionEnv, ExtractionFunction, NormalForm, extractionSuccess, fatalFailure, nonFatalFailure, Field } from './extraction-process';
-import { readCorpusTextFileAsync, resolveCorpusFile, writeCorpusTextFile, readCorpusTextFile, prettyPrint } from 'commons';
+import { ExtractionEnv, ExtractionFunction, NormalForm, extractionSuccess, fatalFailure, nonFatalFailure } from './extraction-process';
+import { readCorpusTextFileAsync, resolveCorpusFile, writeCorpusTextFile, readCorpusTextFile  } from 'commons';
 import { readMetadata } from '../logging/logging';
-import { addFieldInstance } from './extraction-records';
+import { addFieldInstance, Field } from './extraction-records';
 
 export const filterUrl: (urlTest: RegExp) => ExtractionFunction =
   (urlTest: RegExp) => (env: ExtractionEnv) => {
@@ -124,14 +124,14 @@ export const runCssNormalize: ExtractionFunction =
     }
     const htmlTidied = fileContentMap['tidy-norm'];
     if (!htmlTidied) {
-      return TE.left(`runCssNormalize: no html-tidy output; run after html-tidy;`);
+      return TE.left('runCssNormalize: no html-tidy output; run after html-tidy;');
     }
 
     const { content } = htmlTidied;
 
     const useXmlProcessing = /xml/i.test(responseMimeType);
     const cssNormalFormLines = makeCssTreeNormalForm(content, /* useXmlMode= */ useXmlProcessing)
-    const cssNormalForm = cssNormalFormLines.join("\n");
+    const cssNormalForm = cssNormalFormLines.join('\n');
 
     writeCachedNormalFile(entryPath, inputFile, normType, cssNormalForm);
 
@@ -206,7 +206,7 @@ export const runHtmlTidy: ExtractionFunction =
       TE.chain((tidiedFile: string[]) => {
         fileContentMap[normType] = {
           lines: tidiedFile,
-          content: tidiedFile.join("\n")
+          content: tidiedFile.join('\n')
         };
         return extractionSuccess(env);
       })
@@ -266,19 +266,19 @@ export const findInGlobalDocumentMetadata: ExtractionFunction =
     )[0];
 
     if (!metadataLine) {
-      return TE.left(`findInGlobalDocumentMetadata: metadata line not found`);
+      return TE.left('findInGlobalDocumentMetadata: metadata line not found');
     }
 
-    const jsonStart = metadataLine.indexOf("{");
-    const jsonEnd = metadataLine.lastIndexOf("}");
+    const jsonStart = metadataLine.indexOf('{');
+    const jsonEnd = metadataLine.lastIndexOf('}');
     const lineJson = metadataLine.slice(jsonStart, jsonEnd + 1);
     try {
       const field: Field = {
-        name: "abstract",
-        evidence: [`use-input:html-tidy`, `global.document.metadata:['abstract']`],
+        name: 'abstract',
+        evidence: ['use-input:html-tidy', 'global.document.metadata:[\'abstract\']'],
       };
       const metadataObj = JSON.parse(lineJson);
-      const abst = metadataObj["abstract"];
+      const abst = metadataObj['abstract'];
       field.value = abst;
       addFieldInstance(env.extractionRecord, field);
       return TE.right(env);

@@ -1,17 +1,17 @@
 import _ from 'lodash';
 
 // import pumpify from "pumpify";
-import path from "path";
+import path from 'path';
 import fs from 'fs-extra';
 import send from 'koa-send';
 
-import { Context } from "koa";
-import Router from "koa-router";
+import { Context } from 'koa';
+import Router from 'koa-router';
 
 import {
   CorpusEntry,
   getDirWalkerStream,
-} from "commons";
+} from 'commons';
 
 
 export interface CorpusPage {
@@ -55,8 +55,8 @@ export async function listCorpusArtifacts(
   return new Promise((resolve) => {
     const artifacts: string[] = [];
 
-    pipe.on("data", (p: string) => artifacts.push(p));
-    pipe.on("end", () => resolve(artifacts));
+    pipe.on('data', (p: string) => artifacts.push(p));
+    pipe.on('end', () => resolve(artifacts));
   })
 }
 

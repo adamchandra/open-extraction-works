@@ -5,12 +5,12 @@ const { opt, config, registerCmd } = arglib;
 
 registerCmd(
   arglib.YArgs,
-  "scrape-url",
-  "spider via puppeteer testing...",
+  'scrape-url',
+  'spider via puppeteer testing...',
   config(
     opt.cwd,
-    opt.existingDir("working-directory: root directory for logging/tmpfile/downloading"),
-    opt.ion("url", {
+    opt.existingDir('working-directory: root directory for logging/tmpfile/downloading'),
+    opt.ion('url', {
       required: true
     })
   )
@@ -23,12 +23,12 @@ registerCmd(
 
 registerCmd(
   arglib.YArgs,
-  "run-spider",
-  "run spider service locally",
+  'run-spider',
+  'run spider service locally',
   config(
     opt.cwd,
-    opt.existingDir("working-directory: root directory for logging/tmpfile/downloading"),
-    opt.existingFile("alpha-recs: csv file with alpha records")
+    opt.existingDir('working-directory: root directory for logging/tmpfile/downloading'),
+    opt.existingFile('alpha-recs: csv file with alpha records')
   )
 )((args: any) => {
   const { workingDirectory, alphaRecs } = args;

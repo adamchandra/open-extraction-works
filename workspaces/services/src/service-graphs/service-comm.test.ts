@@ -1,12 +1,12 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import { createTestServices, assertAllStringsIncluded } from './service-test-utils';
 
-describe("Service Communication Hub lifecycle", () => {
+describe('Service Communication Hub lifecycle', () => {
   process.env['service-comm.loglevel'] = 'warn';
 
-  it("should startup, link, and shutdown service hub with satellites", async (done) => {
+  it('should startup, link, and shutdown service hub with satellites', async (done) => {
     const logMessages: string[] = [];
     const numServices = 3;
     const expectedMessages = _.flatMap(_.range(numServices), svcNum => {

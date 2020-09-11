@@ -3,7 +3,7 @@ import winston, {
   createLogger,
   transports,
   format,
-} from "winston";
+} from 'winston';
 
 
 export function getServiceLogger(label: string): winston.Logger {

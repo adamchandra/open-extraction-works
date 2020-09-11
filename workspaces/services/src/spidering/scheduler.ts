@@ -2,7 +2,7 @@
 import { Readable } from 'stream';
 import {
   streamPump,
-} from "commons";
+} from 'commons';
 
 type UrlString = string
 

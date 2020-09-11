@@ -1,5 +1,5 @@
 import { QualifiedKeyValue, toQualifiedKeyValues } from 'commons';
-import _ from "lodash";
+import _ from 'lodash';
 import { ExtractionRecord } from './extraction-records';
 
 export interface IsObservedValue {

@@ -7,7 +7,7 @@ import isUrl from 'is-url-superb';
 
 import {
   streamPump, readAlphaRecStream, AlphaRecord, putStrLn, delay,
-} from "commons";
+} from 'commons';
 import { Metadata } from './data-formats';
 
 
@@ -51,7 +51,7 @@ export async function createSpiderService(): Promise<SpiderService> {
               }
               return;
             })
-            .catch((error) => putStrLn(`Error`, error))
+            .catch((error) => putStrLn('Error', error))
           ;
         })
         .toReadableStream();

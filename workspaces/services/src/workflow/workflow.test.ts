@@ -1,13 +1,13 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
 import { prettyPrint, AlphaRecord, } from 'commons';
 import got from 'got';
 import { useEmptyDatabase } from '~/db/db-test-utils';
 
 
-describe("End-to-end Extraction workflows", () => {
+describe('End-to-end Extraction workflows', () => {
   const hubName = 'ServiceHub';
   const orderedServices = WorkflowServiceNames;
   process.env['service-comm.loglevel'] = 'info';
@@ -40,7 +40,7 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
 
 
 
-  it("should demo end-to-end processing", async (done) => {
+  it('should demo end-to-end processing', async (done) => {
     await useEmptyDatabase(async () => undefined);
 
     const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);

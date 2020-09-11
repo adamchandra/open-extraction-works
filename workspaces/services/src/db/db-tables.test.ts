@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 import 'chai/register-should';
 import { prettyPrint, AlphaRecord, shaEncodeAsHex } from 'commons';
