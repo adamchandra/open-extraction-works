@@ -34,12 +34,18 @@ export interface ExtractionErrors {
   kind: 'errors';
   errors: string[];
 }
+export interface ExtractionEvidence {
+  kind: 'evidence';
+  evidence: string;
+  weight: number;
+}
 
 export type ExtractionRecord =
   ExtractedFields
   | ExtractedStanzas
   | ExtractedGroups
   | ExtractionErrors
+  | ExtractionEvidence
   ;
 
 
@@ -48,6 +54,7 @@ export interface ExtractionRecordFoldCases<A> {
   onStanzas: (v: ExtractedStanzas) => A;
   onGroups: (v: ExtractedGroups) => A;
   onErrors: (v: ExtractionErrors) => A;
+  onEvidence: (v: ExtractionEvidence) => A,
 }
 
 const emptyFoldCases: ExtractionRecordFoldCases<undefined> = {
@@ -55,6 +62,7 @@ const emptyFoldCases: ExtractionRecordFoldCases<undefined> = {
   onStanzas: () => undefined,
   onGroups: () => undefined,
   onErrors: () => undefined,
+  onEvidence: () => undefined,
 }
 
 export function foldExtractionRec<A>(
@@ -67,6 +75,7 @@ export function foldExtractionRec<A>(
     case 'stanzas': return cs.onStanzas(rec);
     case 'groups': return cs.onGroups(rec);
     case 'errors': return cs.onErrors(rec);
+    case 'evidence': return cs.onEvidence(rec);
   }
 }
 

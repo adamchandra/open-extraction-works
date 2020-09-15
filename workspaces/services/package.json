@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "dep": "tsc",
     "rollup": "rollup -c",
     "lint": "eslint --config .eslintrc.js --ext .ts --ignore-path ../../.gitignore ./src",
     "cli": "./bin/ts-node ./src/cli/index.ts",

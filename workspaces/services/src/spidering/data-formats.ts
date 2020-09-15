@@ -4,6 +4,7 @@ import {
   Request, Response,
 } from 'puppeteer';
 
+import { AlphaRecord } from 'commons';
 import { UrlChain, UrlChainLink } from '~/extract/urls/url-fetch-chains';
 
 export function createRequestChain(request: Request): UrlChain {
@@ -59,3 +60,40 @@ export function createMetadata(requestUrl: string, response: Response): Metadata
   return metadata;
 }
 
+
+// Testing functions
+export function mockUrl(n: number): string {
+  return `http://doi.org/${n}`;
+}
+
+export function mockMetadata(n: number): Metadata {
+  const fetchChain: UrlChainLink[] = _.map(_.range(n), (n) => {
+    const link: UrlChainLink = {
+      requestUrl: mockUrl(n),
+      responseUrl: mockUrl(n + 1),
+      status: '303',
+      timestamp: '',
+    };
+    return link;
+  });
+
+  const metadata: Metadata = {
+    requestUrl: mockUrl(0),
+    responseUrl: mockUrl(n),
+    status: '200',
+    fetchChain,
+    timestamp: ''
+  };
+
+  return metadata;
+}
+
+export function mockAlphaRecord(n: number): AlphaRecord {
+  return ({
+    noteId: `note-id-${n}`,
+    dblpConfId: `dblp/conf/conf-${n}`, // TODO rename to dblpKey
+    title: `The Title Paper #${n}`,
+    authorId: `auth-${n}`,
+    url: mockUrl(n)
+  });
+}

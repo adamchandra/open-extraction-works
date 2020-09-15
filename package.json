@@ -5,6 +5,7 @@
   "scripts": {
     "clean": "lerna clean -y",
     "reset": "npm run clean && lerna bootstrap",
+    "cyclic-check": "lerna --concurrency 1 exec --stream -- madge --circular dist",
     "deps:check": "lerna --concurrency 1 exec --stream -- ncu",
     "deps:update": "lerna --concurrency 1 exec --stream -- ncu -u && lerna bootstrap"
   },
