@@ -6,12 +6,7 @@ import { diffByChars, Change } from 'commons';
 import { ExtractionRecord } from './extraction-records';
 import { Logger } from 'winston';
 import { Metadata } from '~/spidering/data-formats';
-
-interface NormalForms {
-  'css-norm': null;
-  'original': null;
-  'tidy-norm': null
-}
+import { NormalForms } from './extraction-prelude';
 
 export interface CleaningRule {
   name: string;
@@ -48,7 +43,6 @@ export function applyCleaningRules(rules: CleaningRule[], initialString: string)
   });
   return [currentString, cleaningResults];
 }
-export type NormalForm = keyof NormalForms;
 
 interface FileContentValue {
   lines: string[];

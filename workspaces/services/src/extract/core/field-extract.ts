@@ -9,10 +9,11 @@ import fs from 'fs-extra';
 import { runFileCmd } from '~/utils/run-cmd-file';
 import { makeCssTreeNormalForm } from './html-to-css-normal';
 import { runTidyCmdBuffered } from '~/utils/run-cmd-tidy-html';
-import { ExtractionEnv, ExtractionFunction, NormalForm, extractionSuccess, fatalFailure, nonFatalFailure } from './extraction-process';
+import { ExtractionEnv, ExtractionFunction, extractionSuccess, fatalFailure, nonFatalFailure } from './extraction-process';
 import { readCorpusTextFileAsync, resolveCorpusFile, writeCorpusTextFile, readCorpusTextFile  } from 'commons';
 import { readMetadata } from '../logging/logging';
 import { addFieldInstance, Field } from './extraction-records';
+import { NormalForm } from './extraction-prelude';
 
 export const filterUrl: (urlTest: RegExp) => ExtractionFunction =
   (urlTest: RegExp) => (env: ExtractionEnv) => {
@@ -141,6 +142,7 @@ export const runCssNormalize: ExtractionFunction =
     };
     return TE.right(env);
   };
+
 
 export function resolveCachedNormalFile(entryPath: string, inputFile: string, cacheKey: NormalForm): string {
   return resolveCorpusFile(entryPath, 'cache', `${inputFile}.${cacheKey}`);
