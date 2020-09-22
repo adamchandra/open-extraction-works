@@ -6,6 +6,8 @@ import * as Task from 'fp-ts/Task';
 import * as E from 'fp-ts/Either';
 import { isLeft } from 'fp-ts/Either';
 
+import Async from 'async';
+
 import { Metadata } from '~/spidering/data-formats';
 import { putStrLn } from 'commons';
 import { Logger } from 'winston';
@@ -103,12 +105,7 @@ export const bindTEva: <A, B> (
 
 export type FanoutArrow<E, A, B> = (ra: ExtractionResult<E, A[]>) => ExtractionResult<E, B[]>;
 
-// const sequenceArrOfTaskEither = Arr.array.sequence(TE.taskEitherSeq);
-
-import Async from 'async';
 export function separateResults<E, A>(extractionResults: ExtractionResult<E, A>[]): Task.Task<[Array<W<E>>, Array<W<A>>]> {
-  // async (er: ExtractionResult<E, A>) => await er())
-
   return () => Async.mapSeries<ExtractionResult<E, A>, ExtractionEither<E, A>>(
     extractionResults,
     async er => er())
@@ -121,24 +118,6 @@ export function separateResults<E, A>(extractionResults: ExtractionResult<E, A>[
       });
       return [lefts, rights];
     });
-  // return () => Promise
-  //   .allSettled(_.map(extractionResults, er => er()))
-  //   .then((settled) => {
-  //     const lefts: W<E>[] = [];
-  //     const rights: W<A>[] = [];
-  //     const errs: any[] = [];
-  //     _.each(settled, sr => {
-  //       if (sr.status === 'fulfilled') {
-  //         const result = sr.value
-  //         if (isLeft(result)) lefts.push(result.left)
-  //         else rights.push(result.right);
-  //         return;
-  //       }
-  //       const rejectReason = sr.reason;
-  //       errs.push(rejectReason);
-  //     });
-  //     return [lefts, rights, errs];
-  //   });
 }
 
 export const fanout: <E, A, B> (arrow: ExtractionArrow<E, A, B>) => FanoutArrow<E, A, B> =

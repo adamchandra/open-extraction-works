@@ -118,13 +118,13 @@ export const runHtmlTidy: ExtractionArrow<void, string, string> =
 
 
 import cheerio from 'cheerio';
+import { ExtractedField, ExtractedFields, Field } from './extraction-records';
 export const queryTagGetAttr: (queryString: string, contentAttr: string) => ExtractionArrow<void, CacheFileKey, string> =
   (queryString, contentAttr) => bindFA('queryTagGetAttr', (cacheKey: CacheFileKey, env) => {
     const { fileContentCache } = env;
     putStrLn('queryTag> start');
     const content = fileContentCache[cacheKey];
     if (content === undefined) return;
-
 
     const $ = cheerio.load(content, {
       _useHtmlParser2: true,
@@ -134,9 +134,21 @@ export const queryTagGetAttr: (queryString: string, contentAttr: string) => Extr
       decodeEntities: false
     });
     const queryRes = $(queryString);
-    const tagContent = queryRes.attr(contentAttr);
+    return queryRes.attr(contentAttr);
+  });
 
-    return tagContent;
+export const saveFieldAs: (fieldName: string) => ExtractionArrow<void, string, void> =
+  (fieldName) => bindFA('saveFieldAs', (fieldValue: string, env) => {
+    const { extractionRecords } = env;
+    const extractedField: ExtractedField = {
+      kind: 'field',
+      field: {
+        name: fieldName,
+        evidence: [],
+        value: fieldValue
+      }
+    };
+    extractionRecords.push(extractedField);
   });
 
 // const PipelineLeadingFunctions = [
@@ -150,10 +162,6 @@ export const queryTagGetAttr: (queryString: string, contentAttr: string) => Extr
 //   traceLog({ runCssNormalize }),
 // ];
 
-
-
-
-
 export async function exampleExtractionAttempt(entryPath: string) {
 
   putStrLn(`exampleExtractionAttempt : ${entryPath}`);
@@ -166,7 +174,8 @@ export async function exampleExtractionAttempt(entryPath: string) {
     fanout(
       flow(
         runHtmlTidy,
-        queryTagGetAttr('meta[name=citation_title]', 'content')
+        queryTagGetAttr('meta[name=citation_title]', 'content'),
+        saveFieldAs('title')
       )
     )
   );

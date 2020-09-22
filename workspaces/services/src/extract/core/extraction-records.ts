@@ -16,6 +16,11 @@ export interface FieldInstances {
   instances: Field[];
 }
 
+export interface ExtractedField {
+  kind: 'field';
+  field: Field;
+}
+
 export interface ExtractedFields {
   kind: 'fields';
   fields: Record<string, FieldInstances>;
@@ -42,6 +47,7 @@ export interface ExtractionEvidence {
 
 export type ExtractionRecord =
   ExtractedFields
+  | ExtractedField
   | ExtractedStanzas
   | ExtractedGroups
   | ExtractionErrors
@@ -51,6 +57,7 @@ export type ExtractionRecord =
 
 export interface ExtractionRecordFoldCases<A> {
   onFields: (v: ExtractedFields) => A;
+  onField: (v: ExtractedField) => A;
   onStanzas: (v: ExtractedStanzas) => A;
   onGroups: (v: ExtractedGroups) => A;
   onErrors: (v: ExtractionErrors) => A;
@@ -59,6 +66,7 @@ export interface ExtractionRecordFoldCases<A> {
 
 const emptyFoldCases: ExtractionRecordFoldCases<undefined> = {
   onFields: () => undefined,
+  onField: () => undefined,
   onStanzas: () => undefined,
   onGroups: () => undefined,
   onErrors: () => undefined,
@@ -72,6 +80,7 @@ export function foldExtractionRec<A>(
   const cs = _.merge({}, emptyFoldCases, cases);
   switch (rec.kind) {
     case 'fields': return cs.onFields(rec);
+    case 'field': return cs.onField(rec);
     case 'stanzas': return cs.onStanzas(rec);
     case 'groups': return cs.onGroups(rec);
     case 'errors': return cs.onErrors(rec);

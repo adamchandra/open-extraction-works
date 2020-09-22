@@ -128,7 +128,6 @@ const PipelineLeadingFunctions = [
 ];
 
 
-
 export async function runAbstractFinders(
   ctx: ExtractionAppContext,
   extractionPipeline: ExtractionFunction[][],
