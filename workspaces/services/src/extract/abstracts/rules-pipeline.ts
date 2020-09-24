@@ -34,9 +34,12 @@ export const AbstractPipeline: ExtractionFunction[][] = [
     selectElemAttr('h1[data-abstract]', 'data-abstract')
   ],
 
-  [filterUrl(/bmva.rog/), findByLineMatchTE(['p', 'h2', '| Abstract'], { lineOffset: -2 })],
-  [filterUrl(/easychair.org/), findByLineMatchTE(['h3', '| Abstract', '|'], { lineOffset: -1 })],
   [
+    filterUrl(/bmva.rog/),
+    findByLineMatchTE(['p', 'h2', '| Abstract'], { lineOffset: -2 })
+  ], [
+    filterUrl(/easychair.org/), findByLineMatchTE(['h3', '| Abstract', '|'], { lineOffset: -1 })
+  ], [
     filterUrl(/igi-global.com/),
     findByLineMatchTE(['span', 'h2', '| Abstract'], { lineOffset: 0, evidenceEnd: ['footer'] })
   ],

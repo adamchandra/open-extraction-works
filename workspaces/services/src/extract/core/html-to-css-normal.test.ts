@@ -7,7 +7,7 @@ import path from 'path';
 
 import { prettyPrint } from 'commons';
 import { makeCssTreeNormalFormFromNode } from './html-to-css-normal';
-import { cheerioLoad } from './cheerio-loader';
+import { cheerioLoad } from './html-queries';
 
 describe('Normalize htmls to css-normal form', () => {
   const testDirPath = './test/resources/htmls';

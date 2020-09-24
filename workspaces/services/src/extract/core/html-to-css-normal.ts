@@ -1,6 +1,6 @@
 //
 import _ from 'lodash';
-import { cheerioLoad } from './cheerio-loader';
+import { cheerioLoad } from './html-queries';
 
 type Attrs = { [k: string]: string };
 

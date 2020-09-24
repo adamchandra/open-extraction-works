@@ -6,8 +6,8 @@ import { ExtractionEnv, ExtractionFunction } from './extraction-process';
 import * as TE from 'fp-ts/lib/TaskEither';
 import { makeCssTreeNormalFormFromNode } from './html-to-css-normal';
 import { addFieldInstance, Field } from './extraction-records';
-import { cheerioLoad } from './cheerio-loader';
 import { prettyPrint } from 'commons';
+import { cheerioLoad } from './html-queries';
 
 export function readFile(
   leading: string,
