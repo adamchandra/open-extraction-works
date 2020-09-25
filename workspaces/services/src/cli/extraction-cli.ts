@@ -2,8 +2,33 @@ import _ from 'lodash';
 
 import { arglib } from 'commons';
 import { runMainExtractAbstracts, runMainGatherAbstracts, runMainUpdateGroundTruths } from '~/extract/abstracts/cli-main';
+import { runMainExtractFields } from '~/extract/core/extraction-cli';
 
 const { opt, config, registerCmd } = arglib;
+registerCmd(
+  arglib.YArgs,
+  'extract-fields',
+  'run the field extractors over spidered htmls in corpus',
+  config(
+    opt.cwd,
+    opt.existingDir('corpus-root: root directory for corpus files'),
+    opt.ion('log-level', {
+      required: false,
+      default: 'info'
+    })
+  )
+)((args: any) => {
+  const { corpusRoot, logLevel } = args;
+  const logpath = corpusRoot;
+
+  runMainExtractFields(
+    corpusRoot,
+    logpath,
+    logLevel,
+  ).then(() => {
+    console.log('done');
+  });
+});
 
 registerCmd(
   arglib.YArgs,

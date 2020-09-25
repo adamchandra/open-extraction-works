@@ -25,9 +25,12 @@ export function getBasicConsoleLogger(level: string = 'info'): Logger {
   return logger;
 }
 
+
+
 export function getBasicLogger(
   workingDirectory: string,
-  logfileName: string
+  logfileName: string,
+  loglevel: string = 'info',
 ): Logger {
   const rootLoggingPath = path.resolve(workingDirectory);
 
@@ -36,7 +39,7 @@ export function getBasicLogger(
       format.colorize(),
       format.simple(),
     ),
-    level: 'info'
+    level: loglevel
   });
 
   const logger = createLogger({

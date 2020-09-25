@@ -10,10 +10,10 @@ import { runFileCmd } from '~/utils/run-cmd-file';
 import { makeCssTreeNormalForm } from './html-to-css-normal';
 import { runTidyCmdBuffered } from '~/utils/run-cmd-tidy-html';
 import { ExtractionEnv, ExtractionFunction, extractionSuccess, fatalFailure, nonFatalFailure } from './extraction-process';
-import { readCorpusTextFileAsync, resolveCorpusFile, writeCorpusTextFile, readCorpusTextFile  } from 'commons';
-import { readMetadata } from '../logging/logging';
+import { readCorpusTextFileAsync, resolveCorpusFile, writeCorpusTextFile, readCorpusTextFile } from 'commons';
 import { addFieldInstance, Field } from './extraction-records';
 import { NormalForm } from './extraction-prelude';
+import { Metadata } from '~/spidering/data-formats';
 
 export const filterUrl: (urlTest: RegExp) => ExtractionFunction =
   (urlTest: RegExp) => (env: ExtractionEnv) => {
@@ -215,6 +215,13 @@ export const runHtmlTidy: ExtractionFunction =
     );
 
   };
+
+
+export function readMetadata(metafile: string): Metadata | undefined {
+  if (!fs.existsSync(metafile)) return;
+  const metaJson = fs.readJsonSync(metafile);
+  return metaJson;
+}
 
 export const readMetaProps: ExtractionFunction =
   (env: ExtractionEnv) => {

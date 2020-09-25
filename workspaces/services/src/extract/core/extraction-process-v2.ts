@@ -6,21 +6,17 @@ import * as E from 'fp-ts/Either';
 import { isLeft } from 'fp-ts/Either'
 
 import { Metadata } from '~/spidering/data-formats';
-import { ArtifactSubdir, expandDir, prettyPrint, putStrLn, readCorpusJsonFile, readCorpusTextFile, writeCorpusTextFile } from 'commons';
-import { getBasicConsoleLogger } from '~/utils/basic-logging';
+import { ArtifactSubdir, expandDir, putStrLn, readCorpusJsonFile, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
 import {
   bind,
   bindFA,
   bindTEva,
   ExtractionArrow,
   ExtractionEnv,
-  fanin,
   fanout,
   filterOn,
   firstOf,
-  fromNullish,
   NormalForm,
-  withEnv,
   success,
   success_,
   failure,
@@ -29,9 +25,10 @@ import {
   attempt,
   attemptAll,
   FilterArrow,
-  voidResult,
-  bind_,
   through,
+  ControlInstruction,
+  filter,
+  tap,
 } from './extraction-prelude';
 
 import { ExtractedField } from './extraction-records';
@@ -46,34 +43,13 @@ export type CacheFileKey = string;
 export function filePathToCacheKey(filePath: string): CacheFileKey {
   return filePath;
 }
+
 export function cacheKeyToPath(k: CacheFileKey): string {
   return k;
 }
 
-export const urlFilter: (urlTest: RegExp) => FilterArrow<void> =
-  (regex) => flow(
-    loadMetadata,
-    readRequestUrl,
-    bind_(filterOn(url => regex.test(url))),
-    voidResult(),
-  );
-
-
-// export const readTextArtifactFile: (artifactDir: ArtifactSubdir, file: string) => ExtractionArrow<void, void, CacheFileKey> =
-//   (dir, filename) => bindFA('readTextArtifactFile', (_a, env) => {
-//     const { entryPath, fileContentCache } = env;
-//     const fileContent = readCorpusTextFile(entryPath, dir, filename);
-//     const filePath = path.join(dir, filename);
-//     const cacheKey = filePathToCacheKey(filePath);
-//     if (fileContent !== undefined) {
-//       fileContentCache[cacheKey] = fileContent;
-//       return cacheKey;
-//     }
-//     return undefined;
-//   });
-
-export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => ExtractionArrow<void, void, CacheFileKey[]> =
-  (dir, regex) => bindFA('listArtifactFiles', (_a, env) => {
+export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => ExtractionArrow<unknown, CacheFileKey[]> =
+  (dir, regex) => through((_a, env) => {
     const { entryPath } = env;
     const artifactRoot = path.join(entryPath, dir);
     const exDir = expandDir(artifactRoot);
@@ -82,24 +58,9 @@ export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => 
     return keys;
   });
 
-
 export const listResponseBodies = listArtifactFiles('.', /response-body|response-frame/);
 
-export const loadMetadata: ExtractionArrow<void, void, Metadata> =
-  bind('loadMetadata', withEnv((env) => {
-    env.metaProps = env.metaProps ?
-      env.metaProps :
-      readCorpusJsonFile<Metadata>(env.entryPath, '.', 'metadata.json');
-    return fromNullish(env.metaProps);
-  }));
-
-// export const loadResponseBody: ExtractionArrow<void, void, CacheFileKey> =
-//   readTextArtifactFile('.', 'response-body')
-
-export const readRequestUrl: ExtractionArrow<void, Metadata, string> =
-  bindFA('readRequestUrl', (metaData) => metaData.responseUrl);
-
-export const echoArrow: ExtractionArrow<void, string, void> =
+export const echoArrow: ExtractionArrow<string, void> =
   bindFA('echoArrow', (s: string) => putStrLn(`echo> ${s}`));
 
 export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]> =
@@ -117,7 +78,7 @@ export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]>
     return tidyOutputTask;
   };
 
-export const listTidiedHtmls: ExtractionArrow<void, void, CacheFileKey[]> =
+export const listTidiedHtmls: ExtractionArrow<void, CacheFileKey[]> =
   bindFA('listTidiedHtmls', (_z, env) => {
     const { fileContentCache } = env;
     const normType: NormalForm = 'tidy-norm';
@@ -127,7 +88,7 @@ export const listTidiedHtmls: ExtractionArrow<void, void, CacheFileKey[]> =
     return _.filter(cacheKeys, k => k.endsWith(normType));
   });
 
-export const runHtmlTidy: ExtractionArrow<void, string, string> =
+export const runHtmlTidy: ExtractionArrow<string, string> =
   bindTEva('runHtmlTidy', (artifactPath: string, env) => {
     const { fileContentCache, entryPath } = env;
     const normType: NormalForm = 'tidy-norm';
@@ -150,52 +111,45 @@ export const runHtmlTidy: ExtractionArrow<void, string, string> =
 
         return cacheKey;
       }),
-      TE.mapLeft(() => undefined)
+      TE.mapLeft((message) => ['halt', message])
     );
   });
 
 // const verifyIsHtmlOrXml = runFileVerification(/(html|xml)/i);
-export const verifyFileType: (urlTest: RegExp) => ExtractionArrow<void, string, string> =
-  (typeTest: RegExp) => bindTEva('verifyFileType', (filename, env) => {
-    const { entryPath } = env;
+export const verifyFileType: (urlTest: RegExp) => FilterArrow<string> =
+  (typeTest: RegExp) => filter(async (filename, env) => {
+    const file = path.resolve(env.entryPath, filename);
+    env.log.info(`verifyFileType: ${filename}`);
 
-    const file = path.resolve(entryPath, filename);
-
-    const fileTypeTask: TE.TaskEither<void, string> =
-      TE.rightTask(() => runFileCmd(file));
-
-    // fatalFailure(`Unexpected filetype: ${fileType}; wanted ${typeTest.source}`)
-    return pipe(
-      fileTypeTask,
-      TE.chain((fileType: string) => {
-        return typeTest.test(fileType) ? success(filename) : failure();
-      })
-    );
+    return runFileCmd(file)
+      .then(fileType => typeTest.test(fileType));
   });
 
-export const verifyHttpResponseCode: ExtractionArrow<void, Metadata, void> =
-  bindTEva('verifyHttpResponseCode', (metadata, env) => {
-    const { status } = metadata;
+// export const verifyFileType: (urlTest: RegExp) => ExtractionArrow<string, string> =
+//   (typeTest: RegExp) => bindTEva('verifyFileType', (filename, env) => {
+//     const { entryPath } = env;
 
-    if (!status) {
-      const msg = `verifyHttpResponseCode: ${env.entryPath}: no status available`;
-      env.log.error(msg);
-      return failure();
-    }
-    if (status === '200') {
-      return success_();
-    }
-    return failure();
-  });
+//     const file = path.resolve(entryPath, filename);
 
-export const selectOne: (queryString: string) => ExtractionArrow<void, CacheFileKey, Elem> =
+//     const fileTypeTask: TE.TaskEither<ControlInstruction, string> =
+//       TE.rightTask(() => runFileCmd(file));
+
+//     return pipe(
+//       fileTypeTask,
+//       TE.chain((fileType: string) => {
+//         return typeTest.test(fileType) ? success(filename) : failure();
+//       })
+//     );
+//   });
+
+export const selectOne: (queryString: string) => ExtractionArrow<CacheFileKey, Elem> =
   (queryString) => bindTEva('selectOne', (cacheKey: CacheFileKey, env) => {
     const { fileContentCache } = env;
     const content = fileContentCache[cacheKey];
-    if (content === undefined) return TE.left(undefined);
+    if (content === undefined) return TE.left(['halt', `cache key miss ${cacheKey}`]);
 
     return () => queryOne(content, queryString)
-      .then(sel => pipe(sel, E.mapLeft(() => undefined)));
+      .then(sel => pipe(sel, E.mapLeft(() => ['halt', `query miss ${queryString}`])));
 
   });
 
@@ -212,23 +166,26 @@ export const matchesSelector: (query: string) => FilterArrow<Elem> =
     return result.length > 0;
   }));
 
-export const selectElemAttr: (queryString: string, contentAttr: string) => ExtractionArrow<void, CacheFileKey, string> =
+
+export const selectElemAttr: (queryString: string, contentAttr: string) => ExtractionArrow<CacheFileKey, string> =
   (queryString, contentAttr) => bindTEva('selectElemAttr', (cacheKey: CacheFileKey, env) => {
     const { fileContentCache } = env;
     const content = fileContentCache[cacheKey];
-    if (content === undefined) return TE.left(undefined);
+    // if (content === undefined) return TE.left(undefined);
+    if (content === undefined) return TE.left(['halt', 'cache has no record for key ${cacheKey}']);
 
     return () => selectElementAttr(content, queryString, contentAttr)
       .then(attr => {
         if (E.isRight(attr)) {
           return E.right(attr.right);
         }
-        return E.left(undefined);
+        return E.left('continue');
       });
 
   });
 
-export const saveFieldAs: (fieldName: string) => ExtractionArrow<void, string, 'okay'> =
+// log [saveFieldAs/:abstract]
+export const saveFieldAs: (fieldName: string) => ExtractionArrow<string, 'okay'> =
   (fieldName) => bindFA('saveFieldAs', (fieldValue: string, env) => {
     const { extractionRecords } = env;
     const extractedField: ExtractedField = {
@@ -240,12 +197,12 @@ export const saveFieldAs: (fieldName: string) => ExtractionArrow<void, string, '
       }
     };
     extractionRecords.push(extractedField);
-    putStrLn(`${fieldName}: ${fieldValue}`);
+    env.log.info(`${fieldName}: ${fieldValue}`);
     return 'okay';
   });
 
 
-export const selectElemAttrAs: (fieldName: string, queryString: string, contentAttr: string) => ExtractionArrow<void, CacheFileKey, string> =
+export const selectElemAttrAs: (fieldName: string, queryString: string, contentAttr: string) => ExtractionArrow<CacheFileKey, string> =
   (fieldName, queryString, contentAttr) => bindArrow(
     'selectElemAttrAs',
     flow(
@@ -253,40 +210,55 @@ export const selectElemAttrAs: (fieldName: string, queryString: string, contentA
       saveFieldAs(fieldName)
     ));
 
-export const gatherArray: <A>() => ExtractionArrow<void, A[], void> =
-  () => bindFA('gatherArray', () => undefined);
-
-
-export const filterResponses = flow(
-  loadMetadata,
-  verifyHttpResponseCode,
-  listResponseBodies,
-  fanout(
+export const urlFilter: (urlTest: RegExp) => FilterArrow<any> =
+  (regex) => flow(
+    bindArrow('urlFilter', flow(
+      through((_0, env) => env.metadata.responseUrl),
+      filter(url => regex.test(url)),
+      tap((a, env) => env.log.info(`matched URL ${a} to /${regex.source}/`)),
+    )),
     flow(
-      verifyFileType(/html|xml/i),
-      runHtmlTidy,
+      filter((_0, env) => env.metadata.status === '200'),
+      listResponseBodies,
+      fanout(
+        flow(
+          verifyFileType(/html|xml/i),
+          runHtmlTidy,
+        )
+      ),
     )
-  ),
-  fanin(gatherArray())
-);
+  )
+
 
 export const FieldExtractionPipeline = flow(
-  filterResponses,
   firstOf(
-    flow(
+    attempt(flow(
+      urlFilter(/arxiv.org/),
+      listTidiedHtmls,
+      forEachDo(
+        flow(
+          // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
+          // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
+          attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
+          attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
+        )
+      ),
+    )),
+
+    attempt(flow(
       urlFilter(/content.iospress.com/),
       listTidiedHtmls,
       forEachDo(
-        attemptAll(
-          selectElemAttrAs('title', 'meta[name=citation_title]', 'content'),
-          selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
-          selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-          selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract'),
+        flow(
+          // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
+          // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
+          attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
+          attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
         )
       ),
-      fanin(gatherArray())
-    ),
-    flow(
+    )),
+
+    attempt(flow(
       urlFilter(/bmva.org/),
       listTidiedHtmls,
       forEachDo(
@@ -304,68 +276,55 @@ export const FieldExtractionPipeline = flow(
           )
         )
       ),
-      fanin(gatherArray())
-    ),
-
-
-
-
-
-    flow(
-      urlFilter(/content.isopress.com/),
-      listTidiedHtmls,
-      forEachDo(
-        attemptAll(
-          selectElemAttrAs('title', 'meta[name=citation_title]', 'content'),
-          selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
-          selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-          selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract'),
-        )
-      ),
-      fanin(gatherArray())
-    ),
-
-    // attempt(
-    //   loadMetadata,
-    //   readRequestUrl,
-    //   urlFilter(/http/),
-    //   listResponseBodies,
-    //   fanout(
-    //     flow(
-    //       runHtmlTidy,
-    //       selectElemAttr('meta[name=citation_title]', 'content'),
-    //       saveFieldAs('title')
-    //     )
-    //   ),
-    //   fanin(gatherArray())
-    // ),
+    )),
   )
 );
+// async (entryPath: string, ctx: ExtractionAppContext): Promise<void> => {
 
-export async function runFieldExtractorsOnFile(
-  entryPath: string
+import { Logger } from 'winston';
+
+export interface ExtractContext {
+  log: Logger;
+}
+
+export async function runFieldExtractors(
+  entryPath: string,
+  ctx: ExtractContext,
 ): Promise<void> {
   const extractionPipeline = FieldExtractionPipeline;
+  const { log } = ctx;
 
-  const log = getBasicConsoleLogger();
+  const pathPrefix = path.basename(entryPath).slice(0, 6);
+  const logPrefix = [pathPrefix];
 
-  log.debug(`runFieldFindersOnFile ${entryPath} `);
+  setLogLabel(log, _.join(logPrefix, '/'));
+  log.info('starting field extractors');
+
+  const metadata = readCorpusJsonFile<Metadata>(entryPath, '.', 'metadata.json');
+
+  if (metadata === undefined) {
+    log.warn('no metadata.json file found, skipping...');
+    return;
+  }
 
   const env: ExtractionEnv = {
     log,
+    logPrefix,
     entryPath,
+    metadata,
     extractionRecords: [],
     fileContentCache: {}
   };
-  const res = await extractionPipeline(TE.right([undefined, env]))();
+  const res = await extractionPipeline(TE.right([metadata, env]))();
 
   if (isLeft(res)) {
-    const [r, env] = res.left;
-    putStrLn('result isLeft')
+    // const [r, env] = res.left;
+    log.info('result isLeft')
 
   } else {
-    const [r, env] = res.right;
-    putStrLn('result isRight')
+    // const [r, env] = res.right;
+    log.info('result isRight')
   }
 
+  log.info('finished extractors');
 }
