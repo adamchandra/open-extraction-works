@@ -15,20 +15,17 @@ import {
   ExtractionEnv,
   fanout,
   filterOn,
-  firstOf,
   NormalForm,
   success,
-  success_,
-  failure,
   forEachDo,
   bindArrow,
   attempt,
   attemptAll,
   FilterArrow,
   through,
-  ControlInstruction,
   filter,
   tap,
+  attemptSeries,
 } from './extraction-prelude';
 
 import { ExtractedField } from './extraction-records';
@@ -230,55 +227,54 @@ export const urlFilter: (urlTest: RegExp) => FilterArrow<any> =
   )
 
 
-export const FieldExtractionPipeline = flow(
-  firstOf(
-    attempt(flow(
-      urlFilter(/arxiv.org/),
-      listTidiedHtmls,
-      forEachDo(
-        flow(
-          // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
-          // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
-          attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
-          attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
-        )
-      ),
-    )),
+export const FieldExtractionPipeline = attemptSeries(
+  flow(
+    urlFilter(/arxiv.org/),
+    listTidiedHtmls,
+    forEachDo(
+      flow(
+        // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
+        // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
+        attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
+        attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
+      )
+    ),
+  ),
 
-    attempt(flow(
-      urlFilter(/content.iospress.com/),
-      listTidiedHtmls,
-      forEachDo(
-        flow(
-          // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
-          // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
-          attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
-          attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
-        )
-      ),
-    )),
+  flow(
+    urlFilter(/content.iospress.com/),
+    listTidiedHtmls,
+    forEachDo(
+      flow(
+        // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
+        // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
+        attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
+        attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
+      )
+    ),
+  ),
 
-    attempt(flow(
-      urlFilter(/bmva.org/),
-      listTidiedHtmls,
-      forEachDo(
-        attemptAll(
-          flow(
-            selectOne('p'),
-            attempt(
-              flow(
-                matchesText(/Abstract/i),
-                matchesSelector('h2'),
-              )
-            ),
-            through(getTextContent),
-            saveFieldAs('abstract')
-          )
+  attempt(flow(
+    urlFilter(/bmva.org/),
+    listTidiedHtmls,
+    forEachDo(
+      attemptAll(
+        flow(
+          selectOne('p'),
+          attempt(
+            flow(
+              matchesText(/Abstract/i),
+              matchesSelector('h2'),
+            )
+          ),
+          through(getTextContent),
+          saveFieldAs('abstract')
         )
-      ),
-    )),
-  )
+      )
+    ),
+  )),
 );
+
 // async (entryPath: string, ctx: ExtractionAppContext): Promise<void> => {
 
 import { Logger } from 'winston';

@@ -2,10 +2,9 @@ import 'chai/register-should';
 import _ from 'lodash';
 
 import { prettyPrint } from 'commons';
-import { runUntilSuccess } from './extraction-prelude';
-import * as ep from './extraction-prelude';
+// import * as ep from './extraction-prelude';
+import * as ft from './function-types';
 import * as TE from 'fp-ts/TaskEither';
-import * as Task from 'fp-ts/Task';
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/function'
 import { isRight, isLeft } from 'fp-ts/Either';
@@ -13,28 +12,28 @@ import Async from 'async';
 
 describe('Extraction Prelude / Primitives', () => {
   type EnvT = boolean;
-  const asW = <A>(a: A, env: EnvT) => ep.asW<A, EnvT>(a, env);
+  const asW = <A>(a: A, env: EnvT) => ft.asW<A, EnvT>(a, env);
 
-  type W<A> = ep.W<A, EnvT>;
+  type W<A> = ft.W<A, EnvT>;
   const W = {
     lift: <A>(a: A, env: EnvT) => asW(a, env),
   };
 
-  type ClientFunc<A, B> = ep.ClientFunc<A, B, EnvT>;
-  type ClientResultEither<A> = ep.ClientResultEither<A>;
-  type ClientFuncEither<A, B> = ep.ClientFuncEither<A, B, EnvT>;
+  type ClientFunc<A, B> = ft.ClientFunc<A, B, EnvT>;
+  type ClientResultEither<A> = ft.ClientResultEither<A>;
+  type ClientFuncEither<A, B> = ft.ClientFuncEither<A, B, EnvT>;
 
 
-  type WCI = ep.WCI<EnvT>
-  type ExtractionResult<A> = ep.ExtractionResult<A, EnvT>;
+  type WCI = ft.WCI<EnvT>
+  type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
   const ExtractionResult = {
     lift: <A>(a: A, env: EnvT): ExtractionResult<A> => TE.right(asW(a, env)),
     liftW: <A>(wa: W<A>): ExtractionResult<A> => TE.right(wa),
-    liftFail: <A>(ci: ep.ControlInstruction, env: EnvT): ExtractionResult<A> => TE.left(asW(ci, env)),
+    liftFail: <A>(ci: ft.ControlInstruction, env: EnvT): ExtractionResult<A> => TE.left(asW(ci, env)),
   };
 
 
-  type ExtractionArrow<A, B> = ep.ExtractionArrow<A, B, EnvT>;
+  type ExtractionArrow<A, B> = ft.ExtractionArrow<A, B, EnvT>;
   const ExtractionArrow = {
     lift: <A, B>(fab: (a: A) => B): ExtractionArrow<A, B> =>
       (er: ExtractionResult<A>) => pipe(er, TE.fold(
@@ -70,19 +69,14 @@ describe('Extraction Prelude / Primitives', () => {
 
     expect(isRight(er1res) && er1res.right === wFoobar).toBe(true);
 
-    prettyPrint({ wFoobar, er1, er1res });
-
-
     const erLen = await arrowStrLen(er1)();
-    prettyPrint({ erLen });
     expect(isRight(erLen) && erLen.right[0] === 6).toBe(true);
-
 
     done();
   });
 
-  const forEachDo = <A, B>(arrow: ExtractionArrow<A, B>) => ep.forEachDo<A, B, EnvT>(arrow);
-  const runUntilSuccess = <A, B>(...arrows: ExtractionArrow<A, B>[]) => ep.runUntilSuccess<A, B, EnvT>(...arrows);
+  const forEachDo = <A, B>(arrow: ExtractionArrow<A, B>) => ft.forEachDo<A, B, EnvT>(arrow);
+  const attemptSeries = <A, B>(...arrows: ExtractionArrow<A, B>[]) => ft.attemptSeries<A, B, EnvT>(...arrows);
 
   it('control flow: forEachDo', async (done) => {
 
@@ -94,12 +88,18 @@ describe('Extraction Prelude / Primitives', () => {
     const wStrArray = ExtractionResult.lift(strArray, true);
 
     const res = await forEachDo(arrowStrLen)(wStrArray)();
-    expect(isRight(res) && res.right[0] === [1, 2, 3]).toBe(true);
     prettyPrint({ res });
+    expect(isRight(res)).toBe(true);
+
+    if (isRight(res)) {
+      const right = res.right;
+      expect(right).toStrictEqual([[1, 2, 3], true]);
+    }
 
     done();
   });
-  it.only('control flow: runUntilSuccess', async (done) => {
+
+  it('control flow: attemptSeries', async (done) => {
     let checkedNums: string[] = [];
 
     // successArrow =  ExtractionArrow.lift()
@@ -115,7 +115,7 @@ describe('Extraction Prelude / Primitives', () => {
 
     await Async.eachSeries(_.range(5), async i => {
       checkedNums = [];
-      const result = await runUntilSuccess(
+      const result = await attemptSeries(
         ...isNum.slice(1, 3)
       )(nums[i])();
       if (i === 1 || i === 2) {
@@ -124,13 +124,11 @@ describe('Extraction Prelude / Primitives', () => {
         expect(isLeft(result) && result.left[0] === 'continue').toBe(true);
       }
 
-      // prettyPrint({ i, result, checkedNums });
     })
 
     checkedNums = [];
-    const resEmpty = await runUntilSuccess()(nums[0])();
+    const resEmpty = await attemptSeries()(nums[0])();
     expect(isLeft(resEmpty) && resEmpty.left[0] === 'continue').toBe(true);
-
 
     done();
   });

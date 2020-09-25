@@ -286,7 +286,7 @@ export const attemptAll: <A, B> (...arrows: ExtractionArrow<A, B>[]) => Extracti
 export const firstOf: typeof flow = flow;
 
 // Try each arrow on input until one succeeds
-export const runUntilSuccess: <A, B, Env = ExtractionEnv> (...arrows: ExtractionArrow<A, B, Env>[]) => ExtractionArrow<A, B, Env> =
+export const attemptSeries: <A, B, Env = ExtractionEnv> (...arrows: ExtractionArrow<A, B, Env>[]) => ExtractionArrow<A, B, Env> =
   <A, B, Env = ExtractionEnv>(...arrows: ExtractionArrow<A, B, Env>[]) => (ra: ExtractionResult<A, Env>) => {
     // Base Case:
     if (arrows.length === 0) return pipe(
@@ -298,7 +298,7 @@ export const runUntilSuccess: <A, B, Env = ExtractionEnv> (...arrows: Extraction
 
     // Recursive Step:
     const headArrow: ExtractionArrow<A, B, Env> = arrows[0];
-    const tailAarrows: ExtractionArrow<A, B, Env> = runUntilSuccess(...arrows.slice(1));
+    const tailAarrows: ExtractionArrow<A, B, Env> = attemptSeries(...arrows.slice(1));
     return pipe(
       ra,
       headArrow, // if this returns left(..), try the next arrow
