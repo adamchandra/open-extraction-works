@@ -8,9 +8,26 @@ import { isLeft } from 'fp-ts/Either';
 
 import Async from 'async';
 
+export function isEither<A, B>(a: any): a is E.Either<A, B> {
+  return isELeft(a) || isERight(a);
+}
+export function isELeft<A>(a: any): a is E.Left<A> {
+  return '_tag' in a && a._tag === 'Left' && 'left' in a;
+}
+export function isERight<A>(a: any): a is E.Right<A> {
+  return '_tag' in a && a._tag === 'Right' && 'right' in a;
+}
+
+/**
+ * Instructions returned on the the Left to signal control flow
+ * e.g., hard stop on error, continue after failure
+ */
 export type ControlCode = 'halt' | 'continue';
 export type ControlInstruction = ControlCode | [ControlCode, string];
 
+/**
+ * Return value with user defined Environment
+ */
 export type W<A, Env> = [A, Env];
 export function asW<A, Env>(a: A, w: Env): W<A, Env> {
   return [a, w];
@@ -18,23 +35,61 @@ export function asW<A, Env>(a: A, w: Env): W<A, Env> {
 
 export type WCI<Env> = W<ControlInstruction, Env>;
 
+/**
+ * The function types that may be
+ */
+// Return types
 export type Eventual<A> = A | Promise<A>;
-export type ClientFunc<A, B, Env> = (a: A, env: Env) => Eventual<B>;
-export type ClientResultEither<A> = Eventual<E.Either<ControlInstruction, A>>;
-export type ClientFuncEither<A, B, Env> = (a: A, env: Env) => ClientResultEither<B>;
+// export type ClientResultEither<A> = Eventual<E.Either<ControlInstruction, A>>;
+// export type ClientResultTaskEither<A> = TE.TaskEither<ControlInstruction, A>;
+
+export type ClientResult<A> = Eventual<A>
+  | Eventual<E.Either<ControlInstruction, A>>
+  | TE.TaskEither<ControlInstruction, A>
+  ;
+// Function types
+export type ClientFunc<A, B, Env> = (a: A, env: Env) => ClientResult<B>;
+// export type ClientFunc<A, B, Env> = (a: A, env: Env) => Eventual<B>;
+// export type ClientFuncEither<A, B, Env> = (a: A, env: Env) => ClientResultEither<B>;
+// export type ClientFuncTaskEither<A, B, Env> = (a: A, env: Env) => ClientResultTaskEither<B>;
+// export interface ClientFunc<A, B, Env> {
+//   (a: A, env: Env): Eventual<B>;
+//   (a: A, env: Env): ClientResultEither<B>;
+//   (a: A, env: Env): ClientResultTaskEither<B>;
+// }
 
 export function eventualToResult<A, Env>(a: Eventual<A>, env: Env): ExtractionResult<A, Env> {
   return () => Promise.resolve(a)
     .then(a0 => E.right(asW(a0, env)));
 }
 
-export type ExtractionResultEA<A> = TE.TaskEither<ControlInstruction, A>;
+//////////////
+/// Lifted function types
+
+export type EventualResult<A, Env> = Promise<E.Either<WCI<Env>, W<A, Env>>>;
+const EventualResult = {
+  lift: <A, Env>(a: Eventual<A>, env: Env): EventualResult<A, Env> =>
+    Promise.resolve<A>(a).then(a0 => E.right(asW(a0, env))),
+
+  liftW: <A, Env>(wa: Eventual<W<A, Env>>): EventualResult<A, Env> =>
+    Promise.resolve<W<A, Env>>(wa).then(wa0 => E.right(wa0)),
+
+  liftFail: <A, Env>(ci: Eventual<ControlInstruction>, env: Env): EventualResult<A, Env> =>
+    Promise.resolve<ControlInstruction>(ci).then(ci0 => E.left(asW(ci0, env))),
+};
+
 
 export type ExtractionResult<A, Env> = TE.TaskEither<WCI<Env>, W<A, Env>>;
 const ExtractionResult = {
-  lift: <A, Env>(a: A, env: Env): ExtractionResult<A, Env> => TE.right(asW(a, env)),
-  liftW: <A, Env>(wa: W<A, Env>): ExtractionResult<A, Env> => TE.right(wa),
-  liftFail: <A, Env>(ci: ControlInstruction, env: Env): ExtractionResult<A, Env> => TE.left(asW(ci, env)),
+  lift: <A, Env>(a: Eventual<A>, env: Env): ExtractionResult<A, Env> =>
+    () => Promise.resolve<A>(a).then(a0 => E.right(asW(a0, env))),
+
+
+  liftW: <A, Env>(wa: Eventual<W<A, Env>>): ExtractionResult<A, Env> =>
+    () => Promise.resolve<W<A, Env>>(wa).then(wa0 => E.right(wa0)),
+
+  liftFail: <A, Env>(ci: Eventual<ControlInstruction>, env: Env): ExtractionResult<A, Env> =>
+    () => Promise.resolve<ControlInstruction>(ci).then(ci0 => E.left(asW(ci0, env))),
 };
 
 export interface ExtractionArrow<A, B, Env> {
@@ -42,27 +97,45 @@ export interface ExtractionArrow<A, B, Env> {
   name?: string;
 }
 
-export const ExtractionArrows = {
-  lift: <A, B, Env>(fab: (a: A) => B): ExtractionArrow<A, B, Env> =>
+export const ExtractionArrow = {
+  lift: <A, B, Env>(fab: ClientFunc<A, B, Env>): ExtractionArrow<A, B, Env> =>
     (er: ExtractionResult<A, Env>) => pipe(er, TE.fold(
-      ([, env]) => ExtractionResult.liftFail('halt', env),
-      ([s, env]) => ExtractionResult.lift(fab(s), env),
-    )),
+      ([controlInstruction, env]) => {
+        return ExtractionResult.liftFail(controlInstruction, env);
+      },
+      ([prev, env]) => {
 
-  liftClientEither: <A, B, Env>(fn: ClientFuncEither<A, B, Env>): ExtractionArrow<A, B, Env> =>
-    (er: ExtractionResult<A, Env>) => pipe(er, TE.fold(
-      ([, env]) => ExtractionResult.liftFail('halt', env),
-      ([s, env]) => {
-        const res: ClientResultEither<B> = Promise.resolve(fn(s, env));
-        const asTask = () => res;
-        const we = pipe(
-          asTask,
-          TE.mapLeft(qwer => asW(qwer, env)),
-          TE.chain(b => ExtractionResult.lift(b, env))
-        );
-        return we;
+        const res = () => Promise.resolve(fab(prev, env))
+          .then(async (result) => {
+            if (isELeft(result)) {
+              const ci = result.left;
+              return EventualResult.liftFail<B, Env>(ci, env);
+            }
+            if (isERight(result)) {
+              const b = result.right;
+              return EventualResult.lift<B, Env>(b, env);
+
+            }
+            if (_.isFunction(result)) {
+              return result()
+                .then(res => {
+                  if (E.isLeft(res)) {
+                    return EventualResult.liftFail<B, Env>(res.left, env);
+                  }
+                  return EventualResult.lift<B, Env>(b, env);
+                });
+            }
+            const b = result;
+            return EventualResult.lift(b, env);
+          })
+          .catch((err) => {
+            return EventualResult.liftFail<B, Env>(['halt', err.toString()], env);
+          })
+
+
+        return res;
       }
-    ))
+    )),
 };
 
 export type FilterArrow<A, Env> = ExtractionArrow<A, A, Env>;
@@ -128,17 +201,17 @@ export const bind: <A, B, Env> (
   }),
 );
 
-// bind f(a: A) => B
-export const bindFA: <A, B, Env> (
-  fab: ClientFunc<A, B, Env>
-) => ExtractionArrow<A, B, Env> =
-  (fab) => bind((a, env) => {
-    return eventualToResult(fab(a, env), env);
-  });
+// // bind f(a: A) => B
+// export const bindFA: <A, B, Env> (
+//   fab: ClientFunc<A, B, Env>
+// ) => ExtractionArrow<A, B, Env> =
+//   (fab) => bind((a, env) => {
+//     return eventualToResult(fab(a, env), env);
+//   });
 
-// bind f(a: A) => TaskEither<void, B>
-export const bindFEither: <A, B, Env> (fab: ClientFuncEither<A, B, Env>) =>
-  ExtractionArrow<A, B, Env> = (fab) => ExtractionArrows.liftClientEither(fab);
+// // bind f(a: A) => TaskEither<void, B>
+// export const bindFEither: <A, B, Env> (fab: ClientFuncEither<A, B, Env>) =>
+//   ExtractionArrow<A, B, Env> = (fab) => ExtractionArrows.liftClientEither(fab);
 
 
 export const namedArrow: <A, B, Env> (
@@ -307,10 +380,7 @@ export function filterOn<A, Env>(predicate: ClientFunc<A, boolean, Env>): Filter
 
 
 export function through<A, B, Env>(f: ClientFunc<A, B, Env>): ExtractionArrow<A, B, Env> {
-  return (ra: ExtractionResult<A, Env>) => pipe(
-    ra,
-    TE.chain(([a, env]) => eventualToResult(f(a, env), env))
-  );
+  return ExtractionArrow.lift(f);
 }
 
 export function tap<A, Env>(f: ClientFunc<A, any, Env>): ExtractionArrow<A, A, Env> {

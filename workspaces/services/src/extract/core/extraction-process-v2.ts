@@ -7,27 +7,31 @@ import { isLeft } from 'fp-ts/Either'
 
 import { Metadata } from '~/spidering/data-formats';
 import { ArtifactSubdir, expandDir, putStrLn, readCorpusJsonFile, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
+
+
 import {
   bind,
-  bindFA,
-  bindTEva,
+  // bindFA,
+  // bindTEva,
   ExtractionArrow,
   ExtractionEnv,
-  fanout,
-  filterOn,
+  // fanout,
+  // filterOn,
   NormalForm,
-  success,
-  forEachDo,
-  bindArrow,
-  attempt,
-  attemptAll,
+  // success,
+  // forEachDo,
+  // bindArrow,
+  // attempt,
+  // attemptAll,
   FilterArrow,
   through,
   filter,
   tap,
-  attemptSeries,
+  ClientFunc,
+  // attemptSeries,
 } from './extraction-prelude';
 
+import * as ep from './extraction-prelude';
 import { ExtractedField } from './extraction-records';
 
 import path from 'path';
@@ -58,7 +62,8 @@ export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => 
 export const listResponseBodies = listArtifactFiles('.', /response-body|response-frame/);
 
 export const echoArrow: ExtractionArrow<string, void> =
-  bindFA('echoArrow', (s: string) => putStrLn(`echo> ${s}`));
+  ep.ExtractionArrow.lift((s: string) => putStrLn(`echo> ${s}`))
+
 
 export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]> =
   (filepath: string) => {
@@ -75,31 +80,33 @@ export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]>
     return tidyOutputTask;
   };
 
+
+// TODO named(...)
 export const listTidiedHtmls: ExtractionArrow<void, CacheFileKey[]> =
-  bindFA('listTidiedHtmls', (_z, env) => {
-    const { fileContentCache } = env;
-    const normType: NormalForm = 'tidy-norm';
-    const cacheKeys = _.map(
-      _.toPairs(fileContentCache), ([k]) => k
-    );
-    return _.filter(cacheKeys, k => k.endsWith(normType));
-  });
+  ep.ExtractionArrow.lift((_z, env) => {
+      const { fileContentCache } = env;
+      const normType: NormalForm = 'tidy-norm';
+      const cacheKeys = _.map(
+        _.toPairs(fileContentCache), ([k]) => k
+      );
+      return _.filter(cacheKeys, k => k.endsWith(normType));
+    });
 
 export const runHtmlTidy: ExtractionArrow<string, string> =
-  bindTEva('runHtmlTidy', (artifactPath: string, env) => {
+  ExtractionArrow.liftClientEither((artifactPath, env) => {
     const { fileContentCache, entryPath } = env;
     const normType: NormalForm = 'tidy-norm';
     const cacheKey = `${artifactPath}.${normType}`;
     if (cacheKey in fileContentCache) {
-      return success(cacheKey);
+      return ClientFunc.success(cacheKey);
     }
     const maybeCachedContent = readCorpusTextFile(entryPath, 'cache', cacheKey);
     if (maybeCachedContent) {
       fileContentCache[cacheKey] = maybeCachedContent;
-      return success(cacheKey);
+      return ClientFunc.success(cacheKey);
     }
     const fullPath = path.resolve(entryPath, artifactPath);
-    return pipe(
+    const sdf = pipe(
       tidyHtmlTask(fullPath),
       TE.map((lines: string[]) => {
         const tidiedContent = lines.join('\n');
@@ -108,11 +115,10 @@ export const runHtmlTidy: ExtractionArrow<string, string> =
 
         return cacheKey;
       }),
-      TE.mapLeft((message) => ['halt', message])
+      TE.mapLeft((message) => ClientFunc.halt( message))
     );
   });
 
-// const verifyIsHtmlOrXml = runFileVerification(/(html|xml)/i);
 export const verifyFileType: (urlTest: RegExp) => FilterArrow<string> =
   (typeTest: RegExp) => filter(async (filename, env) => {
     const file = path.resolve(env.entryPath, filename);
@@ -122,28 +128,11 @@ export const verifyFileType: (urlTest: RegExp) => FilterArrow<string> =
       .then(fileType => typeTest.test(fileType));
   });
 
-// export const verifyFileType: (urlTest: RegExp) => ExtractionArrow<string, string> =
-//   (typeTest: RegExp) => bindTEva('verifyFileType', (filename, env) => {
-//     const { entryPath } = env;
-
-//     const file = path.resolve(entryPath, filename);
-
-//     const fileTypeTask: TE.TaskEither<ControlInstruction, string> =
-//       TE.rightTask(() => runFileCmd(file));
-
-//     return pipe(
-//       fileTypeTask,
-//       TE.chain((fileType: string) => {
-//         return typeTest.test(fileType) ? success(filename) : failure();
-//       })
-//     );
-//   });
-
 export const selectOne: (queryString: string) => ExtractionArrow<CacheFileKey, Elem> =
-  (queryString) => bindTEva('selectOne', (cacheKey: CacheFileKey, env) => {
+  (queryString) => ExtractionArrow.liftClientEither((cacheKey, env) => {
     const { fileContentCache } = env;
     const content = fileContentCache[cacheKey];
-    if (content === undefined) return TE.left(['halt', `cache key miss ${cacheKey}`]);
+    if (content === undefined) return ClientFunc.halt(`cache key miss ${cacheKey}`);
 
     return () => queryOne(content, queryString)
       .then(sel => pipe(sel, E.mapLeft(() => ['halt', `query miss ${queryString}`])));
