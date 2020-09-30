@@ -1,21 +1,24 @@
 import _ from 'lodash';
 
-import { pipe, flow } from 'fp-ts/function'
+import { pipe } from 'fp-ts/function'
 import * as TE from 'fp-ts/TaskEither';
 import * as Task from 'fp-ts/Task';
 import * as E from 'fp-ts/Either';
 import { isLeft } from 'fp-ts/Either';
 
 import Async from 'async';
+import { putStrLn, prettyPrint } from 'commons/dist';
 
 export function isEither<A, B>(a: any): a is E.Either<A, B> {
   return isELeft(a) || isERight(a);
 }
 export function isELeft<A>(a: any): a is E.Left<A> {
-  return '_tag' in a && a._tag === 'Left' && 'left' in a;
+  const isObj = _.isObject(a);
+  return isObj && '_tag' in a && a._tag === 'Left' && 'left' in a;
 }
 export function isERight<A>(a: any): a is E.Right<A> {
-  return '_tag' in a && a._tag === 'Right' && 'right' in a;
+  const isObj = _.isObject(a);
+  return isObj && '_tag' in a && a._tag === 'Right' && 'right' in a;
 }
 
 /**
@@ -36,38 +39,30 @@ export function asW<A, Env>(a: A, w: Env): W<A, Env> {
 export type WCI<Env> = W<ControlInstruction, Env>;
 
 /**
- * The function types that may be
+ * Type signatures for client functions and return types
  */
-// Return types
+
 export type Eventual<A> = A | Promise<A>;
-// export type ClientResultEither<A> = Eventual<E.Either<ControlInstruction, A>>;
-// export type ClientResultTaskEither<A> = TE.TaskEither<ControlInstruction, A>;
 
 export type ClientResult<A> = Eventual<A>
   | Eventual<E.Either<ControlInstruction, A>>
   | TE.TaskEither<ControlInstruction, A>
   ;
-// Function types
-export type ClientFunc<A, B, Env> = (a: A, env: Env) => ClientResult<B>;
-// export type ClientFunc<A, B, Env> = (a: A, env: Env) => Eventual<B>;
-// export type ClientFuncEither<A, B, Env> = (a: A, env: Env) => ClientResultEither<B>;
-// export type ClientFuncTaskEither<A, B, Env> = (a: A, env: Env) => ClientResultTaskEither<B>;
-// export interface ClientFunc<A, B, Env> {
-//   (a: A, env: Env): Eventual<B>;
-//   (a: A, env: Env): ClientResultEither<B>;
-//   (a: A, env: Env): ClientResultTaskEither<B>;
-// }
 
-export function eventualToResult<A, Env>(a: Eventual<A>, env: Env): ExtractionResult<A, Env> {
-  return () => Promise.resolve(a)
-    .then(a0 => E.right(asW(a0, env)));
+export type ClientFunc<A, B, Env> = (a: A, env: Env) => ClientResult<B>;
+
+export const ClientFunc = {
+  success: <A>(a: A): E.Either<ControlInstruction, A> => E.right(a),
+  halt: <A>(msg: string): E.Either<ControlInstruction, A> => E.left(['halt', msg]),
+  continue: <A>(msg: string): E.Either<ControlInstruction, A> => E.left(['continue', msg]),
 }
+
 
 //////////////
 /// Lifted function types
 
 export type EventualResult<A, Env> = Promise<E.Either<WCI<Env>, W<A, Env>>>;
-const EventualResult = {
+export const EventualResult = {
   lift: <A, Env>(a: Eventual<A>, env: Env): EventualResult<A, Env> =>
     Promise.resolve<A>(a).then(a0 => E.right(asW(a0, env))),
 
@@ -80,7 +75,7 @@ const EventualResult = {
 
 
 export type ExtractionResult<A, Env> = TE.TaskEither<WCI<Env>, W<A, Env>>;
-const ExtractionResult = {
+export const ExtractionResult = {
   lift: <A, Env>(a: Eventual<A>, env: Env): ExtractionResult<A, Env> =>
     () => Promise.resolve<A>(a).then(a0 => E.right(asW(a0, env))),
 
@@ -94,49 +89,52 @@ const ExtractionResult = {
 
 export interface ExtractionArrow<A, B, Env> {
   (ra: ExtractionResult<A, Env>): ExtractionResult<B, Env>;
-  name?: string;
 }
 
 export const ExtractionArrow = {
   lift: <A, B, Env>(fab: ClientFunc<A, B, Env>): ExtractionArrow<A, B, Env> =>
     (er: ExtractionResult<A, Env>) => pipe(er, TE.fold(
       ([controlInstruction, env]) => {
+        // putStrLn('ExtractionArrow.lift(): left(ci)')
+        prettyPrint({ msg: 'ExtractionArrow.lift(): left', controlInstruction })
         return ExtractionResult.liftFail(controlInstruction, env);
       },
       ([prev, env]) => {
-
-        const res = () => Promise.resolve(fab(prev, env))
+        return () => Promise.resolve(fab(prev, env))
           .then(async (result) => {
+            // putStrLn(`ExtractionArrow.lift(): right -> fab(${prev})`)
+            prettyPrint({ msg: 'ExtractionArrow.lift(): right', prev })
             if (isELeft(result)) {
+              // putStrLn(`ExtractionArrow.lift(): isELeft`)
               const ci = result.left;
               return EventualResult.liftFail<B, Env>(ci, env);
             }
             if (isERight(result)) {
+              // putStrLn(`ExtractionArrow.lift(): isERight`)
               const b = result.right;
               return EventualResult.lift<B, Env>(b, env);
-
             }
             if (_.isFunction(result)) {
+              // putStrLn(`ExtractionArrow.lift(): isFunction (Task)`)
               return result()
                 .then(res => {
                   if (E.isLeft(res)) {
                     return EventualResult.liftFail<B, Env>(res.left, env);
                   }
-                  return EventualResult.lift<B, Env>(b, env);
+                  return EventualResult.lift<B, Env>(res.right, env);
                 });
             }
-            const b = result;
-            return EventualResult.lift(b, env);
+            // putStrLn(`ExtractionArrow.lift(): is B-val`)
+
+            return EventualResult.lift(result, env);
           })
           .catch((err) => {
             return EventualResult.liftFail<B, Env>(['halt', err.toString()], env);
-          })
-
-
-        return res;
+          });
       }
     )),
 };
+
 
 export type FilterArrow<A, Env> = ExtractionArrow<A, A, Env>;
 export type ExtractionEither<A, Env> = E.Either<WCI<Env>, W<A, Env>>;
@@ -149,7 +147,6 @@ export type FanoutArrow<A, B, Env> = (ra: ExtractionResult<A[], Env>) => Extract
 export type FaninArrow<A, B, Env> = (ra: ExtractionResult<A[], Env>) => ExtractionResult<B, Env>;
 
 export const failure = <A>(msg: string = 'reason unspecified'): TE.TaskEither<ControlInstruction, A> => TE.left(['halt', msg]);
-
 export const success = <A>(a: A): TE.TaskEither<ControlInstruction, A> => TE.right(a);
 export const success_ = (): TE.TaskEither<ControlInstruction, void> => TE.right(undefined);
 
@@ -201,27 +198,13 @@ export const bind: <A, B, Env> (
   }),
 );
 
-// // bind f(a: A) => B
-// export const bindFA: <A, B, Env> (
-//   fab: ClientFunc<A, B, Env>
+// export const namedArrow: <A, B, Env> (
+//   name: string,
+//   arrow: ExtractionArrow<A, B, Env>
 // ) => ExtractionArrow<A, B, Env> =
-//   (fab) => bind((a, env) => {
-//     return eventualToResult(fab(a, env), env);
-//   });
-
-// // bind f(a: A) => TaskEither<void, B>
-// export const bindFEither: <A, B, Env> (fab: ClientFuncEither<A, B, Env>) =>
-//   ExtractionArrow<A, B, Env> = (fab) => ExtractionArrows.liftClientEither(fab);
-
-
-export const namedArrow: <A, B, Env> (
-  name: string,
-  arrow: ExtractionArrow<A, B, Env>
-) => ExtractionArrow<A, B, Env> =
-  (name, arrow) => {
-    arrow.name = name;
-    return arrow;
-  }
+//   (name, arrow) => {
+//     return arrow;
+//   }
 
 
 export function separateResults<A, Env>(
@@ -244,7 +227,9 @@ export function separateResults<A, Env>(
 
 // Control flow primitives
 
-
+/// given as: A[]
+/// given arrow: A => B
+//  each(as, a => arrow(a)), then filter(isRight)
 export const forEachDo: <A, B, Env> (arrow: ExtractionArrow<A, B, Env>) => FanoutArrow<A, B, Env> =
   <A, B, Env>(arrow: ExtractionArrow<A, B, Env>) => (ra: ExtractionResult<A[], Env>) => {
     return pipe(
@@ -260,32 +245,6 @@ export const forEachDo: <A, B, Env> (arrow: ExtractionArrow<A, B, Env>) => Fanou
           leftRightErrs,
           Task.map(([_lefts, rights]) => {
             const bs = _.map(rights, ([b]) => b);
-            // const recs = _.flatMap(rights, ([, env]) => env.extractionRecords);
-            const env0 = _.clone(env);
-            // env0.extractionRecords.push(...recs);
-            return asW(bs, env0);
-          })
-        );
-        return TE.fromTask(rightTasks);
-      })
-    );
-  };
-
-export const fanout: <A, B, Env> (arrow: ExtractionArrow<A, B, Env>) => FanoutArrow<A, B, Env> =
-  <A, B, Env>(arrow: ExtractionArrow<A, B, Env>) => (ra: ExtractionResult<A[], Env>) => {
-    return pipe(
-      ra,
-      TE.chain((wa: W<A[], Env>) => {
-        const [aas, env] = wa;
-        const bbs = _.map(aas, (a) => {
-          const env0 = _.clone(env);
-          return arrow(TE.right(asW(a, env0)));
-        });
-        const leftRightErrs = separateResults(bbs);
-        const rightTasks = pipe(
-          leftRightErrs,
-          Task.map(([_lefts, rights]) => {
-            const bs = _.map(rights, ([b]) => b);
             const env0 = _.clone(env);
             return asW(bs, env0);
           })
@@ -295,23 +254,9 @@ export const fanout: <A, B, Env> (arrow: ExtractionArrow<A, B, Env>) => FanoutAr
     );
   };
 
-export const attempt: <A, B, Env> (
-  arrow: ExtractionArrow<A, B, Env>
-) => ExtractionArrow<A, A, Env> =
-  <A, B, Env>(arrow: ExtractionArrow<A, B, Env>) => (ra: ExtractionResult<A, Env>) => {
-    return pipe(
-      ra,
-      arrow,
-      TE.fold(
-        () => ra,
-        () => ra,
-      ),
-    );
-  };
 
-// TODO: This is actually Fanout
 // Given a single input A, produce an array of Bs by running the given array of functions on the initial A
-export const attemptAll: <A, B, Env> (...arrows: ExtractionArrow<A, B, Env>[]) => ExtractionArrow<A, B[], Env> =
+export const applyAll: <A, B, Env> (...arrows: ExtractionArrow<A, B, Env>[]) => ExtractionArrow<A, B[], Env> =
   <A, B, Env>(...arrows: ExtractionArrow<A, B, Env>[]) => (ra: ExtractionResult<A, Env>) => {
     return pipe(
       ra,
@@ -335,12 +280,11 @@ export const attemptAll: <A, B, Env> (...arrows: ExtractionArrow<A, B, Env>[]) =
     );
   };
 
-export const firstOf: typeof flow = flow;
-
 // Try each arrow on input until one succeeds
 export const attemptSeries: <A, B, Env> (...arrows: ExtractionArrow<A, B, Env>[]) => ExtractionArrow<A, B, Env> =
   <A, B, Env>(...arrows: ExtractionArrow<A, B, Env>[]) => (ra: ExtractionResult<A, Env>) => {
     // Base Case:
+    // putStrLn(`attemptSeries( arrows.length: ${arrows.length} )`);
     if (arrows.length === 0) return pipe(
       ra,
       TE.chain(([, env]) => {
@@ -349,34 +293,19 @@ export const attemptSeries: <A, B, Env> (...arrows: ExtractionArrow<A, B, Env>[]
     );
 
     // Recursive Step:
+    // putStrLn(`attemptSeries(): gen-case`);
     const headArrow: ExtractionArrow<A, B, Env> = arrows[0];
-    const tailAarrows: ExtractionArrow<A, B, Env> = attemptSeries(...arrows.slice(1));
+    const tailArrows: ExtractionArrow<A, B, Env>[] = arrows.slice(1);
     return pipe(
       ra,
-      headArrow, // if this returns left(..), try the next arrow
-      TE.alt(() => pipe(ra, tailAarrows))
-    );
-  };
-
-export const fanin: <A, B, Env> (arrow: ExtractionArrow<A[], B, Env>) => ExtractionArrow<A[], B, Env> =
-  <A, B, Env>(arrow: ExtractionArrow<A[], B, Env>) => (ra: ExtractionResult<A[], Env>) => {
-    return pipe(
-      ra,
-      TE.chain((wa: W<A[], Env>) => {
-        return arrow(TE.right(wa));
+      headArrow,
+      TE.alt(() => {
+        // putStrLn(`attemptSeries(): alt-case`);
+        const ts: ExtractionArrow<A, B, Env> = attemptSeries(...tailArrows);
+        return pipe(ra, ts);
       })
-    );
+    )
   };
-
-export function filterOn<A, Env>(predicate: ClientFunc<A, boolean, Env>): FilterFunction<A, Env> {
-  return (a: A, env: Env) => {
-    return () => Promise.resolve(predicate(a, env))
-      .then(b0 => b0
-        ? E.right<WCI<Env>, W<A, Env>>(asW(a, env))
-        : E.left<WCI<Env>, W<A, Env>>(asW('halt', env))
-      )
-  };
-}
 
 
 export function through<A, B, Env>(f: ClientFunc<A, B, Env>): ExtractionArrow<A, B, Env> {
@@ -384,13 +313,69 @@ export function through<A, B, Env>(f: ClientFunc<A, B, Env>): ExtractionArrow<A,
 }
 
 export function tap<A, Env>(f: ClientFunc<A, any, Env>): ExtractionArrow<A, A, Env> {
-  return (ra: ExtractionResult<A, Env>) => pipe(
-    ra,
-    through(f),
-    TE.chain(() => ra)
-  );
+  const fa: ExtractionArrow<A, A, Env> = (ra: ExtractionResult<A, Env>) => {
+    let origWA: W<A, Env>;
+
+    return pipe(
+      ra,
+      TE.map((wa) => {
+        // store starting wa value, restore after calling f
+        origWA = wa;
+        return wa;
+      }),
+      through(f),
+      TE.map(() => origWA),
+    );
+  };
+
+  return fa;
 }
 
 export function filter<A, Env>(f: ClientFunc<A, boolean, Env>): FilterArrow<A, Env> {
-  return bind_(filterOn(f))
+  const fa: FilterArrow<A, Env> = (ra: ExtractionResult<A, Env>) => {
+    let origWA: W<A, Env>;
+    return pipe(
+      ra,
+      TE.map((wa) => {
+        // store starting wa value, restore after calling f
+        origWA = wa;
+        putStrLn(`filter:begin(${wa[0]})`)
+        return wa;
+      }),
+      through(f),
+      TE.chain(([fres, env]) => {
+        putStrLn(`filter:end() => ${fres}`)
+        return fres
+          ? TE.right(origWA)
+          : TE.left<WCI<Env>, W<A, Env>>(asW('halt', env))
+      })
+    );
+  }
+
+  return fa;
 }
+
+
+// export const attempt: <A, B, Env> (
+//   arrow: ExtractionArrow<A, B, Env>
+// ) => ExtractionArrow<A, A, Env> =
+//   <A, B, Env>(arrow: ExtractionArrow<A, B, Env>) => (ra: ExtractionResult<A, Env>) => {
+//     return pipe(
+//       ra,
+//       arrow,
+//       TE.fold(
+//         () => ra,
+//         () => ra,
+//       ),
+//     );
+//   };
+
+// export const fanin: <A, B, Env> (arrow: ExtractionArrow<A[], B, Env>) => ExtractionArrow<A[], B, Env> =
+//   <A, B, Env>(arrow: ExtractionArrow<A[], B, Env>) => (ra: ExtractionResult<A[], Env>) => {
+//     return pipe(
+//       ra,
+//       TE.chain((wa: W<A[], Env>) => {
+//         return arrow(TE.right(wa));
+//       })
+//     );
+//   };

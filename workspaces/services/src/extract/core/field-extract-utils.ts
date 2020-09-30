@@ -7,7 +7,7 @@ import * as TE from 'fp-ts/lib/TaskEither';
 import { makeCssTreeNormalFormFromNode } from './html-to-css-normal';
 import { addFieldInstance, Field } from './extraction-records';
 import { prettyPrint } from 'commons';
-import { cheerioLoad } from './html-queries';
+// import { cheerioLoad } from './html-queries';
 
 export function readFile(
   leading: string,
@@ -79,6 +79,8 @@ export function findSubContentAtIndex(
   return sub;
 }
 
+type Cheerio = any;
+type CheerioStatic = any;
 
 export function queryContent(
   query: string,
@@ -88,8 +90,9 @@ export function queryContent(
     name: 'abstract',
     evidence: [`jquery:[${query}]`],
   };
-  const $ = cheerioLoad(fileContent);
-  return [field, $(query), $]
+  // const $ = cheerioLoad(fileContent);
+  // return [field, $(query), $]
+  return [field, 'TODO', 'TODO'];
 }
 
 function _findByQuery(

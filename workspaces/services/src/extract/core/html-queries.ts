@@ -1,4 +1,3 @@
-import * as cheerio from 'cheerio';
 import puppeteer from 'puppeteer-extra'
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/function'
@@ -13,19 +12,19 @@ import {
 
 
 
-export function cheerioLoad(
-  fileContent: string,
-  useXmlMode: boolean = true
-): CheerioStatic {
-  const $ = cheerio.load(fileContent, {
-    _useHtmlParser2: true,
-    recognizeSelfClosing: true,
-    normalizeWhitespace: false,
-    xmlMode: useXmlMode,
-    decodeEntities: true
-  });
-  return $;
-}
+// export function cheerioLoad(
+//   fileContent: string,
+//   useXmlMode: boolean = true
+// ): CheerioStatic {
+//   const $ = cheerio.load(fileContent, {
+//     _useHtmlParser2: true,
+//     recognizeSelfClosing: true,
+//     normalizeWhitespace: false,
+//     xmlMode: useXmlMode,
+//     decodeEntities: true
+//   });
+//   return $;
+// }
 
 // export interface HtmlBrowser {
 //   browser: Browser;

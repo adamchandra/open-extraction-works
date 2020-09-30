@@ -1,62 +1,58 @@
 import 'chai/register-should';
 import _ from 'lodash';
 
-import { prettyPrint } from 'commons';
+
+import { prettyPrint, putStrLn } from 'commons';
 // import * as ep from './extraction-prelude';
 import * as ft from './function-types';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
-import { pipe } from 'fp-ts/function'
 import { isRight, isLeft } from 'fp-ts/Either';
 import Async from 'async';
+import { flow } from 'fp-ts/function'
+
+// Extraction functions specialized to use boolean as the env type
+type EnvT = boolean;
+const asW = <A>(a: A, env: EnvT) => ft.asW<A, EnvT>(a, env);
+
+type W<A> = ft.W<A, EnvT>;
+const W = {
+  lift: <A>(a: A, env: EnvT) => asW(a, env),
+};
+
+type ClientFunc<A, B> = ft.ClientFunc<A, B, EnvT>;
+const ClientFunc = ft.ClientFunc;
+
+type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
+const ExtractionResult = {
+  lift: <A>(a: A, env: EnvT): ExtractionResult<A> => TE.right(asW(a, env)),
+  liftW: <A>(wa: W<A>): ExtractionResult<A> => TE.right(wa),
+  liftFail: <A>(ci: ft.ControlInstruction, env: EnvT): ExtractionResult<A> => TE.left(asW(ci, env)),
+};
+
+
+type ExtractionArrow<A, B> = ft.ExtractionArrow<A, B, EnvT>;
+const ExtractionArrow = {
+  lift: <A, B>(fab: ClientFunc<A, B>): ExtractionArrow<A, B> =>
+    ft.ExtractionArrow.lift(fab)
+};
+
+export type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
+export type FanoutArrow<A, B> = (ra: ExtractionResult<A[]>) => ExtractionResult<B[]>;
+
+export const through: <A, B>(f: ClientFunc<A, B>) => ExtractionArrow<A, B> =
+  f => ft.through(f)
+
+export const tap: <A>(f: ClientFunc<A, any>) => ExtractionArrow<A, A> =
+  f => ft.tap(f)
+
+export const filter: <A>(f: ClientFunc<A, boolean>) => FilterArrow<A> =
+  f => ft.filter(f)
+
+// export const fanout: <A, B> (arrow: ExtractionArrow<A, B>) => FanoutArrow<A, B> =
+//   ft.fanout;
 
 describe('Extraction Prelude / Primitives', () => {
-  type EnvT = boolean;
-  const asW = <A>(a: A, env: EnvT) => ft.asW<A, EnvT>(a, env);
-
-  type W<A> = ft.W<A, EnvT>;
-  const W = {
-    lift: <A>(a: A, env: EnvT) => asW(a, env),
-  };
-
-  type ClientFunc<A, B> = ft.ClientFunc<A, B, EnvT>;
-  type ClientResultEither<A> = ft.ClientResultEither<A>;
-  type ClientFuncEither<A, B> = ft.ClientFuncEither<A, B, EnvT>;
-
-
-  type WCI = ft.WCI<EnvT>
-  type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
-  const ExtractionResult = {
-    lift: <A>(a: A, env: EnvT): ExtractionResult<A> => TE.right(asW(a, env)),
-    liftW: <A>(wa: W<A>): ExtractionResult<A> => TE.right(wa),
-    liftFail: <A>(ci: ft.ControlInstruction, env: EnvT): ExtractionResult<A> => TE.left(asW(ci, env)),
-  };
-
-
-  type ExtractionArrow<A, B> = ft.ExtractionArrow<A, B, EnvT>;
-  const ExtractionArrow = {
-    lift: <A, B>(fab: (a: A) => B): ExtractionArrow<A, B> =>
-      (er: ExtractionResult<A>) => pipe(er, TE.fold(
-        ([, env]) => ExtractionResult.liftFail('halt', env),
-        ([s, env]) => ExtractionResult.lift(fab(s), env),
-      )),
-
-    liftClientEither: <A, B>(fn: ClientFuncEither<A, B>): ExtractionArrow<A, B> =>
-      (er: ExtractionResult<A>) => pipe(er, TE.fold(
-        ([, env]) => ExtractionResult.liftFail('halt', env),
-        ([s, env]) => {
-          const res: ClientResultEither<B> = Promise.resolve(fn(s, env));
-          const asTask = () => res;
-          const we = pipe(
-            asTask,
-            TE.mapLeft(qwer => asW(qwer, env)),
-            TE.chain(b => ExtractionResult.lift(b, env))
-          );
-          return we;
-        }
-      ))
-  }
-
   const strlen = (s: string): number => s.length;
 
   const arrowStrLen: ExtractionArrow<string, number> =
@@ -102,11 +98,10 @@ describe('Extraction Prelude / Primitives', () => {
   it('control flow: attemptSeries', async (done) => {
     let checkedNums: string[] = [];
 
-    // successArrow =  ExtractionArrow.lift()
-    const isNumberArrow = (n: number) => ExtractionArrow.liftClientEither(
+    const isNumberArrow = (n: number) => ExtractionArrow.lift(
       (a: number) => {
         checkedNums.push(`is(${n}) ? ${a}`);
-       return a === n ? E.right(a) : E.left('halt')
+        return a === n ? E.right(a) : E.left('halt')
       }
     );
 
@@ -133,4 +128,69 @@ describe('Extraction Prelude / Primitives', () => {
     done();
   });
 
+  it('tap() composition', async (done) => {
+    const urlFilter: FilterArrow<string> =
+      flow(
+        tap((a) => putStrLn(`starting URL filter ${a} `)),
+        tap((a) => putStrLn(`ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
+      );
+    const extractionPipeline =
+      urlFilter
+
+    const res = await extractionPipeline(TE.right(['my love E.M.', true]))();
+
+    prettyPrint({ res });
+
+    done();
+  });
+
+  it.only('attemptSeries() composition', async (done) => {
+    const urlFilter: FilterArrow<string> =
+      attemptSeries(
+        flow(
+          tap((a) => putStrLn(`A. starting URL filter ${a} `)),
+          tap((a) => putStrLn(`A. ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
+          through(() => ClientFunc.halt('save for later.'))
+        ),
+        flow(
+          tap((a) => putStrLn(`B. starting URL filter ${a} `)),
+          tap((a) => putStrLn(`B. ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
+        ),
+      );
+    const extractionPipeline =
+      urlFilter
+
+    const res = await extractionPipeline(TE.right(['my love E.M.', true]))();
+
+    prettyPrint({ res });
+
+    done();
+  });
 });
+
+    // const urlFilter: (urlTest: RegExp) => FilterArrow<any> =
+    //   (regex) => flow(
+    //     tap(() => putStrLn('starting URL filter ')),
+    //     // flow(
+    //     //   through(() => 'http://adam.org'),
+    //     //   // filter(url => regex.test(url)),
+    //     //   tap((a) => putStrLn(`matched URL ${a} to /${regex.source}/`)),
+    //     // ),
+    //     flow(
+    //       // through(() => '200'),
+    //       // tap((a, { log }) => putStrLn(`(isopress) checking status: ${a}`)),
+    //       // filter((status) => status === '200'),
+    //       // tap((a, { log }) => putStrLn(`(isopress) status okay: ${a}`)),
+    //       through(() => ['a', 'b', 'c']),//  listResponseBodies,
+    //       // tap((a) => putStrLn(`(isopress) listResponseBodies: ${a}`)),
+    //       // fanout(
+    //       //   flow(
+    //       //     tap((a) => putStrLn(`(isopress) verifyFileType: ${a}`)),
+    //       //     // verifyFileType(/html|xml/i),
+    //       //     // tap((a) => putStrLn(`(isopress) runHtmlTidy: ${a}`)),
+    //       //     // runHtmlTidy,
+    //       //   )
+    //       // ),
+    //     ),
+    //     tap(() => putStrLn('ending URL filter')),
+    //   );

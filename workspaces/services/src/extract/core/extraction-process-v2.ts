@@ -6,29 +6,25 @@ import * as E from 'fp-ts/Either';
 import { isLeft } from 'fp-ts/Either'
 
 import { Metadata } from '~/spidering/data-formats';
-import { ArtifactSubdir, expandDir, putStrLn, readCorpusJsonFile, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
+import { ArtifactSubdir, expandDir, readCorpusJsonFile, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
 
 
 import {
-  bind,
-  // bindFA,
-  // bindTEva,
   ExtractionArrow,
   ExtractionEnv,
+  ControlInstruction,
   // fanout,
-  // filterOn,
   NormalForm,
-  // success,
-  // forEachDo,
-  // bindArrow,
+  forEachDo,
+  applyAll,
   // attempt,
-  // attemptAll,
   FilterArrow,
   through,
   filter,
   tap,
   ClientFunc,
-  // attemptSeries,
+  ClientResult,
+  attemptSeries,
 } from './extraction-prelude';
 
 import * as ep from './extraction-prelude';
@@ -61,10 +57,6 @@ export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => 
 
 export const listResponseBodies = listArtifactFiles('.', /response-body|response-frame/);
 
-export const echoArrow: ExtractionArrow<string, void> =
-  ep.ExtractionArrow.lift((s: string) => putStrLn(`echo> ${s}`))
-
-
 export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]> =
   (filepath: string) => {
     const tidyOutputTask = () => runTidyCmdBuffered('./conf/tidy.cfg', filepath)
@@ -84,16 +76,16 @@ export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]>
 // TODO named(...)
 export const listTidiedHtmls: ExtractionArrow<void, CacheFileKey[]> =
   ep.ExtractionArrow.lift((_z, env) => {
-      const { fileContentCache } = env;
-      const normType: NormalForm = 'tidy-norm';
-      const cacheKeys = _.map(
-        _.toPairs(fileContentCache), ([k]) => k
-      );
-      return _.filter(cacheKeys, k => k.endsWith(normType));
-    });
+    const { fileContentCache } = env;
+    const normType: NormalForm = 'tidy-norm';
+    const cacheKeys = _.map(
+      _.toPairs(fileContentCache), ([k]) => k
+    );
+    return _.filter(cacheKeys, k => k.endsWith(normType));
+  });
 
 export const runHtmlTidy: ExtractionArrow<string, string> =
-  ExtractionArrow.liftClientEither((artifactPath, env) => {
+  ExtractionArrow.lift((artifactPath, env) => {
     const { fileContentCache, entryPath } = env;
     const normType: NormalForm = 'tidy-norm';
     const cacheKey = `${artifactPath}.${normType}`;
@@ -106,7 +98,8 @@ export const runHtmlTidy: ExtractionArrow<string, string> =
       return ClientFunc.success(cacheKey);
     }
     const fullPath = path.resolve(entryPath, artifactPath);
-    const sdf = pipe(
+
+    const maybeTidy: ClientResult<string> = pipe(
       tidyHtmlTask(fullPath),
       TE.map((lines: string[]) => {
         const tidiedContent = lines.join('\n');
@@ -115,21 +108,29 @@ export const runHtmlTidy: ExtractionArrow<string, string> =
 
         return cacheKey;
       }),
-      TE.mapLeft((message) => ClientFunc.halt( message))
+      TE.mapLeft((message) => {
+        const ci: ControlInstruction = ['halt', message];
+        return ci;
+      })
     );
+
+    return maybeTidy;
   });
 
 export const verifyFileType: (urlTest: RegExp) => FilterArrow<string> =
-  (typeTest: RegExp) => filter(async (filename, env) => {
+  (typeTest: RegExp) => filter((filename, env) => {
     const file = path.resolve(env.entryPath, filename);
-    env.log.info(`verifyFileType: ${filename}`);
 
-    return runFileCmd(file)
-      .then(fileType => typeTest.test(fileType));
+    const fileTypeP = runFileCmd(file)
+      .then(fileType => {
+        env.log.info(`test /${typeTest.source}/ ~= file(${filename}) == ${fileType}`);
+        return typeTest.test(fileType)
+      });
+    return fileTypeP;
   });
 
 export const selectOne: (queryString: string) => ExtractionArrow<CacheFileKey, Elem> =
-  (queryString) => ExtractionArrow.liftClientEither((cacheKey, env) => {
+  (queryString) => ExtractionArrow.lift((cacheKey, env) => {
     const { fileContentCache } = env;
     const content = fileContentCache[cacheKey];
     if (content === undefined) return ClientFunc.halt(`cache key miss ${cacheKey}`);
@@ -139,31 +140,31 @@ export const selectOne: (queryString: string) => ExtractionArrow<CacheFileKey, E
 
   });
 
+// TODO prefix(named('matchesText')), suffix(popName), prefix(logEntry)
 export const matchesText: (regex: RegExp) => FilterArrow<Elem> =
-  (regex) => bind('matchesText', filterOn(async (elem: Elem) => {
+  (regex) => filter(async (elem: Elem) => {
     const textContent = await elem.evaluate(e => e.textContent);
     if (textContent === null) return false;
     return regex.test(textContent);
-  }));
+  });
 
 export const matchesSelector: (query: string) => FilterArrow<Elem> =
-  (query) => bind('matchesSelector', filterOn(async (elem: Elem) => {
+  (query) => filter(async (elem: Elem) => {
     const result = await elem.$$(query);
     return result.length > 0;
-  }));
+  });
 
 
 export const selectElemAttr: (queryString: string, contentAttr: string) => ExtractionArrow<CacheFileKey, string> =
-  (queryString, contentAttr) => bindTEva('selectElemAttr', (cacheKey: CacheFileKey, env) => {
+  (queryString, contentAttr) => through((cacheKey: CacheFileKey, env) => {
     const { fileContentCache } = env;
     const content = fileContentCache[cacheKey];
-    // if (content === undefined) return TE.left(undefined);
     if (content === undefined) return TE.left(['halt', 'cache has no record for key ${cacheKey}']);
 
     return () => selectElementAttr(content, queryString, contentAttr)
       .then(attr => {
         if (E.isRight(attr)) {
-          return E.right(attr.right);
+          return attr;
         }
         return E.left('continue');
       });
@@ -172,7 +173,7 @@ export const selectElemAttr: (queryString: string, contentAttr: string) => Extra
 
 // log [saveFieldAs/:abstract]
 export const saveFieldAs: (fieldName: string) => ExtractionArrow<string, 'okay'> =
-  (fieldName) => bindFA('saveFieldAs', (fieldValue: string, env) => {
+  (fieldName) => through((fieldValue: string, env) => {
     const { extractionRecords } = env;
     const extractedField: ExtractedField = {
       kind: 'field',
@@ -188,80 +189,92 @@ export const saveFieldAs: (fieldName: string) => ExtractionArrow<string, 'okay'>
   });
 
 
+
 export const selectElemAttrAs: (fieldName: string, queryString: string, contentAttr: string) => ExtractionArrow<CacheFileKey, string> =
-  (fieldName, queryString, contentAttr) => bindArrow(
-    'selectElemAttrAs',
-    flow(
-      selectElemAttr(queryString, contentAttr),
-      saveFieldAs(fieldName)
-    ));
+  (fieldName, queryString, contentAttr) => flow(
+    selectElemAttr(queryString, contentAttr),
+    saveFieldAs(fieldName)
+  );
+
 
 export const urlFilter: (urlTest: RegExp) => FilterArrow<any> =
   (regex) => flow(
-    bindArrow('urlFilter', flow(
-      through((_0, env) => env.metadata.responseUrl),
-      filter(url => regex.test(url)),
-      tap((a, env) => env.log.info(`matched URL ${a} to /${regex.source}/`)),
-    )),
+    tap((_a, { log }) => log.info('starting URL filter ')),
     flow(
-      filter((_0, env) => env.metadata.status === '200'),
+      through((_, env) => env.metadata.responseUrl),
+      filter(url => regex.test(url)),
+      tap((a, { log }) => log.info(`matched URL ${a} to /${regex.source}/`)),
+    ),
+    flow(
+      // tap((a, { log }) => log.info(`(isopress) checking status: ${a}`)),
+      through((_, env) => env.metadata.status),
+      filter((status) => status === '200'),
+      // tap((a, { log }) => log.info(`(isopress) status okay: ${a}`)),
       listResponseBodies,
-      fanout(
+      tap((a, { log }) => log.info(`(isopress) listResponseBodies: ${a}`)),
+      forEachDo(
         flow(
+          tap((a, { log }) => log.info(`(isopress) verifyFileType: ${a}`)),
           verifyFileType(/html|xml/i),
+          tap((a, { log }) => log.info(`(isopress) runHtmlTidy: ${a}`)),
           runHtmlTidy,
         )
       ),
-    )
-  )
-
+    ),
+    tap((_a, { log }) => log.info('ending URL filter')),
+  );
 
 export const FieldExtractionPipeline = attemptSeries(
   flow(
     urlFilter(/arxiv.org/),
     listTidiedHtmls,
     forEachDo(
-      flow(
-        // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
-        // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
-        attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
-        attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
+      applyAll(
+        tap((a, { log }) => log.info(`(arxiv) processing ${a}`)),
+        selectElemAttrAs('title', 'meta[name=citation_title]', 'content'),
+        selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
+        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
+        selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract'),
       )
     ),
   ),
 
   flow(
     urlFilter(/content.iospress.com/),
+    tap((a, { log }) => log.info(`(isopress) filtered htmls: ${a}`)),
     listTidiedHtmls,
     forEachDo(
-      flow(
-        // attempt(selectElemAttrAs('title', 'meta[name=citation_title]', 'content')),
-        // attempt(selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
-        attempt(selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content')),
-        attempt(selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract')),
+      applyAll(
+        tap((a, { log }) => log.info(`(isopress) processing ${a}`)),
+        selectElemAttrAs('title', 'meta[name=citation_title]', 'content'),
+        selectElemAttrAs('author', 'meta[name=citation_author]', 'content'),
+        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
+        selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract'),
       )
     ),
   ),
 
-  attempt(flow(
-    urlFilter(/bmva.org/),
-    listTidiedHtmls,
-    forEachDo(
-      attemptAll(
-        flow(
-          selectOne('p'),
-          attempt(
-            flow(
-              matchesText(/Abstract/i),
-              matchesSelector('h2'),
-            )
-          ),
-          through(getTextContent),
-          saveFieldAs('abstract')
-        )
-      )
-    ),
-  )),
+  // attempt(flow(
+  //   urlFilter(/bmva.org/),
+  //   listTidiedHtmls,
+  //   tap((a, { log }) => log.info(`(bmva) processing ${a}`)),
+  //   forEachDo(
+  //     attemptAll(
+
+  //       flow(
+  //         selectOne('p'),
+  //         attempt(
+  //           flow(
+  //             matchesText(/Abstract/i),
+  //             matchesSelector('h2'),
+  //           )
+  //         ),
+  //         through(getTextContent),
+  //         saveFieldAs('abstract')
+  //       )
+  //     )
+  //   ),
+  // )),
 );
 
 // async (entryPath: string, ctx: ExtractionAppContext): Promise<void> => {
