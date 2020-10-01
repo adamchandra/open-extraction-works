@@ -13,11 +13,10 @@ import {
   ExtractionArrow,
   ExtractionEnv,
   ControlInstruction,
-  // fanout,
   NormalForm,
   forEachDo,
   applyAll,
-  // attempt,
+  named,
   FilterArrow,
   through,
   filter,
@@ -41,6 +40,7 @@ export function filePathToCacheKey(filePath: string): CacheFileKey {
   return filePath;
 }
 
+
 export function cacheKeyToPath(k: CacheFileKey): string {
   return k;
 }
@@ -55,7 +55,7 @@ export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => 
     return keys;
   });
 
-export const listResponseBodies = listArtifactFiles('.', /response-body|response-frame/);
+export const listResponseBodies = named('listResponseBodies', listArtifactFiles('.', /response-body|response-frame/));
 
 export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]> =
   (filepath: string) => {
@@ -73,19 +73,18 @@ export const tidyHtmlTask: (filename: string) => TE.TaskEither<string, string[]>
   };
 
 
-// TODO named(...)
 export const listTidiedHtmls: ExtractionArrow<void, CacheFileKey[]> =
-  ep.ExtractionArrow.lift((_z, env) => {
+  through((_z, env) => {
     const { fileContentCache } = env;
     const normType: NormalForm = 'tidy-norm';
     const cacheKeys = _.map(
       _.toPairs(fileContentCache), ([k]) => k
     );
     return _.filter(cacheKeys, k => k.endsWith(normType));
-  });
+  }, 'listTidiedHtmls');
 
 export const runHtmlTidy: ExtractionArrow<string, string> =
-  ExtractionArrow.lift((artifactPath, env) => {
+  through((artifactPath, env) => {
     const { fileContentCache, entryPath } = env;
     const normType: NormalForm = 'tidy-norm';
     const cacheKey = `${artifactPath}.${normType}`;
@@ -115,7 +114,7 @@ export const runHtmlTidy: ExtractionArrow<string, string> =
     );
 
     return maybeTidy;
-  });
+  }, 'runHtmlTidy');
 
 export const verifyFileType: (urlTest: RegExp) => FilterArrow<string> =
   (typeTest: RegExp) => filter((filename, env) => {
@@ -196,30 +195,19 @@ export const selectElemAttrAs: (fieldName: string, queryString: string, contentA
     saveFieldAs(fieldName)
   );
 
-
 export const urlFilter: (urlTest: RegExp) => FilterArrow<any> =
   (regex) => flow(
     tap((_a, { log }) => log.info('starting URL filter ')),
-    flow(
-      through((_, env) => env.metadata.responseUrl),
-      filter(url => regex.test(url)),
-      tap((a, { log }) => log.info(`matched URL ${a} to /${regex.source}/`)),
-    ),
-    flow(
-      // tap((a, { log }) => log.info(`(isopress) checking status: ${a}`)),
-      through((_, env) => env.metadata.status),
-      filter((status) => status === '200'),
-      // tap((a, { log }) => log.info(`(isopress) status okay: ${a}`)),
-      listResponseBodies,
-      tap((a, { log }) => log.info(`(isopress) listResponseBodies: ${a}`)),
-      forEachDo(
-        flow(
-          tap((a, { log }) => log.info(`(isopress) verifyFileType: ${a}`)),
-          verifyFileType(/html|xml/i),
-          tap((a, { log }) => log.info(`(isopress) runHtmlTidy: ${a}`)),
-          runHtmlTidy,
-        )
-      ),
+    filter((_, env) => regex.test(env.metadata.responseUrl), `match:/${regex.source}/`),
+    filter((_, env) => env.metadata.status === '200', 'http-status'),
+    listResponseBodies,
+    tap((a, { log }) => log.info(`(isopress) listResponseBodies: ${a}`)),
+    forEachDo(
+      flow(
+        verifyFileType(/html|xml/i),
+        tap((a, { log }) => log.info(`(isopress) runHtmlTidy: ${a}`)),
+        runHtmlTidy,
+      )
     ),
     tap((_a, { log }) => log.info('ending URL filter')),
   );
@@ -307,11 +295,17 @@ export async function runFieldExtractors(
 
   const env: ExtractionEnv = {
     log,
-    logPrefix,
+    ns: logPrefix,
     entryPath,
     metadata,
     extractionRecords: [],
-    fileContentCache: {}
+    fileContentCache: {},
+    enterNS(ns: string[]) {
+      setLogLabel(log, _.join(ns, '/'));
+    },
+    exitNS(ns: string[]) {
+      setLogLabel(log, _.join(ns, '/'));
+    }
   };
   const res = await extractionPipeline(TE.right([metadata, env]))();
 

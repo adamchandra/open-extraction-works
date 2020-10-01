@@ -1,18 +1,24 @@
 import 'chai/register-should';
 import _ from 'lodash';
 
-
-import { prettyPrint, putStrLn } from 'commons';
-// import * as ep from './extraction-prelude';
+import { consoleTransport, createConsoleLogger, newLogger, prettyPrint, putStrLn } from 'commons';
 import * as ft from './function-types';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { isRight, isLeft } from 'fp-ts/Either';
 import Async from 'async';
-import { flow } from 'fp-ts/function'
+import { flow, pipe } from 'fp-ts/function'
+import { Logger } from 'winston';
 
 // Extraction functions specialized to use boolean as the env type
-type EnvT = boolean;
+interface EnvT {
+  ns: [];
+  b: boolean;
+  enterNS(ns: string[]): void;
+  exitNS(ns: string[]): void;
+  log: Logger;
+}
+
 const asW = <A>(a: A, env: EnvT) => ft.asW<A, EnvT>(a, env);
 
 type W<A> = ft.W<A, EnvT>;
@@ -22,6 +28,9 @@ const W = {
 
 type ClientFunc<A, B> = ft.ClientFunc<A, B, EnvT>;
 const ClientFunc = ft.ClientFunc;
+
+type EitherControlOrA<A> = ft.EitherControlOrA<A>;
+type PostHook<A, B> = ft.PostHook<A, B, EnvT>;
 
 type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
 const ExtractionResult = {
@@ -40,26 +49,33 @@ const ExtractionArrow = {
 export type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
 export type FanoutArrow<A, B> = (ra: ExtractionResult<A[]>) => ExtractionResult<B[]>;
 
-export const through: <A, B>(f: ClientFunc<A, B>) => ExtractionArrow<A, B> =
-  f => ft.through(f)
+export const named: <A, B>(name: string, arrow: ExtractionArrow<A, B>) => ExtractionArrow<A, B> = ft.named;
+export const through: <A, B>(f: ClientFunc<A, B>, name?: string, h?: PostHook<A, B>) => ExtractionArrow<A, B> = ft.through;
+export const tap: <A>(f: ClientFunc<A, any>, name?: string) => ExtractionArrow<A, A> = ft.tap;
+export const filter: <A>(f: ClientFunc<A, boolean>, name?: string, h?: PostHook<A, boolean>) => FilterArrow<A> = ft.filter;
 
-export const tap: <A>(f: ClientFunc<A, any>) => ExtractionArrow<A, A> =
-  f => ft.tap(f)
-
-export const filter: <A>(f: ClientFunc<A, boolean>) => FilterArrow<A> =
-  f => ft.filter(f)
-
-// export const fanout: <A, B> (arrow: ExtractionArrow<A, B>) => FanoutArrow<A, B> =
-//   ft.fanout;
+const logInfo = ft.logInfo;
 
 describe('Extraction Prelude / Primitives', () => {
+  const log = newLogger(consoleTransport('info'));
+  const initEnv: EnvT = {
+    ns: [],
+    b: true,
+    enterNS(_ns: string[]) {
+      // putStrLn(`enter> ${_.join(ns, '/')}`);
+    },
+    exitNS(_ns: string[]) {
+      // putStrLn(`exit> ${_.join(ns, '/')}`);
+    },
+    log,
+  };
   const strlen = (s: string): number => s.length;
 
   const arrowStrLen: ExtractionArrow<string, number> =
     ExtractionArrow.lift(strlen)
 
   it('should create basic arrows/results', async (done) => {
-    const wFoobar = W.lift('foobar', true);
+    const wFoobar = W.lift('foobar', initEnv);
     const er1: ExtractionResult<string> = ExtractionResult.liftW(wFoobar);
     const er1res = await er1();
 
@@ -81,15 +97,15 @@ describe('Extraction Prelude / Primitives', () => {
       (i) => _.repeat('x', i + 1)
     );
 
-    const wStrArray = ExtractionResult.lift(strArray, true);
+    const wStrArray = ExtractionResult.lift(strArray, initEnv);
 
     const res = await forEachDo(arrowStrLen)(wStrArray)();
-    prettyPrint({ res });
+    // prettyPrint({ res });
     expect(isRight(res)).toBe(true);
 
     if (isRight(res)) {
       const right = res.right;
-      expect(right).toStrictEqual([[1, 2, 3], true]);
+      expect(right).toStrictEqual([[1, 2, 3], initEnv]);
     }
 
     done();
@@ -105,7 +121,7 @@ describe('Extraction Prelude / Primitives', () => {
       }
     );
 
-    const nums = _.map(_.range(10), (i) => ExtractionResult.lift(i, true));
+    const nums = _.map(_.range(10), (i) => ExtractionResult.lift(i, initEnv));
     const isNum = _.map(_.range(10), (i) => isNumberArrow(i));
 
     await Async.eachSeries(_.range(5), async i => {
@@ -118,8 +134,7 @@ describe('Extraction Prelude / Primitives', () => {
       } else {
         expect(isLeft(result) && result.left[0] === 'continue').toBe(true);
       }
-
-    })
+    });
 
     checkedNums = [];
     const resEmpty = await attemptSeries()(nums[0])();
@@ -137,60 +152,42 @@ describe('Extraction Prelude / Primitives', () => {
     const extractionPipeline =
       urlFilter
 
-    const res = await extractionPipeline(TE.right(['my love E.M.', true]))();
+    await extractionPipeline(TE.right(['my love E.M.', initEnv]))();
 
-    prettyPrint({ res });
 
     done();
   });
 
+
+
   it.only('attemptSeries() composition', async (done) => {
+
     const urlFilter: FilterArrow<string> =
       attemptSeries(
         flow(
-          tap((a) => putStrLn(`A. starting URL filter ${a} `)),
-          tap((a) => putStrLn(`A. ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
+          logInfo((a) => `A. starting URL filter ${a} `),
+          filter((a) => /love/.test(a), 'm/love/'),
+          logInfo((a) => `A. ending URL filter ${a}`), // <- tap(['my..', true]) => putStrLn(..)
+          filter((a) => /her/.test(a), 'm/her/'),
           through(() => ClientFunc.halt('save for later.'))
         ),
         flow(
-          tap((a) => putStrLn(`B. starting URL filter ${a} `)),
-          tap((a) => putStrLn(`B. ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
+          logInfo((a) => `B. starting URL filter ${a} `),
+          logInfo((a) => `B. ending URL filter ${a}`),
+          filter((a) => /you/.test(a), 'm/you/'),
+          through(() => ClientFunc.halt('not this one either.'))
+        ),
+        flow(
+          logInfo((a) => ` C. starting URL filter ${a} `),
+          filter((a) => /my/.test(a), 'm/my/'),
+          through(() => ClientFunc.success('this is it!'))
         ),
       );
-    const extractionPipeline =
-      urlFilter
 
-    const res = await extractionPipeline(TE.right(['my love E.M.', true]))();
+    const extractionPipeline = urlFilter
 
-    prettyPrint({ res });
+    await extractionPipeline(TE.right(['my love E.M.', initEnv]))();
 
     done();
   });
 });
-
-    // const urlFilter: (urlTest: RegExp) => FilterArrow<any> =
-    //   (regex) => flow(
-    //     tap(() => putStrLn('starting URL filter ')),
-    //     // flow(
-    //     //   through(() => 'http://adam.org'),
-    //     //   // filter(url => regex.test(url)),
-    //     //   tap((a) => putStrLn(`matched URL ${a} to /${regex.source}/`)),
-    //     // ),
-    //     flow(
-    //       // through(() => '200'),
-    //       // tap((a, { log }) => putStrLn(`(isopress) checking status: ${a}`)),
-    //       // filter((status) => status === '200'),
-    //       // tap((a, { log }) => putStrLn(`(isopress) status okay: ${a}`)),
-    //       through(() => ['a', 'b', 'c']),//  listResponseBodies,
-    //       // tap((a) => putStrLn(`(isopress) listResponseBodies: ${a}`)),
-    //       // fanout(
-    //       //   flow(
-    //       //     tap((a) => putStrLn(`(isopress) verifyFileType: ${a}`)),
-    //       //     // verifyFileType(/html|xml/i),
-    //       //     // tap((a) => putStrLn(`(isopress) runHtmlTidy: ${a}`)),
-    //       //     // runHtmlTidy,
-    //       //   )
-    //       // ),
-    //     ),
-    //     tap(() => putStrLn('ending URL filter')),
-    //   );

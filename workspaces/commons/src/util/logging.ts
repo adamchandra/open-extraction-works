@@ -9,8 +9,6 @@ import winston, {
   Logger,
 } from 'winston';
 
-// const cli = winston.config.cli;
-
 const { combine, timestamp, prettyPrint } = format;
 
 export function createConsoleLogger(): Logger {
@@ -43,6 +41,73 @@ export function setLogLevel(log: Logger, transportType: TransportType, level: st
       }
     }
   )
+}
+
+
+export function consoleTransport(level: string): transports.ConsoleTransportInstance  {
+  return new transports.Console({
+    format: format.combine(
+      format.colorize(),
+      format.simple(),
+    ),
+    level
+  });
+}
+
+export function newLogger(...transports: winston.transport[]): Logger {
+  return createLogger({
+    transports,
+  });
+}
+
+export function fileTransport(dirname: string, filename: string, level: string): transports.FileTransportInstance  {
+  return new transports.File({
+    filename,
+    level,
+    format: format.combine(
+      format.timestamp(),
+      format.json()
+    ),
+    dirname,
+    tailable: true,
+  })
+}
+
+export function getLogger(
+  logfilePath: string,
+  consoleLogLevel: string = 'info',
+): Logger {
+  const rootLoggingPath = path.dirname(logfilePath);
+  const logfile = path.basename(logfilePath);
+
+  const consoleTransport = new transports.Console({
+    format: format.combine(
+      format.colorize(),
+      format.simple(),
+    ),
+    level: consoleLogLevel
+  });
+
+  const fileTransport = new transports.File({
+    filename: logfile,
+    level: 'silly',
+    format: format.combine(
+      format.timestamp(),
+      format.json()
+    ),
+    dirname: rootLoggingPath,
+    tailable: true,
+  })
+
+
+  const logger = createLogger({
+    levels: config.cli.levels,
+    transports: [
+      consoleTransport,
+      fileTransport
+    ],
+  });
+  return logger;
 }
 
 export function getConsoleAndFileLogger(
