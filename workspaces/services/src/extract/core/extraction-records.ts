@@ -7,7 +7,7 @@ import _ from 'lodash';
 export interface Field {
   name: string;
   evidence: string[];
-  value?: string;
+  value?: string; // TODO this should be non-optional
 }
 
 export interface FieldInstances {
@@ -26,19 +26,20 @@ export interface ExtractedFields {
   fields: Record<string, FieldInstances>;
 }
 
-export interface ExtractedStanzas {
-  kind: 'stanzas';
-  stanzas: string[];
-}
+// export interface ExtractedStanzas {
+//   kind: 'stanzas';
+//   stanzas: string[];
+// }
 
-export interface ExtractedGroups {
-  kind: 'groups';
-  groups: ExtractedFields[];
-}
+// export interface ExtractedGroups {
+//   kind: 'groups';
+//   groups: ExtractedFields[];
+// }
 export interface ExtractionErrors {
   kind: 'errors';
   errors: string[];
 }
+
 export interface ExtractionEvidence {
   kind: 'evidence';
   evidence: string;
@@ -48,29 +49,29 @@ export interface ExtractionEvidence {
 export type ExtractionRecord =
   ExtractedFields
   | ExtractedField
-  | ExtractedStanzas
-  | ExtractedGroups
-  | ExtractionErrors
   | ExtractionEvidence
+  // | ExtractedStanzas
+  // | ExtractedGroups
+  | ExtractionErrors
   ;
 
 
 export interface ExtractionRecordFoldCases<A> {
   onFields: (v: ExtractedFields) => A;
   onField: (v: ExtractedField) => A;
-  onStanzas: (v: ExtractedStanzas) => A;
-  onGroups: (v: ExtractedGroups) => A;
-  onErrors: (v: ExtractionErrors) => A;
   onEvidence: (v: ExtractionEvidence) => A,
+  // onStanzas: (v: ExtractedStanzas) => A;
+  // onGroups: (v: ExtractedGroups) => A;
+  onErrors: (v: ExtractionErrors) => A;
 }
 
 const emptyFoldCases: ExtractionRecordFoldCases<undefined> = {
   onFields: () => undefined,
   onField: () => undefined,
-  onStanzas: () => undefined,
-  onGroups: () => undefined,
-  onErrors: () => undefined,
   onEvidence: () => undefined,
+  // onStanzas: () => undefined,
+  // onGroups: () => undefined,
+  onErrors: () => undefined,
 }
 
 export function foldExtractionRec<A>(
@@ -81,10 +82,10 @@ export function foldExtractionRec<A>(
   switch (rec.kind) {
     case 'fields': return cs.onFields(rec);
     case 'field': return cs.onField(rec);
-    case 'stanzas': return cs.onStanzas(rec);
-    case 'groups': return cs.onGroups(rec);
-    case 'errors': return cs.onErrors(rec);
     case 'evidence': return cs.onEvidence(rec);
+    // case 'stanzas': return cs.onStanzas(rec);
+    // case 'groups': return cs.onGroups(rec);
+    case 'errors': return cs.onErrors(rec);
   }
 }
 

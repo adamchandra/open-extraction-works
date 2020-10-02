@@ -63,6 +63,8 @@ export type ClientResult<A> = Eventual<A>
   ;
 
 export type ClientFunc<A, B, Env extends BaseEnv> = (a: A, env: Env) => ClientResult<B>;
+export type ControlFunc<Env extends BaseEnv> =
+  (ci: ControlInstruction, env: Env) => ControlInstruction | undefined | void;
 
 export const ClientFunc = {
   success: <A>(a: A): E.Either<ControlInstruction, A> => E.right(a),
@@ -170,43 +172,6 @@ export const failure = <A>(msg: string = 'reason unspecified'): TE.TaskEither<Co
 export const success = <A>(a: A): TE.TaskEither<ControlInstruction, A> => TE.right(a);
 export const success_ = (): TE.TaskEither<ControlInstruction, void> => TE.right(undefined);
 
-// export const bind: <A, B, Env extends BaseEnv> (
-//   fab: ExtractionFunction<A, B, Env>
-// ) => ExtractionArrow<A, B, Env> = (fab) => (ma) => pipe(
-//   ma,
-//   TE.map((wa) => {
-//     // const [, env] = wa;
-//     // const { log, logPrefix } = env;
-//     // logPrefix.push(name);
-//     // setLogLabel(log, _.join(logPrefix, '/'))
-//     // log.debug('_begin_');
-//     return wa;
-//   }),
-//   TE.chain((wa) => {
-//     const [a, env] = wa;
-//     return fab(a, env);
-//   }),
-//   TE.mapLeft((wa) => {
-//     // const [code, env] = wa;
-//     // const { log, logPrefix } = env;
-
-//     // log.info(`_end_left_:  ${code}`);
-
-//     // switch (code) {
-//     //   case undefined:
-//     //     break;
-//     //   case 'halt':
-//     //     break;
-//     //   case 'continue':
-//     //     break;
-//     //   default:
-//     //     break;
-//     // }
-//     // logPrefix.pop();
-//     // setLogLabel(log, _.join(logPrefix, '/'))
-//     return wa;
-//   }),
-// );
 
 
 export const pushNS: <A, Env extends BaseEnv>(n: string) => ExtractionArrow<A, A, Env> =
@@ -375,18 +340,56 @@ export const __attemptSeries: <A, B, Env extends BaseEnv> (arrows: ExtractionArr
     );
   };
 
+const hook: <A, B, Env extends BaseEnv>(f: (a: A, b: EitherControlOrA<B>, env: Env) => void) =>
+  PostHook<A, B, Env> = (f) => f;
 
 export function through<A, B, Env extends BaseEnv>(
   f: ClientFunc<A, B, Env>,
   name?: string,
   postHook?: PostHook<A, B, Env>,
 ): ExtractionArrow<A, B, Env> {
-  const ns = name ? `through:${name}` : 'through';
+  const ns = name ? `fn:${name}` : 'fn()';
+
+  const mhook = <A>() => hook<A, B, Env>((a, b, env) => {
+    const msg = pipe(b, E.fold(
+      (ci) => `control(${ci}): ${a} `,
+      (b) => `${a} => ${b}`
+    ));
+    env.log.info(msg);
+  });
+
+  const fhook = postHook || name? mhook() : undefined;
   return (ra) => pipe(
     ra,
     pushNS(ns),
-    ExtractionArrow.lift(f, postHook),
+    ExtractionArrow.lift(f, fhook),
     popNS(),
+  );
+}
+
+export function throughLeft<A, Env extends BaseEnv>(
+  f: ControlFunc<Env>,
+): ExtractionArrow<A, A, Env> {
+
+  return (ra) => pipe(
+    ra,
+    TE.mapLeft(([ci, env]) => {
+      const fres = f(ci, env);
+      const ci0 = fres? fres : ci;
+      return asW(ci0, env)
+    }),
+  );
+}
+
+export function tapLeft<A, Env extends BaseEnv>(
+  f: ControlFunc<Env>,
+): ExtractionArrow<A, A, Env> {
+  return (ra) => pipe(
+    ra,
+    TE.mapLeft(([ci, env]) => {
+      f(ci, env);
+      return asW(ci, env)
+    }),
   );
 }
 
@@ -412,8 +415,6 @@ export function tap<A, Env extends BaseEnv>(f: ClientFunc<A, any, Env>, name?: s
   return fa;
 }
 
-const hook: <A, B, Env extends BaseEnv>(f: (a: A, b: EitherControlOrA<B>, env: Env) => void) =>
-  PostHook<A, B, Env> = (f) => f;
 
 export function filter<A, Env extends BaseEnv>(
   f: ClientFunc<A, boolean, Env>,
@@ -427,9 +428,9 @@ export function filter<A, Env extends BaseEnv>(
     const filterHook = <A>() => hook<A, A, Env>((a, b, env) => {
       const msg = pipe(b, E.fold(
         (ci) => `fail(${ci}): ${a} `,
-        (b0) => `${b0 ? 'pass' : 'fail'}: ${a}`
+        (b0) => `${a} => ${b0 ? 'pass' : 'fail'}`
       ));
-      env.log.info(`[${nsPrefix(env)}]> ${msg}`);
+      env.log.info(msg);
     });
     const fhook = postHook || name? filterHook() : undefined;
 
@@ -455,10 +456,58 @@ export function filter<A, Env extends BaseEnv>(
 }
 
 export const logInfo = <A, Env extends BaseEnv>(f: (a: A, env: Env) => string) =>
-  tap((a: A, env: Env) => env.log.info(`[${nsPrefix(env)}]> ${f(a, env)}`));
+  tap((a: A, env: Env) => env.log.info(`${f(a, env)}`));
 
 export const logDebug = <A, Env extends BaseEnv>(f: (a: A, env: Env) => string) =>
-  tap((a: A, env: Env) => env.log.debug(`[${nsPrefix(env)}]> ${f(a, env)}`));
+  tap((a: A, env: Env) => env.log.debug(`${f(a, env)}`));
 
 export const logError = <A, Env extends BaseEnv>(f: (a: A, env: Env) => string) =>
-  tap((a: A, env: Env) => env.log.error(`[${nsPrefix(env)}]> ${f(a, env)}`));
+  tap((a: A, env: Env) => env.log.error(`${f(a, env)}`));
+
+
+
+
+
+
+
+
+
+
+
+// export const bind: <A, B, Env extends BaseEnv> (
+//   fab: ExtractionFunction<A, B, Env>
+// ) => ExtractionArrow<A, B, Env> = (fab) => (ma) => pipe(
+//   ma,
+//   TE.map((wa) => {
+//     // const [, env] = wa;
+//     // const { log, logPrefix } = env;
+//     // logPrefix.push(name);
+//     // setLogLabel(log, _.join(logPrefix, '/'))
+//     // log.debug('_begin_');
+//     return wa;
+//   }),
+//   TE.chain((wa) => {
+//     const [a, env] = wa;
+//     return fab(a, env);
+//   }),
+//   TE.mapLeft((wa) => {
+//     // const [code, env] = wa;
+//     // const { log, logPrefix } = env;
+
+//     // log.info(`_end_left_:  ${code}`);
+
+//     // switch (code) {
+//     //   case undefined:
+//     //     break;
+//     //   case 'halt':
+//     //     break;
+//     //   case 'continue':
+//     //     break;
+//     //   default:
+//     //     break;
+//     // }
+//     // logPrefix.pop();
+//     // setLogLabel(log, _.join(logPrefix, '/'))
+//     return wa;
+//   }),
+// );

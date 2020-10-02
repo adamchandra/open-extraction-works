@@ -43,7 +43,6 @@ export function setLogLevel(log: Logger, transportType: TransportType, level: st
   )
 }
 
-
 export function consoleTransport(level: string): transports.ConsoleTransportInstance  {
   return new transports.Console({
     format: format.combine(

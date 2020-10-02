@@ -3,7 +3,7 @@ import _ from 'lodash';
 import * as E from 'fp-ts/Either';
 import { Metadata } from '~/spidering/data-formats';
 import { Logger } from 'winston';
-import { ExtractionRecord } from './extraction-records';
+import { ExtractionEvidence, Field } from './extraction-records';
 import * as ft from './function-types';
 
 
@@ -12,6 +12,7 @@ export interface NormalForms {
   'original': null;
   'tidy-norm': null
 }
+
 export type NormalForm = keyof NormalForms;
 
 
@@ -20,7 +21,9 @@ export type ExtractionEnv = {
   ns: string[];
   entryPath: string;
   metadata: Metadata;
-  extractionRecords: ExtractionRecord[];
+  fieldRecs: Record<string, Field[]>;
+  fields: Field[];
+  evidence: ExtractionEvidence[];
   fileContentCache: Record<string, string>;
   enterNS(ns: string[]): void;
   exitNS(ns: string[]): void;
@@ -42,6 +45,7 @@ export type WCI = ft.WCI<EnvT>;
 
 export type EitherControlOrA<A> = ft.EitherControlOrA<A>;
 export type ClientFunc<A, B> = ft.ClientFunc<A, B, EnvT>;
+export type ControlFunc = ft.ControlFunc<EnvT>;
 export type ClientResult<A> = ft.ClientResult<A>;
 
 export const ClientFunc = {
@@ -51,13 +55,6 @@ export const ClientFunc = {
 }
 
 export type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
-// export const ExtractionResult = {
-//   lift: <A>(a: A, env: EnvT): ExtractionResult<A> => TE.right(asW(a, env)),
-//   liftW: <A>(wa: W<A>): ExtractionResult<A> => TE.right(wa),
-//   liftFail: <A>(ci: ft.ControlInstruction, env: EnvT): ExtractionResult<A> => TE.left(asW(ci, env)),
-// };
-
-
 export type ExtractionArrow<A, B> = ft.ExtractionArrow<A, B, EnvT>;
 
 export const ExtractionArrow = {
@@ -79,5 +76,10 @@ export const applyAll: <A, B> (...arrows: ExtractionArrow<A, B>[]) => Extraction
 export const named: <A, B>(name: string, arrow: ExtractionArrow<A, B>) => ExtractionArrow<A, B> = ft.named;
 export const through: <A, B>(f: ClientFunc<A, B>, name?: string) => ExtractionArrow<A, B> = ft.through;
 export const tap: <A>(f: ClientFunc<A, any>, name?: string) => ExtractionArrow<A, A> = ft.tap;
+export const tapLeft: <A>(f: ControlFunc) => ExtractionArrow<A, A> = ft.tapLeft;
+export const throughLeft: <A>(f: ControlFunc) => ExtractionArrow<A, A> = ft.throughLeft;
 export const filter: <A>(f: ClientFunc<A, boolean>, name?: string) => FilterArrow<A> = ft.filter;
 
+
+export const logInfo = ft.logInfo;
+export const logDebug = ft.logDebug;
