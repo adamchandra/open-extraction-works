@@ -1,81 +1,65 @@
 import 'chai/register-should';
 import _ from 'lodash';
 
-import { consoleTransport, createConsoleLogger, newLogger, prettyPrint, putStrLn } from 'commons';
+import { consoleTransport, newLogger, putStrLn } from 'commons';
 import * as ft from './function-types';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { isRight, isLeft } from 'fp-ts/Either';
 import Async from 'async';
-import { flow, pipe } from 'fp-ts/function'
+import { flow as compose } from 'fp-ts/function'
 import { Logger } from 'winston';
 
-// Extraction functions specialized to use boolean as the env type
 interface EnvT {
   ns: [];
   b: boolean;
+  msg: string;
   enterNS(ns: string[]): void;
   exitNS(ns: string[]): void;
   log: Logger;
 }
 
-const asW = <A>(a: A, env: EnvT) => ft.asW<A, EnvT>(a, env);
-
-type W<A> = ft.W<A, EnvT>;
-const W = {
-  lift: <A>(a: A, env: EnvT) => asW(a, env),
-};
-
-type ClientFunc<A, B> = ft.ClientFunc<A, B, EnvT>;
-const ClientFunc = ft.ClientFunc;
-
-type EitherControlOrA<A> = ft.EitherControlOrA<A>;
-type PostHook<A, B> = ft.PostHook<A, B, EnvT>;
+const fp = ft.createFPackage<EnvT>();
 
 type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
-const ExtractionResult = {
-  lift: <A>(a: A, env: EnvT): ExtractionResult<A> => TE.right(asW(a, env)),
-  liftW: <A>(wa: W<A>): ExtractionResult<A> => TE.right(wa),
-  liftFail: <A>(ci: ft.ControlInstruction, env: EnvT): ExtractionResult<A> => TE.left(asW(ci, env)),
-};
+type Arrow<A, B> = ft.Arrow<A, B, EnvT>;
+type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
 
+const {
+  tap,
+  log,
+  filter,
+  ClientFunc,
+  Arrow,
+  ExtractionResult,
+  asW,
+  forEachDo,
+  attemptSeries,
+  composeSeries,
+} = fp;
 
-type ExtractionArrow<A, B> = ft.ExtractionArrow<A, B, EnvT>;
-const ExtractionArrow = {
-  lift: <A, B>(fab: ClientFunc<A, B>): ExtractionArrow<A, B> =>
-    ft.ExtractionArrow.lift(fab)
-};
-
-export type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
-export type FanoutArrow<A, B> = (ra: ExtractionResult<A[]>) => ExtractionResult<B[]>;
-
-export const named: <A, B>(name: string, arrow: ExtractionArrow<A, B>) => ExtractionArrow<A, B> = ft.named;
-export const through: <A, B>(f: ClientFunc<A, B>, name?: string, h?: PostHook<A, B>) => ExtractionArrow<A, B> = ft.through;
-export const tap: <A>(f: ClientFunc<A, any>, name?: string) => ExtractionArrow<A, A> = ft.tap;
-export const filter: <A>(f: ClientFunc<A, boolean>, name?: string, h?: PostHook<A, boolean>) => FilterArrow<A> = ft.filter;
-
-const logInfo = ft.logInfo;
 
 describe('Extraction Prelude / Primitives', () => {
-  const log = newLogger(consoleTransport('info'));
+  const logger = newLogger(consoleTransport('info'));
   const initEnv: EnvT = {
     ns: [],
     b: true,
+    msg: 'begin',
     enterNS(_ns: string[]) {
       // putStrLn(`enter> ${_.join(ns, '/')}`);
     },
     exitNS(_ns: string[]) {
       // putStrLn(`exit> ${_.join(ns, '/')}`);
     },
-    log,
+    log: logger,
   };
   const strlen = (s: string): number => s.length;
 
-  const arrowStrLen: ExtractionArrow<string, number> =
-    ExtractionArrow.lift(strlen)
+  const arrowStrLen: Arrow<string, number> =
+    Arrow.lift(strlen)
 
   it('should create basic arrows/results', async (done) => {
-    const wFoobar = W.lift('foobar', initEnv);
+    const wFoobar = asW('foobar', initEnv);
     const er1: ExtractionResult<string> = ExtractionResult.liftW(wFoobar);
     const er1res = await er1();
 
@@ -86,9 +70,6 @@ describe('Extraction Prelude / Primitives', () => {
 
     done();
   });
-
-  const forEachDo = <A, B>(arrow: ExtractionArrow<A, B>) => ft.forEachDo<A, B, EnvT>(arrow);
-  const attemptSeries = <A, B>(...arrows: ExtractionArrow<A, B>[]) => ft.attemptSeries<A, B, EnvT>(...arrows);
 
   it('control flow: forEachDo', async (done) => {
 
@@ -114,7 +95,7 @@ describe('Extraction Prelude / Primitives', () => {
   it('control flow: attemptSeries', async (done) => {
     let checkedNums: string[] = [];
 
-    const isNumberArrow = (n: number) => ExtractionArrow.lift(
+    const isNumberArrow = (n: number) => Arrow.lift(
       (a: number) => {
         checkedNums.push(`is(${n}) ? ${a}`);
         return a === n ? E.right(a) : E.left('halt')
@@ -145,7 +126,7 @@ describe('Extraction Prelude / Primitives', () => {
 
   it('tap() composition', async (done) => {
     const urlFilter: FilterArrow<string> =
-      flow(
+      compose(
         tap((a) => putStrLn(`starting URL filter ${a} `)),
         tap((a) => putStrLn(`ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
       );
@@ -158,36 +139,76 @@ describe('Extraction Prelude / Primitives', () => {
     done();
   });
 
+  it('composeSeries/attemptSeries', async (done) => {
+    let logs: string[] = [];
+    const inputString = TE.right(asW('Four score and seven years', initEnv));
 
+    const succeedingFunc = compose(
+      tap(() => logs.push('s1')),
+      filter<string>((a) => /Four/.test(a)),
+      tap(() => logs.push('s2')),
+    );
 
-  it.only('attemptSeries() composition', async (done) => {
+    const failingFunc = compose(
+      tap(() => logs.push('e1')),
+      filter<string>((a) => /Five/.test(a)),
+      tap(() => logs.push('e2')),
+    );
 
-    const urlFilter: FilterArrow<string> =
-      attemptSeries(
-        flow(
-          logInfo((a) => `A. starting URL filter ${a} `),
-          filter((a) => /love/.test(a), 'm/love/'),
-          logInfo((a) => `A. ending URL filter ${a}`), // <- tap(['my..', true]) => putStrLn(..)
-          filter((a) => /her/.test(a), 'm/her/'),
-          through(() => ClientFunc.halt('save for later.'))
-        ),
-        flow(
-          logInfo((a) => `B. starting URL filter ${a} `),
-          logInfo((a) => `B. ending URL filter ${a}`),
-          filter((a) => /you/.test(a), 'm/you/'),
-          through(() => ClientFunc.halt('not this one either.'))
-        ),
-        flow(
-          logInfo((a) => ` C. starting URL filter ${a} `),
-          filter((a) => /my/.test(a), 'm/my/'),
-          through(() => ClientFunc.success('this is it!'))
-        ),
-      );
+    await composeSeries(
+      succeedingFunc,
+      failingFunc,
+      failingFunc,
+    )(inputString)();
 
-    const extractionPipeline = urlFilter
+    expect(logs).toStrictEqual(['s1', 's2', 'e1'])
 
-    await extractionPipeline(TE.right(['my love E.M.', initEnv]))();
+    logs = [];
+    await attemptSeries(
+      succeedingFunc,
+      failingFunc,
+      failingFunc,
+    )(inputString)();
+
+    expect(logs).toStrictEqual(['s1', 's2'])
+
+    logs = [];
+    await composeSeries(
+      failingFunc,
+      succeedingFunc,
+      failingFunc,
+    )(inputString)();
+
+    expect(logs).toStrictEqual(['e1'])
+
+    logs = [];
+    await attemptSeries(
+      failingFunc,
+      failingFunc,
+      succeedingFunc,
+    )(inputString)();
+
+    expect(logs).toStrictEqual(['e1', 'e1', 's1', 's2'])
 
     done();
   });
+
+
+  it('filter composition', async (done) => {
+    // liftFilter
+
+    //   ifThen(
+    //     allOf(
+    //       haveEvidence(/abstractInFull/),
+    //       haveEvidence(/og:description/),
+    //     ), requireAll(doRun(
+    //       applyLabel('abstract', textForEvidence('abstractInFull')),
+    //       applyLabel('title', textForEvidence('og:description')),
+    //     ))
+    //   )
+
+
+    done();
+  });
+
 });

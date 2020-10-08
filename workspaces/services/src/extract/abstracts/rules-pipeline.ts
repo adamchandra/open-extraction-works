@@ -4,21 +4,6 @@ import { findByLineMatchTE, findInMetaTE, selectElemAttr } from '~/extract/core/
 import { ExtractionFunction } from '../core/extraction-process';
 import { filterUrl, findInGlobalDocumentMetadata } from '../core/field-extract';
 
-// load('meta.json')
-// filter(meta => meta.url ~ /sciencedirect.com.science.article/ )
-//  sel('meta[property=og:description]')    <-- selMetaContentAs(...)
-//    .andThen(elem => attr('content')(elem))
-//    .andThen(text => saveAs('abs-short')(text))
-
-// sel('a[href^=/doi/pdf/])
-// <a href="/doi/pdf/10.1145/3306346.3323011"
-
-export const PdfLinkPipeline: ExtractionFunction[][] = [
-  [selectElemAttr('meta[name=citation_pdf_url]', 'content')]
-
-  // sel('a[href^=/doi/pdf/])
-  // <a href="/doi/pdf/10.1145/3306346.3323011"
-];
 
 export const AbstractPipeline: ExtractionFunction[][] = [
   [findInMetaTE('@description content')],
@@ -102,3 +87,78 @@ export const AbstractPipeline: ExtractionFunction[][] = [
 
   [findByLineMatchTE(['p', 'span .subAbstract'])]
 ];
+
+
+/**
+
+btpnative.com/
+diglib.eg.org/handle/
+dprtb.com/
+ebooks.iospress.nl/publication/
+papers.nips.cc/paper/
+proceedings.mlr.press/v100/
+aaai.org/ojs/
+academic.oup.com/bioinformatics/
+academic.oup.com/crawlprevention/
+aisel.aisnet.org/confirm2013/
+arxiv.org/abs/
+bmcbioinformatics.biomedcentral.com/articles/
+cogsci.mindmodeling.org/2017/
+content.iospress.com/articles/
+diglib.eg.org/handle/
+dl.acm.org/doi/
+doi.org/10.1145/
+drops.dagstuhl.de/opus/
+eccc.weizmann.ac.il//eccc-reports
+eccc.weizmann.ac.il/report/
+editions-rnti.fr/?
+eprint.iacr.org/2015/
+epubs.siam.org/doi/
+eudl.eu/doi/
+ieeexplore.ieee.org/document/
+jair.org/
+jmlr.org/papers/
+journals.plos.org/ploscompbiol/
+journals.sagepub.com/doi/
+link.springer.com/article/
+link.springer.com/chapter/
+link.springer.com/referenceworkentry/
+onlinelibrary.wiley.com/doi/
+portal.dnb.de/
+ptewarin.net/
+pubs.acs.org/doi/
+pubsonline.informs.org/doi/
+track.traffic.club/helper/
+transacl.org/ojs/
+aaai.org/ojs/
+aclweb.org/anthology/
+ams.org/journals/
+cambridge.org/core/
+computer.org/csdl/
+cys.cic.ipn.mx/ojs/
+degruyter.com/view/
+frontiersin.org/articles/
+ijcai.org/Proceedings/
+internetmathematicsjournal.com/article/
+isca-speech.org/archive/
+jstage.jst.go.jp/article/
+liebertpub.com/doi/
+mdpi.com/1099-4300/
+mitpressjournals.org/doi/
+nature.com/articles/
+nowpublishers.com/article/
+pnas.org/content/
+routledge.com
+sciencedirect.com/science/
+scitepress.org
+spiedigitallibrary.org/conference-proceedings-of-spie/
+tandfonline.com/doi/
+worldscientific.com/doi/
+worldscientific.com/worldscibooks/
+aaai.org/ocs/
+asso-aria.org/lp/
+bmva.org/bmvc/
+computer.org/10.1109/
+inderscience.com
+theoryofcomputing.org/articles/
+ */

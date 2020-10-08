@@ -172,14 +172,14 @@ export const AbstractCleaningRules: CleaningRule[] = [
     }
   },
 
-  {
-    name: 'abstract too short',
-    guards: [],
-    run: (str) => {
-      if (str.length < 200) return '';
-      return;
-    }
-  },
+  // {
+  //   name: 'abstract too short',
+  //   guards: [],
+  //   run: (str) => {
+  //     if (str.length < 200) return '';
+  //     return;
+  //   }
+  // },
 
 ];
 

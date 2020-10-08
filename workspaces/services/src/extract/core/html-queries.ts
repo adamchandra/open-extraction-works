@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import puppeteer from 'puppeteer-extra'
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/function'
@@ -10,34 +11,32 @@ import {
   ElementHandle,
 } from 'puppeteer';
 
+import { prettyPrint } from 'commons';
 
-
-// export function cheerioLoad(
-//   fileContent: string,
-//   useXmlMode: boolean = true
-// ): CheerioStatic {
-//   const $ = cheerio.load(fileContent, {
-//     _useHtmlParser2: true,
-//     recognizeSelfClosing: true,
-//     normalizeWhitespace: false,
-//     xmlMode: useXmlMode,
-//     decodeEntities: true
-//   });
-//   return $;
-// }
-
-// export interface HtmlBrowser {
-//   browser: Browser;
-//   htmlSource: string;
-//   setHtmlSource(s: string): void;
-//   queryOne(q: string): Promise<ElemSelectOne>;
-//   queryAll(q: string): Promise<ElemSelectAll>;
-// }
 export type AttrSelection = E.Either<string, string>;
 
 export type Elem = ElementHandle<Element>;
 export type ElemSelectOne = E.Either<string, Elem>;
 export type ElemSelectAll = E.Either<string, Elem[]>;
+
+
+export function expandCaseVariations(seed: string, sub: (s: string) => string): string {
+  const variations = _.reduce(seed, (acc, char) => {
+    const isUpper = 'A' <= char && char <= 'Z';
+    return _.flatMap(acc, (elem) => {
+      if (isUpper) return [elem + char, elem + char.toLowerCase()];
+      return [elem + char.toLowerCase()];
+    });
+  }, ['']);
+
+
+  const expanded = _.join(
+    _.map(variations, v => sub(v)),
+    ','
+  );
+
+  return expanded;
+}
 
 export async function _queryAll(
   browser: Browser,
@@ -159,6 +158,19 @@ export async function getOuterHtml(maybeElem: ElemSelectOne): Promise<string> {
 }
 
 
+export async function getTextContents(maybeElems: ElemSelectAll): Promise<Array<string | undefined> | undefined> {
+  if (isRight(maybeElems)) {
+    const elems = maybeElems.right;
+
+    const outers = await Async.map<Elem, string | undefined>(elems, async (elem) => {
+      return await elem.evaluate((e) => e.textContent !== null ? e.textContent : undefined);
+    })
+    return outers;
+  }
+  return undefined;
+}
+
+
 export async function getOuterHtmls(maybeElems: ElemSelectAll): Promise<string[]> {
   if (isRight(maybeElems)) {
     const elems = maybeElems.right;
@@ -169,9 +181,4 @@ export async function getOuterHtmls(maybeElems: ElemSelectAll): Promise<string[]
     return outers;
   }
   return ['(error)'];
-}
-
-export async function getTextContent(elem: Elem): Promise<string> {
-  const text = await elem.evaluate((e) => e.textContent);
-  return text === null ? '' : text;
 }

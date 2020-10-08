@@ -2,12 +2,14 @@ import 'chai/register-should';
 import path from 'path';
 import _ from 'lodash';
 import { putStrLn } from 'commons';
-import { runFieldExtractors } from './extraction-process-v2';
 import fs from 'fs-extra';
 import cproc from 'child_process';
 import Async from 'async';
 
 import { getBasicConsoleLogger } from '~/utils/basic-logging';
+import { runFieldExtractors } from './extraction-cli';
+import { AbstractFieldAttempts } from './extraction-rules';
+
 describe('Field Extraction Pipeline', () => {
   const testCorpus = './test/resources/spidered-corpus';
   const testScratchDir = './test-scratch.d';
@@ -22,7 +24,8 @@ describe('Field Extraction Pipeline', () => {
 
   it.only('trying env function composition ', async (done) => {
     const examples = [
-      '22dae',
+      // '22dae',
+      '20248',
       // '22133',
       // '22168'
     ];
@@ -31,7 +34,7 @@ describe('Field Extraction Pipeline', () => {
     await Async.mapSeries(examples, async example => {
       const entryPath = path.join(testScratchDir, 'spidered-corpus', example);
 
-      return runFieldExtractors(entryPath, { log });
+      return runFieldExtractors(entryPath, { log }, AbstractFieldAttempts);
     });
 
     putStrLn('after attempts');

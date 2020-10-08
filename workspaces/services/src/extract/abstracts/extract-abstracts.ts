@@ -269,7 +269,7 @@ export async function runAbstractFindersOnFile(
   });
 
   const sequenceArrOfTask = Arr.array.sequence(Task.taskSeq);
-  const attemptedTasks = await sequenceArrOfTask(attemptTask)();
+  // const attemptedTasks = await sequenceArrOfTask(attemptTask)();
 
   const initRec: FieldInstances = {
     exists: false,
@@ -277,26 +277,27 @@ export async function runAbstractFindersOnFile(
     instances: []
   };
 
-  const combinedInstances = _.reduce<ExtractionEnv, FieldInstances>(
-    attemptedTasks,
-    (acc, e) => {
-      const newAcc = foldExtractionRec(
-        e.extractionRecord, {
-        onFields: (extractedFields) => {
-          const abstractInstances = extractedFields.fields['abstract'];
-          const { exists, count, instances } = abstractInstances;
-          return {
-            exists: exists || acc.exists,
-            count: count + acc.count,
-            instances: _.concat(acc.instances, instances)
-          };
-        }
-      });
-      if (newAcc) return newAcc;
-      return acc;
-    },
-    initRec
-  );
+  const combinedInstances = initRec;
+  // const combinedInstances = _.reduce<ExtractionEnv, FieldInstances>(
+  //   attemptedTasks,
+  //   (acc, e) => {
+  //     const newAcc = foldExtractionRec(
+  //       e.extractionRecord, {
+  //       onFields: (extractedFields) => {
+  //         const abstractInstances = extractedFields.fields['abstract'];
+  //         const { exists, count, instances } = abstractInstances;
+  //         return {
+  //           exists: exists || acc.exists,
+  //           count: count + acc.count,
+  //           instances: _.concat(acc.instances, instances)
+  //         };
+  //       }
+  //     });
+  //     if (newAcc) return newAcc;
+  //     return acc;
+  //   },
+  //   initRec
+  // );
 
   const combinedFields: ExtractedFields = {
     kind: 'fields',
