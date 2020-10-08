@@ -116,6 +116,9 @@ function asW<A, Env extends BaseEnv>(a: A, w: Env): W<A, Env> {
 }
 
 export type WCI<Env extends BaseEnv> = W<ControlInstruction, Env>;
+function asWCI<Env extends BaseEnv>(ci: ControlInstruction, w: Env): WCI<Env> {
+  return [ci, w];
+}
 
 /**
  * Type signatures for client functions and return types
@@ -417,19 +420,21 @@ const scatterAndSettle: <A, B, Env extends BaseEnv> (
 // Compose arrows
 // <A, B, Env extends BaseEnv>(...arrows: Arrow<A, B, Env>[]) => compose(
 const composeSeries: <A, Env extends BaseEnv> (...arrows: Arrow<A, A, Env>[]) => Arrow<A, A, Env> =
-  (...arrows) => compose(
-    withNS(`composeSeries:${arrows.length}`, __composeSeries(arrows, 0, arrows.length)),
+  (...arrows) => withNS(
+    `composeSeries:${arrows.length}`,
+    __composeSeries(arrows, arrows.length)
   );
 
-const __composeSeries: <A, Env extends BaseEnv> (arrows: Arrow<A, A, Env>[], attemptNum: number, attemptCount: number) => Arrow<A, A, Env> =
-  <A, Env extends BaseEnv>(arrows: Arrow<A, A, Env>[], attemptNum: number, attemptCount: number) => (ra: ExtractionResult<A, Env>) => {
+const __composeSeries: <A, Env extends BaseEnv> (arrows: Arrow<A, A, Env>[], arrowCount: number) => Arrow<A, A, Env> =
+  <A, Env extends BaseEnv>(arrows: Arrow<A, A, Env>[], arrowCount: number) => (ra: ExtractionResult<A, Env>) => {
     // Base Case:
     if (arrows.length === 0) return ra;
 
     // Recursive Step:
     const headArrow: Arrow<A, A, Env> = arrows[0];
     const tailArrows: Arrow<A, A, Env>[] = arrows.slice(1);
-    const ns = `#${attemptNum}`;
+    const arrowNum = arrowCount - arrows.length;
+    const ns = `#${arrowNum}`;
 
     return pipe(
       ra,
@@ -437,50 +442,38 @@ const __composeSeries: <A, Env extends BaseEnv> (arrows: Arrow<A, A, Env>[], att
         ns,
         headArrow
       )),
-      __composeSeries(tailArrows, attemptNum + 1, attemptCount)
+      __composeSeries(tailArrows, arrowCount)
     );
   };
 
 // Try each arrow on input until one succeeds
-const attemptSeries0: <A, B, Env extends BaseEnv> (...arrows: Arrow<A, B, Env>[]) => Arrow<A, B, Env> =
-  <A, B, Env extends BaseEnv>(...arrows: Arrow<A, B, Env>[]) =>
-    (ra: ExtractionResult<A, Env>) => pipe(
-      ra,
-      withNS(
-        `attemptSeries:${arrows.length}`,
-        __attemptSeries(arrows, 0, arrows.length),
-      )
-    );
-
 const attemptSeries: <A, B, Env extends BaseEnv> (...arrows: Arrow<A, B, Env>[]) => Arrow<A, B, Env> =
   (...arrows) => withNS(
     `attemptSeries:${arrows.length}`,
-    __attemptSeries(arrows, 0, arrows.length),
+    __attemptSeries(arrows, arrows.length),
   );
 
 
-
-const __attemptSeries: <A, B, Env extends BaseEnv> (arrows: Arrow<A, B, Env>[], attemptNum: number, attemptCount: number) => Arrow<A, B, Env> =
-  <A, B, Env extends BaseEnv>(arrows: Arrow<A, B, Env>[], attemptNum: number, attemptCount: number) => (ra: ExtractionResult<A, Env>) => {
+const __attemptSeries: <A, B, Env extends BaseEnv> (arrows: Arrow<A, B, Env>[], arrowCount: number) => Arrow<A, B, Env> =
+  (arrows, arrowCount) => (ra) => {
     // Base Case:
     if (arrows.length === 0) return pipe(
       ra,
       TE.chain(([, env]) => {
-        return TE.left<WCI<Env>, W<B, Env>>(asW('continue', env));
+        return TE.left(asWCI('continue', env));
       })
     );
 
     // Recursive Step:
-    const headArrow: Arrow<A, B, Env> = arrows[0];
-    const tailArrows: Arrow<A, B, Env>[] = arrows.slice(1);
+    const headArrow = arrows[0];
+    const tailArrows = arrows.slice(1);
+    const arrowNum = arrowCount - arrows.length;
+    const ns = `#${arrowNum}`;
 
     return pipe(
       ra,
-      withNS(`#${attemptNum}`, headArrow),
-      TE.alt(() => {
-        const ts: Arrow<A, B, Env> = __attemptSeries(tailArrows, attemptNum + 1, attemptCount);
-        return pipe(ra, ts);
-      }),
+      withNS(ns, headArrow),
+      TE.alt(() => pipe(ra, __attemptSeries(tailArrows, arrowCount))),
     );
   };
 

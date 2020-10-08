@@ -27,6 +27,7 @@ import {
   ClientResult,
   composeSeries,
   log,
+  applyAll,
   FieldCandidate
 } from './extraction-prelude';
 
@@ -64,11 +65,17 @@ function removeEvidence(env: ExtractionEnv, regex: RegExp) {
 export const addEvidence: <A>(f: (a: A, env: ExtractionEnv) => string) => Arrow<A, A> =
   (f) => tap((a, env) => _addEvidence(env, f(a, env)));
 
-export const clearEvidence: (evidenceTest: RegExp) => Arrow<unknown, unknown> =
-  (evidenceTest: RegExp) => compose(
-    tap((_a, env) => removeEvidence(env, evidenceTest)),
-    tapLeft((_a, env) => removeEvidence(env, evidenceTest)),
+export const tapEnvLR: <A>(f: (env: ExtractionEnv) => unknown) => Arrow<A, A> =
+  (f) => compose(
+    tap((_0, env) => f(env)),
+    tapLeft((_0, env) => {
+      f(env);
+    })
   );
+
+export const clearEvidence: (evidenceTest: RegExp) => Arrow<unknown, unknown> =
+  (evidenceTest: RegExp) =>
+    tapEnvLR((env) => removeEvidence(env, evidenceTest))
 
 
 function getCurrentEvidenceStrings(env: ExtractionEnv): string[] {
@@ -100,7 +107,6 @@ function saveFieldRecs(env: ExtractionEnv): void {
       );
     }
   );
-  env.fields.splice(0, env.fields.length);
 }
 
 export const listArtifactFiles: (artifactDir: ArtifactSubdir, regex: RegExp) => Arrow<unknown, CacheFileKey[]> =
@@ -200,7 +206,16 @@ export const grepLines: (regex: RegExp) => Arrow<CacheFileKey, string[]> =
     })
   );
 
-
+export const selectGlobalDocumentMetaEvidence: () => Arrow<CacheFileKey, unknown> =
+  () => compose(
+    readGlobalDocumentMetadata,
+    applyAll(
+      saveDocumentMetaDataEvidence('metadata:title', m => [m.title]),
+      saveDocumentMetaDataEvidence('metadata:abstract', m => [m.abstract]),
+      saveDocumentMetaDataEvidence('metadata:pdf-path', m => [m.pdfPath]),
+      saveDocumentMetaDataEvidence('metadata:author', m => m.authors.map(a => a.name)),
+    )
+  );
 
 export const readGlobalDocumentMetadata: Arrow<CacheFileKey, GlobalDocumentMetadata> = compose(
   grepLines(/^[ ]*global\.document\.metadata/),
@@ -222,6 +237,16 @@ export const saveDocumentMetaDataAs: (name: string, f: (m: GlobalDocumentMetadat
     through((documentMetadata) => f(documentMetadata)),
     saveFieldAs(name),
     clearEvidence(/^global.document.metadata:/),
+  );
+
+export const saveDocumentMetaDataEvidence: (name: string, f: (m: GlobalDocumentMetadata) => string[]) => Arrow<GlobalDocumentMetadata, unknown> =
+  (name, f) => compose(
+    through((documentMetadata) => f(documentMetadata)),
+    addEvidence(() => name),
+    forEachDo(
+      saveEvidence(name),
+    ),
+    clearEvidence(new RegExp(name)),
   );
 
 //////////////////
@@ -348,9 +373,6 @@ export const selectMetaContentAs: (fieldName: string, name: string, attrName?: s
   );
 
 
-
-
-
 export const saveEvidence: (evidenceName: string) => Arrow<string, unknown> =
   (evidenceName) => through((extractedValue: string, env) => {
     const candidate: FieldCandidate = {
@@ -459,9 +481,6 @@ export const statusFilter: Arrow<unknown, unknown> =
   compose(
     through((_a, env) => env.metadata.status),
     filter((a) => a === '200', 'status=200'),
-    tapLeft((sdf) => {
-      console.log('statusFilter left', sdf);
-    })
   );
 
 export const normalizeHtmls: Arrow<unknown, string[]> =
@@ -510,10 +529,6 @@ export const forEachInput: (arrow: Arrow<string, unknown>) => Arrow<string[], un
     )
   );
 
-// export const givenEvidence()
-// givenEvidence(exists('citation_author'))
-// similar(textFor('og:description'), textFor('.abstract'))
-
 export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unknown, unknown> =
   (mapping) => {
     const evidenceKeys = _.keys(mapping);
@@ -523,22 +538,28 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
     return compose(
       composeSeries(...filters),
       tap((_a, env) => {
-        _.each(evidenceKeys, k => {
-          const fieldName = mapping[k];
-          const maybeCandidates = candidatesForEvidence(env, fieldName);
+        _.each(evidenceKeys, evKey => {
+          const fieldName = mapping[evKey];
+
+          if (fieldName === '') return;
+
+          const maybeCandidates = candidatesForEvidence(env, evKey);
           _.each(maybeCandidates, c => {
             const { text, evidence } = c;
             const field: Field = {
               name: fieldName,
-              evidence: [...evidence],
+              evidence: [...evidence, keyEvidence],
               value: text
             };
-            field.evidence.push(keyEvidence);
             env.fields.push(field);
           });
         });
         saveFieldRecs(env);
       }),
+      tapEnvLR((env) => {
+        _.remove(env.fields, () => true);
+        _.remove(env.fieldCandidates, () => true);
+      })
     )
   };
 
@@ -570,27 +591,19 @@ export const evidenceExists: (evstr: string) => FilterArrow<unknown> =
     );
   });
 
-export const summarizeEvidence: Arrow<unknown, unknown> = tap((_a, env) => {
-  const { fieldCandidates, fields, log } = env
+export const summarizeEvidence: Arrow<unknown, unknown> = tapEnvLR((env) => {
+  const { fieldCandidates, log } = env
   const url = env.metadata.responseUrl;
 
   log.log('info', `summary: URL= ${url}`);
 
+  log.log('info', 'summary: Field Candidates');
   _.each(fieldCandidates, fc => {
     log.log('info', `summary:     ${fc.text}`);
     _.each(fc.evidence, ev => {
       log.log('info', `summary:         ${ev}`);
     });
   });
-
-  // log.log('info', 'summary: Fields');
-  // _.each(fields, (field) => {
-  //   const { name, value, evidence } = field;
-  //   log.log('info', `summary:      ${name} ==> ${value}`);
-  //   _.each(evidence, ev => {
-  //     log.log('info', `summary:          ${ev}`);
-  //   });
-  // });
 
   log.log('info', 'summary: Field Records');
   const nameValuePairs = _.toPairs(env.fieldRecs)

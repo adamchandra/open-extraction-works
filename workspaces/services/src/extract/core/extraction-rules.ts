@@ -7,11 +7,11 @@ import {
   attemptSeries,
   log,
   tap,
-  tapLeft,
   filter,
 } from './extraction-prelude';
 
 import {
+  clearEvidence,
   forEachInput,
   forInputs,
   normalizeHtmls,
@@ -23,6 +23,7 @@ import {
   selectElemAttrEvidence,
   selectElemTextAs,
   selectElemTextEvidence,
+  selectGlobalDocumentMetaEvidence,
   selectMetaContentAs,
   selectMetaEvidence,
   statusFilter,
@@ -175,45 +176,33 @@ export const TitleFieldAttempts = attemptSeries(
 
 import parseUrl from 'url-parse';
 
-export const gatherFieldEvidence = compose(
-  forInputs(
-    /response-body/,
-    applyAll(
-      selectMetaEvidence('og:description'),
-      selectMetaEvidence('og:description', 'property'),
-      selectMetaEvidence('description'),
-      selectMetaEvidence('DC.Description'),
-      selectElemAttrEvidence('h1[data-abstract]', 'data-abstract'),
-      selectElemTextEvidence('section#Abs1 > p.Para'),
-      selectElemTextEvidence('.abstract'),
-      selectElemTextEvidence('#abstract'),
-      selectElemTextEvidence('.Abstracts'),
-      selectElemTextEvidence('#Abstracts'),
-      selectElemTextEvidence('.abstractInFull'),
-    ),
-  ),
-  forInputs(
-    /response-body/,
-    applyAll(
-      selectMetaEvidence('citation_title'),
-      selectMetaEvidence('DC.Title'),
-    ),
-  ),
-  forInputs(
-    /response-body/,
-    applyAll(
-      selectMetaEvidence('citation_pdf_url'),
-      selectElemAttrEvidence('div.PdfEmbed a.anchor', 'href'),
-      selectElemAttrEvidence('a.show-pdf', 'href'),
-      selectElemAttrEvidence('li.pdf-file > a', 'href'),
-    ),
-  ),
-  forInputs(
-    /response-body/,
-    applyAll(
-      selectAllMetaEvidence('citation_author'),
-      selectAllMetaEvidence('DC.Creator'),
-    ),
+export const gatherFieldEvidence = forInputs(
+  /response-body/,
+  applyAll(
+    selectGlobalDocumentMetaEvidence(),
+    // Abs/Titles
+    selectMetaEvidence('og:description'),
+    selectMetaEvidence('og:description', 'property'),
+    selectMetaEvidence('description'),
+    selectMetaEvidence('DC.Description'),
+    selectElemAttrEvidence('h1[data-abstract]', 'data-abstract'),
+    selectElemTextEvidence('section#Abs1 > p.Para'),
+    selectElemTextEvidence('.abstract'),
+    selectElemTextEvidence('#abstract'),
+    selectElemTextEvidence('.Abstracts'),
+    selectElemTextEvidence('#Abstracts'),
+    selectElemTextEvidence('.abstractInFull'),
+    //
+    selectMetaEvidence('citation_title'),
+    selectMetaEvidence('DC.Title'),
+    //
+    selectMetaEvidence('citation_pdf_url'),
+    selectElemAttrEvidence('div.PdfEmbed a.anchor', 'href'),
+    selectElemAttrEvidence('a.show-pdf', 'href'),
+    selectElemAttrEvidence('li.pdf-file > a', 'href'),
+    //
+    selectAllMetaEvidence('citation_author'),
+    selectAllMetaEvidence('DC.Creator'),
   ),
 );
 
@@ -242,21 +231,49 @@ export const AbstractFieldAttempts = compose(
   checkStatusAndNormalize,
   addUrlEvidence,
   gatherFieldEvidence,
-  tapLeft((sdf) => {
-    console.log('after gatherFieldEvidence', sdf);
-  }),
+  clearEvidence(/^url:/),
   attemptSeries(
     tryEvidenceMapping({
-      'citation_title': 'title',
-      'og:description': 'abstract',
-      'citation_author': 'author',
-      'citation_pdf_url': 'pdf-link',
+      'metadata:title': 'title',
+      'metadata:abstract': 'clipped',
+      'metadata:author': 'author',
+      'metadata:pdf-link': 'pdf-link',
     }),
-    tryEvidenceMapping({
+    tryEvidenceMapping({ // link.springer.com/chapter
       'citation_title': 'title',
       'section#Abs1 > p.Para': 'abstract',
       'og:description': 'abstract-clipped',
       'description': 'abstract-clipped',
+      'citation_author': 'author',
+      'citation_pdf_url': 'pdf-link',
+    }),
+    tryEvidenceMapping({ // link.springer.com/article
+      'citation_title': 'title',
+      'og:description': 'abstract',
+      'DC.Description': 'abstract',
+      '"description"': 'abstract-clipped',
+      'citation_author': 'author',
+      'citation_pdf_url': 'pdf-link',
+    }),
+    tryEvidenceMapping({ // sciencedirect.com
+      'host:.*sciencedirect.com': '',
+      'citation_title': 'title',
+      '.Abstracts': 'abstract:raw',
+      'og:description': 'abstract-clipped',
+      'citation_author': 'author',
+      'div.PdfEmbed': 'pdf-link:prefix',
+    }),
+    tryEvidenceMapping({ // proceedings.mlr.press
+      'citation_title': 'title',
+      '#abstract': 'abstract',
+      'og:description': 'abstract-clipped',
+      'citation_author': 'author',
+      'citation_pdf_url': 'pdf-link',
+    }),
+    tryEvidenceMapping({ // arxiv.org
+      'host:.*arxiv.org': '',
+      'citation_title': 'title',
+      'og:description': 'abstract',
       'citation_author': 'author',
       'citation_pdf_url': 'pdf-link',
     }),
@@ -266,11 +283,8 @@ export const AbstractFieldAttempts = compose(
       'abstractInFull': 'abstract',
       'DC.Description': 'abstract-clipped',
       'DC.Creator': 'author',
-      'a.show-pdf': 'pdf-link',
+      'a.show-pdf': 'pdf-link', // li.pdf-file for dl.acm.org
     }),
   ),
-  tapLeft((sdf) => {
-    console.log('after attemptSeries', sdf);
-  }),
   summarizeEvidence,
 )
