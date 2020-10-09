@@ -1,7 +1,7 @@
 import 'chai/register-should';
 import _ from 'lodash';
 
-import { consoleTransport, newLogger, putStrLn } from 'commons';
+import { consoleTransport, newLogger, prettyPrint, putStrLn } from 'commons';
 import * as ft from './function-types';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
@@ -27,15 +27,18 @@ type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
 
 const {
   tap,
-  log,
+  tapLeft,
+  // log,
   filter,
-  ClientFunc,
+  // ClientFunc,
   Arrow,
   ExtractionResult,
   asW,
+  asWCI,
   forEachDo,
   attemptSeries,
   composeSeries,
+  through,
 } = fp;
 
 
@@ -193,6 +196,146 @@ describe('Extraction Prelude / Primitives', () => {
     done();
   });
 
+  it('composeSeries/attemptSeries with failed inputs', async (done) => {
+    let logs: string[] = [];
+    // const inputString = TE.right(asW('Four score and seven years', initEnv));
+    // const inputString: ExtractionResult<string> = TE.left(asWCI('halt', initEnv));
+    const inputString: ExtractionResult<string> =
+      TE.right(asW('Four score and seven years', initEnv));
+
+    const preprocessInput: Arrow<string, string> = compose(
+      tap(() => logs.push('preRightBegin')),
+      through(s => s.slice(0, 4)),
+      filter<string>((a) => /Five/.test(a)),
+      tap(() => logs.push('preRightEnd')),
+      tapLeft(() => logs.push('preLeftEnd')),
+    );
+
+    const succeedingFunc: Arrow<string, string> = compose(
+      tap(() => logs.push('succRightBegin')),
+      tapLeft(() => logs.push('succLeftBegin')),
+      filter<string>((a) => /Four/.test(a)),
+      tap(() => logs.push('succRightEnd')),
+      tapLeft(() => logs.push('succLeftEnd')),
+    );
+
+
+    const failingFunc: Arrow<string, string> = compose(
+      tap(() => logs.push('failRightBegin')),
+      tapLeft(() => logs.push('failLeftBegin')),
+      filter<string>((a) => /Five/.test(a)),
+      tap(() => logs.push('failRightEnd')),
+      tapLeft(() => logs.push('failLeftEnd')),
+    );
+
+    await composeSeries(
+      preprocessInput,
+      succeedingFunc,
+      failingFunc,
+      failingFunc,
+    )(inputString)();
+
+    prettyPrint({ msg: 'composeSeries', logs });
+    // expect(logs).toStrictEqual(['s1', 's2', 'e1'])
+
+    logs = [];
+    await attemptSeries(
+      preprocessInput,
+      succeedingFunc,
+      failingFunc,
+      failingFunc,
+    )(inputString)();
+
+    prettyPrint({ msg: 'attemptSeries', logs });
+
+    // expect(logs).toStrictEqual(['s1', 's2'])
+
+    // logs = [];
+    // await composeSeries(
+    //   failingFunc,
+    //   succeedingFunc,
+    //   failingFunc,
+    // )(inputString)();
+
+    // expect(logs).toStrictEqual(['e1'])
+
+    // logs = [];
+    // await attemptSeries(
+    //   failingFunc,
+    //   failingFunc,
+    //   succeedingFunc,
+    // )(inputString)();
+
+    // expect(logs).toStrictEqual(['e1', 'e1', 's1', 's2'])
+
+
+
+
+
+    done();
+  });
+
+  const bracketLog: (logs: string[]) => <A, B>(name: string, arrow: Arrow<A, B>) => Arrow<A, B> =
+    (logs) => (name, arrow) => compose(
+      tap(() => logs.push(`${name}:begin:right`)),
+      tapLeft(() => logs.push(`${name}:begin:left`)),
+      arrow,
+      tap(() => logs.push(`${name}:end:right`)),
+      tapLeft(() => logs.push(`${name}:end:left`)),
+    );
+
+  it.only('attemptSeries with failed inputs', async (done) => {
+    const logs: string[] = [];
+    const pushLog = bracketLog(logs);
+    // const inputString = TE.right(asW('Four score and seven years', initEnv));
+    // const inputString: ExtractionResult<string> = TE.left(asWCI('halt', initEnv));
+    const inputString: ExtractionResult<string> =
+      TE.right(asW('Four score', initEnv));
+
+    const addString: (str: string) => Arrow<string, string> =
+      (str) => compose(
+        through(s => s + ' ' + str),
+        tap((a) => putStrLn(`addString(${str}) => ${a}`)),
+        tap((a) => logs.push(`addString(${str}) => ${a}`)),
+      );
+
+
+    const succeedingFunc: Arrow<string, string> = pushLog('succ', compose(
+      tap((a) => putStrLn(`succ() => ${a}`)),
+      filter<string>((a) => /Four/.test(a)),
+    ));
+
+    const failingFunc: Arrow<string, string> = pushLog('fail', compose(
+      tap((a) => putStrLn(`fail() => ${a}`)),
+      filter<string>((a) => /Five/.test(a)),
+    ));
+
+    const res = await compose(
+      addString('and'),
+      addString('seven'),
+      addString('years'),
+      // failingFunc,
+
+      attemptSeries(
+        failingFunc,
+        failingFunc,
+        succeedingFunc,
+        failingFunc,
+      ))(inputString)();
+
+    if (isRight(res)) {
+      const right = res.right;
+      const [a, env] = right;
+      prettyPrint({ msg: 'attemptSeries: right', logs, a });
+    } else {
+      const [ci, env] = res.left;
+      prettyPrint({ msg: 'attemptSeries: left', logs, ci });
+    }
+
+
+
+    done();
+  });
 
   it('filter composition', async (done) => {
     // liftFilter

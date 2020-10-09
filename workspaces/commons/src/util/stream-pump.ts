@@ -1,6 +1,6 @@
-import _ from "lodash";
-import pumpify from "pumpify";
-import { Stream, Readable } from "stream";
+import _ from 'lodash';
+import pumpify from 'pumpify';
+import { Stream, Readable } from 'stream';
 import { throughFunc, tapStream, filterStream, throughAccum, initEnv, WithEnv, unEnv, isWithEnv } from './stream-utils';
 
 export type WithoutEnvCallback<ChunkT, R = void> = (data: ChunkT) => R;
@@ -126,20 +126,20 @@ export function createPump<ChunkT, Env = undefined>(): PumpBuilder<ChunkT, Env> 
     start(): Stream {
       const strm = this.toStream();
       if (!this.onDataF) {
-        strm.on("data", () => undefined);
+        strm.on('data', () => undefined);
       }
       return strm;
     },
     toStream(): Stream {
       const pipe = pumpify.obj(this.streams);
       if (this.onCloseF) {
-        pipe.on("close", this.onCloseF);
+        pipe.on('close', this.onCloseF);
       }
       if (this.onEndF) {
-        pipe.on("end", this.onEndF);
+        pipe.on('end', this.onEndF);
       }
       if (this.onDataF) {
-        pipe.on("data", this.onDataF);
+        pipe.on('data', this.onDataF);
       }
       return pipe;
     },
@@ -147,13 +147,13 @@ export function createPump<ChunkT, Env = undefined>(): PumpBuilder<ChunkT, Env> 
     toReadableStream(): Readable {
       const pipe = pumpify.obj(this.streams);
       if (this.onCloseF) {
-        pipe.on("close", this.onCloseF);
+        pipe.on('close', this.onCloseF);
       }
       if (this.onEndF) {
-        pipe.on("end", this.onEndF);
+        pipe.on('end', this.onEndF);
       }
       if (this.onDataF) {
-        pipe.on("data", this.onDataF);
+        pipe.on('data', this.onDataF);
       }
       return pipe;
     },

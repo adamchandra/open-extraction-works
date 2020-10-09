@@ -1,14 +1,15 @@
 import 'chai/register-should';
 import path from 'path';
 import _ from 'lodash';
-import { putStrLn } from 'commons';
+import { getConsoleAndFileLogger, putStrLn, readCorpusJsonFile } from 'commons';
 import fs from 'fs-extra';
 import cproc from 'child_process';
 import Async from 'async';
 
 import { getBasicConsoleLogger } from '~/utils/basic-logging';
-import { runFieldExtractors } from './extraction-cli';
+import { runFieldExtractor } from './extraction-cli';
 import { AbstractFieldAttempts } from './extraction-rules';
+import { Metadata } from '~/spidering/data-formats';
 
 describe('Field Extraction Pipeline', () => {
   const testCorpus = './test/resources/spidered-corpus';
@@ -22,22 +23,29 @@ describe('Field Extraction Pipeline', () => {
     cproc.execSync(`cp -rl ${testCorpus} ${testScratchDir}/`)
   });
 
-  it.only('trying env function composition ', async (done) => {
+  it.only('should run extraction rules', async (done) => {
     const examples = [
+      '20019', // arxiv.org
       // '22dae',
-      '20248',
+      // '20248',
       // '22133',
       // '22168'
     ];
-    putStrLn('before attempts');
-    const log = getBasicConsoleLogger();
+    // const log = getBasicConsoleLogger();
+
+    const logLevel = 'debug';
+    const logfilePath = testScratchDir;
+    const log = getConsoleAndFileLogger(logfilePath, logLevel);
     await Async.mapSeries(examples, async example => {
       const entryPath = path.join(testScratchDir, 'spidered-corpus', example);
-
-      return runFieldExtractors(entryPath, { log }, AbstractFieldAttempts);
+      const metadata = readCorpusJsonFile<Metadata>(entryPath, '.', 'metadata.json');
+      expect(metadata).toBeDefined();
+      if (metadata === undefined) {
+        console.log('ERROR: no metadata found')
+        return;
+      }
+      return await runFieldExtractor({ entryPath, log }, metadata, AbstractFieldAttempts);
     });
-
-    putStrLn('after attempts');
 
     done();
   });

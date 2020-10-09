@@ -13,6 +13,7 @@ import Async from 'async';
 export interface FPackage<Env extends BaseEnv> {
   nsPrefix(e: Env): string;
   asW<A>(a: A, w: Env): W<A, Env>;
+  asWCI(ci: ControlInstruction, w: Env): WCI<Env>;
 
   withNS: <A, B>(name: string, arrow: Arrow<A, B, Env>) => Arrow<A, B, Env>;
   // carryWA: <A, B>(arrow: Arrow<A, B, Env>) => Arrow<A, [B, W<A, Env>], Env>;
@@ -24,7 +25,7 @@ export interface FPackage<Env extends BaseEnv> {
   composeSeries: <A, Env extends BaseEnv> (...arrows: Arrow<A, A, Env>[]) => Arrow<A, A, Env>;
   through<A, B>(f: ClientFunc<A, B, Env>, name?: string, postHook?: PostHook<A, B, Env>,): Arrow<A, B, Env>;
   throughLeft<A>(f: ControlFunc<Env>): Arrow<A, A, Env>;
-  tapLeft<A>(f: ControlFunc<Env>,): Arrow<A, A, Env>
+  tapLeft<A>(f: ControlFunc_<Env>): Arrow<A, A, Env>
   tap<A>(f: ClientFunc<A, unknown, Env>, name?: string): Arrow<A, A, Env>;
   liftFilter<A>(f: ClientFunc<A, boolean, Env>, name?: string, postHook?: PostHook<A, boolean, Env>,): Arrow<A, boolean, Env>;
   filter<A>(f: ClientFunc<A, boolean, Env>, name?: string, postHook?: PostHook<A, boolean, Env>,): FilterArrow<A, Env>;
@@ -34,7 +35,7 @@ export interface FPackage<Env extends BaseEnv> {
   Arrow: {
     lift: <A, B>(
       fab: ClientFunc<A, B, Env>,
-      postHook?: (a: A, eb: EitherControlOrA<B>, env: Env) => void,
+      postHook?: (a: A, eb: Perhaps<B>, env: Env) => void,
     ) => Arrow<A, B, Env>;
   };
 
@@ -46,9 +47,9 @@ export interface FPackage<Env extends BaseEnv> {
   };
 
   ClientFunc: {
-    success: <A>(a: A) => E.Either<ControlInstruction, A>;
-    halt: <A>(msg: string) => E.Either<ControlInstruction, A>;
-    continue: <A>(msg: string) => E.Either<ControlInstruction, A>;
+    success: <A>(a: A) => Perhaps<A>;
+    halt: <A>(msg: string) => Perhaps<A>;
+    continue: <A>(msg: string) => Perhaps<A>;
   }
 }
 
@@ -56,6 +57,7 @@ export function createFPackage<Env extends BaseEnv>(): FPackage<Env> {
   const fp: FPackage<Env> = {
     nsPrefix,
     asW,
+    asWCI,
     withNS,
     // carryWA,
     withCarriedWA,
@@ -79,9 +81,6 @@ export function createFPackage<Env extends BaseEnv>(): FPackage<Env> {
   return fp;
 }
 
-// function isEither<A, B>(a: any): a is E.Either<A, B> {
-//   return isELeft(a) || isERight(a);
-// }
 function isELeft<A>(a: any): a is E.Left<A> {
   const isObj = _.isObject(a);
   return isObj && '_tag' in a && a._tag === 'Left' && 'left' in a;
@@ -126,33 +125,35 @@ function asWCI<Env extends BaseEnv>(ci: ControlInstruction, w: Env): WCI<Env> {
 
 export type Eventual<A> = A | Promise<A>;
 
-export type EitherControlOrA<A> = E.Either<ControlInstruction, A>;
 
 export type Perhaps<A> = E.Either<ControlInstruction, A>;
 export type PerhapsW<A, Env extends BaseEnv> = E.Either<WCI<Env>, W<A, Env>>;
 
-export type PostHook<A, B, Env extends BaseEnv> = (a: A, eb: EitherControlOrA<B>, env: Env) => void;
+export type PostHook<A, B, Env extends BaseEnv> = (a: A, eb: Perhaps<B>, env: Env) => void;
 
 export type ClientResult<A> = Eventual<A>
-  | Eventual<E.Either<ControlInstruction, A>>
+  | Eventual<Perhaps<A>>
   | TE.TaskEither<ControlInstruction, A>
   ;
 
 export type ClientFunc<A, B, Env extends BaseEnv> = (a: A, env: Env) => ClientResult<B>;
 export type ControlFunc<Env extends BaseEnv> =
-  (ci: ControlInstruction, env: Env) => ControlInstruction | undefined | void;
+  (ci: ControlInstruction, env: Env) => ControlInstruction;
+
+export type ControlFunc_<Env extends BaseEnv> =
+  (ci: ControlInstruction, env: Env) => unknown;
 
 const ClientFunc = {
-  success: <A>(a: A): E.Either<ControlInstruction, A> => E.right(a),
-  halt: <A>(msg: string): E.Either<ControlInstruction, A> => E.left(['halt', msg]),
-  continue: <A>(msg: string): E.Either<ControlInstruction, A> => E.left(['continue', msg]),
+  success: <A>(a: A): Perhaps<A> => E.right(a),
+  halt: <A>(msg: string): Perhaps<A> => E.left(['halt', msg]),
+  continue: <A>(msg: string): Perhaps<A> => E.left(['continue', msg]),
 }
 
 
 //////////////
 /// Lifted function types
 
-export type EventualResult<A, Env extends BaseEnv> = Promise<E.Either<WCI<Env>, W<A, Env>>>;
+export type EventualResult<A, Env extends BaseEnv> = Promise<PerhapsW<A, Env>>;
 const EventualResult = {
   lift: <A, Env extends BaseEnv>(a: Eventual<A>, env: Env): EventualResult<A, Env> =>
     Promise.resolve<A>(a).then(a0 => E.right(asW(a0, env))),
@@ -185,7 +186,7 @@ export interface Arrow<A, B, Env extends BaseEnv> {
 const Arrow = {
   lift: <A, B, Env extends BaseEnv>(
     fab: ClientFunc<A, B, Env>,
-    postHook?: (a: A, eb: EitherControlOrA<B>, env: Env) => void,
+    postHook?: (a: A, eb: Perhaps<B>, env: Env) => void,
   ): Arrow<A, B, Env> =>
     (er: ExtractionResult<A, Env>) => pipe(er, TE.fold(
       ([controlInstruction, env]) => {
@@ -235,7 +236,6 @@ const Arrow = {
 
 
 export type FilterArrow<A, Env extends BaseEnv> = Arrow<A, A, Env>;
-export type ExtractionEither<A, Env extends BaseEnv> = E.Either<WCI<Env>, W<A, Env>>;
 
 export type ExtractionFunction<A, B, Env extends BaseEnv> = (a: A, env: Env) => ExtractionResult<B, Env>;
 export type FilterFunction<A, Env extends BaseEnv> = ExtractionFunction<A, A, Env>;
@@ -319,10 +319,10 @@ const withCarriedWA: <A, Env extends BaseEnv>(arrow: Arrow<A, unknown, Env>) => 
 function separateResults<A, Env extends BaseEnv>(
   extractionResults: ExtractionResult<A, Env>[]
 ): Task.Task<[Array<W<ControlInstruction, Env>>, Array<W<A, Env>>]> {
-  return () => Async.mapSeries<ExtractionResult<A, Env>, ExtractionEither<A, Env>>(
+  return () => Async.mapSeries<ExtractionResult<A, Env>, PerhapsW<A, Env>>(
     extractionResults,
     async er => er())
-    .then((settled: ExtractionEither<A, Env>[]) => {
+    .then((settled: PerhapsW<A, Env>[]) => {
       const lefts: WCI<Env>[] = [];
       const rights: W<A, Env>[] = [];
       _.each(settled, result => {
@@ -332,7 +332,6 @@ function separateResults<A, Env extends BaseEnv>(
       return [lefts, rights];
     });
 }
-
 
 
 // Control flow primitives
@@ -472,12 +471,17 @@ const __attemptSeries: <A, B, Env extends BaseEnv> (arrows: Arrow<A, B, Env>[], 
 
     return pipe(
       ra,
-      withNS(ns, headArrow),
-      TE.alt(() => pipe(ra, __attemptSeries(tailArrows, arrowCount))),
+      TE.chain(([a, env]) => {
+        const origWA = TE.right(asW(a, env));
+        const headAttempt = pipe(origWA, withNS(ns, headArrow));
+        const fallback = pipe(origWA, __attemptSeries(tailArrows, arrowCount));
+
+        return TE.orElse(() => fallback)(headAttempt)
+      }),
     );
   };
 
-const hook: <A, B, Env extends BaseEnv>(f: (a: A, b: EitherControlOrA<B>, env: Env) => void) =>
+const hook: <A, B, Env extends BaseEnv>(f: (a: A, b: Perhaps<B>, env: Env) => void) =>
   PostHook<A, B, Env> = (f) => f;
 
 function through<A, B, Env extends BaseEnv>(
@@ -519,7 +523,7 @@ function throughLeft<A, Env extends BaseEnv>(
 }
 
 function tapLeft<A, Env extends BaseEnv>(
-  f: ControlFunc<Env>,
+  f: ControlFunc_<Env>,
 ): Arrow<A, A, Env> {
   return (ra) => pipe(
     ra,

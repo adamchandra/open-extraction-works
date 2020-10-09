@@ -536,6 +536,7 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
     const keyEvidence = _.join(evidenceKeys, ' ++ ');
 
     return compose(
+      log('info', () => 'tryEvidenceMapping begin...'),
       composeSeries(...filters),
       tap((_a, env) => {
         _.each(evidenceKeys, evKey => {
@@ -556,6 +557,7 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
         });
         saveFieldRecs(env);
       }),
+      log('info', () => 'tryEvidenceMapping success'),
       tapEnvLR((env) => {
         _.remove(env.fields, () => true);
         _.remove(env.fieldCandidates, () => true);
@@ -720,6 +722,7 @@ export const cleanFields: Arrow<unknown, unknown> = tap((_a, env) => {
 
 export interface ExtractContext {
   log: Logger;
+  entryPath: string;
 }
 
 

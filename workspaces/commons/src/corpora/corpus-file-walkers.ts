@@ -1,7 +1,7 @@
-import _ from "lodash";
-import { Readable } from "stream";
-import path from "path";
-import fs from "fs-extra";
+import _ from 'lodash';
+import { Readable } from 'stream';
+import path from 'path';
+import fs from 'fs-extra';
 import { getDirWalkerStream, stringStreamFilter } from './dirstream';
 import { throughFunc } from '~/util/stream-utils';
 import { shaEncodeAsHex } from '~/util/string-utils';
@@ -27,8 +27,8 @@ export function makeCorpusEntryLeadingPath(s: string): string {
   const sHash = shaEncodeAsHex(s);
   const leadingPath = sHash
     .slice(0, 2)
-    .split("")
-    .join("/");
+    .split('')
+    .join('/');
   return leadingPath;
 }
 
