@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import { arglib } from 'commons';
-import { runMainTestExtractFields } from '~/extract/core/extraction-cli';
+import { runMainExtractFields } from '~/extract/core/extraction-cli';
 
 const { opt, config, registerCmd } = arglib;
 
@@ -26,16 +26,28 @@ registerCmd(
       required: false,
       default: 'info'
     }),
+    opt.ion('path-filter', {
+      type: 'string',
+      required: false,
+      default: '.*'
+    }),
+    opt.ion('url-filter', {
+      type: 'string',
+      required: false,
+      default: '.*'
+    }),
   )
 )((args: any) => {
-  const { corpusRoot, logLevel, drop, take } = args;
+  const { corpusRoot, logLevel, drop, take, pathFilter, urlFilter } = args;
   const logpath = corpusRoot;
 
-  runMainTestExtractFields(
+  runMainExtractFields(
     corpusRoot,
     logpath,
     logLevel,
-    drop, take
+    drop, take,
+    pathFilter,
+    urlFilter
   ).then(() => {
     console.log('done');
   });

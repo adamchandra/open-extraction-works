@@ -166,16 +166,6 @@ export const FieldExtractionPipeline = attemptSeries(
   )
 );
 
-export const TitleFieldAttempts = attemptSeries(
-  forEachInput(
-    applyAll(
-      selectMetaContentAs('title', 'citation_title'),
-      selectMetaContentAs('title', 'DC.Title'),
-    ),
-  ),
-);
-
-
 export const gatherFieldEvidence = forInputs(
   /response-body/,
   applyAll(
@@ -233,39 +223,37 @@ export const AbstractFieldAttempts = compose(
   gatherFieldEvidence,
   clearEvidence(/^url:/),
 
-  log('info', () => 'starting evidence mapping'),
-
   attemptSeries(
-    // tryEvidenceMapping({
-    //   'metadata:title': 'title',
-    //   'metadata:abstract': 'clipped',
-    //   'metadata:author': 'author',
-    //   'metadata:pdf-link': 'pdf-link',
-    // }),
-    // tryEvidenceMapping({ // link.springer.com/chapter
-    //   'citation_title': 'title',
-    //   'section#Abs1 > p.Para': 'abstract',
-    //   'og:description': 'abstract-clipped',
-    //   'description': 'abstract-clipped',
-    //   'citation_author': 'author',
-    //   'citation_pdf_url': 'pdf-link',
-    // }),
-    // tryEvidenceMapping({ // link.springer.com/article
-    //   'citation_title': 'title',
-    //   'og:description': 'abstract',
-    //   'DC.Description': 'abstract',
-    //   '"description"': 'abstract-clipped',
-    //   'citation_author': 'author',
-    //   'citation_pdf_url': 'pdf-link',
-    // }),
-    // tryEvidenceMapping({ // sciencedirect.com
-    //   'host:.*sciencedirect.com': '',
-    //   'citation_title': 'title',
-    //   '.Abstracts': 'abstract:raw',
-    //   'og:description': 'abstract-clipped',
-    //   'citation_author': 'author',
-    //   'div.PdfEmbed': 'pdf-link:prefix',
-    // }),
+    tryEvidenceMapping({ // ieee
+      'metadata:title': 'title',
+      'metadata:abstract': 'abstract',
+      'metadata:author': 'author',
+      'metadata:pdf-path': 'pdf-path',
+    }),
+    tryEvidenceMapping({ // link.springer.com/chapter
+      'citation_title': 'title',
+      'section#Abs1 > p.Para': 'abstract',
+      'og:description': 'abstract-clipped',
+      '"description"': 'abstract-clipped',
+      'citation_author': 'author',
+      'citation_pdf_url': 'pdf-link',
+    }),
+    tryEvidenceMapping({ // link.springer.com/article
+      'citation_title': 'title',
+      'og:description': 'abstract',
+      'DC.Description': 'abstract',
+      '"description"': 'abstract-clipped',
+      'citation_author': 'author',
+      'citation_pdf_url': 'pdf-link',
+    }),
+    tryEvidenceMapping({ // sciencedirect.com
+      'host:.*sciencedirect.com': '',
+      'citation_title': 'title',
+      '.Abstracts': 'abstract:raw',
+      'og:description': 'abstract-clipped',
+      'citation_author': 'author',
+      'div.PdfEmbed': 'pdf-path',
+    }),
     tryEvidenceMapping({ // proceedings.mlr.press
       'citation_title': 'title',
       '#abstract': 'abstract',
@@ -274,7 +262,7 @@ export const AbstractFieldAttempts = compose(
       'citation_pdf_url': 'pdf-link',
     }),
     tryEvidenceMapping({ // arxiv.org
-      'host:.*arxiv.org': '',
+      'host:arxiv.org': '',
       'citation_title': 'title',
       'og:description': 'abstract',
       'citation_author': 'author',

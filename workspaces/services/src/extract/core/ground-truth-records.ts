@@ -1,28 +1,18 @@
-import { QualifiedKeyValue, toQualifiedKeyValues } from 'commons';
+import { QualifiedKey, Primitive, QualifiedKeyValue, toQualifiedKeyValues } from 'commons';
 import _ from 'lodash';
 import { ExtractionRecord } from './extraction-records';
 
-export interface IsObservedValue {
-  kind: 'IsObservedValue';
-}
-
-export interface IsCorrectValue {
-  kind: 'IsCorrectValue';
-}
-
-export interface IsIncorrectValue {
-  kind: 'IsIncorrectValue';
-}
 
 export type GroundTruthAssertion =
-  IsObservedValue
-  | IsCorrectValue
-  | IsIncorrectValue
+  'IsObservedValue'
+  | 'IsCorrectValue'
+  | 'IsIncorrectValue'
   ;
 
 export interface GroundTruthLabel {
-  pathValue: QualifiedKeyValue;
-  assertions: GroundTruthAssertion[];
+  key: QualifiedKey;
+  value: Primitive;
+  assertion: GroundTruthAssertion;
 }
 
 export interface GroundTruthLabels {
@@ -42,13 +32,11 @@ export function initGroundTruthAssertions(extractionRecord: ExtractionRecord): G
       return [];
     });
 
-  const labels = _.map(retained, v => {
-    const isObserved: IsObservedValue = {
-      kind: 'IsObservedValue',
-    };
+  const labels = _.map(retained, ([key, value]) => {
     const l: GroundTruthLabel = {
-      pathValue: v,
-      assertions: [isObserved],
+      key: [key],
+      value,
+      assertion: 'IsObservedValue',
     };
     return l;
   });

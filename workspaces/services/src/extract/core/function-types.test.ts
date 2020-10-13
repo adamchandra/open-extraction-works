@@ -287,8 +287,7 @@ describe('Extraction Prelude / Primitives', () => {
   it.only('attemptSeries with failed inputs', async (done) => {
     const logs: string[] = [];
     const pushLog = bracketLog(logs);
-    // const inputString = TE.right(asW('Four score and seven years', initEnv));
-    // const inputString: ExtractionResult<string> = TE.left(asWCI('halt', initEnv));
+
     const inputString: ExtractionResult<string> =
       TE.right(asW('Four score', initEnv));
 
@@ -300,7 +299,8 @@ describe('Extraction Prelude / Primitives', () => {
       );
 
 
-    const succeedingFunc: Arrow<string, string> = pushLog('succ', compose(
+    const succeedingFunc: Arrow<string, string> =
+      pushLog('succ', compose(
       tap((a) => putStrLn(`succ() => ${a}`)),
       filter<string>((a) => /Four/.test(a)),
     ));

@@ -129,14 +129,32 @@ export function readCorpusTextFileAsync(entryPath: string, artifactDir: Artifact
   return readTextOrUndefAsync(filePath);
 }
 
-export function writeCorpusJsonFile<T>(entryPath: string, artifactDir: ArtifactSubdir, filename: string, content: T): boolean {
+export function writeCorpusJsonFile<T>(
+  entryPath: string,
+  artifactDir: ArtifactSubdir,
+  filename: string,
+  content: T,
+  overwrite: boolean=false
+): boolean {
   ensureArtifactDir(entryPath, artifactDir);
   const filePath = resolveCorpusFile(entryPath, artifactDir, filename);
+  if (fs.existsSync(filePath) && overwrite) {
+    fs.unlinkSync(filePath);
+  }
   return writeJson(filePath, content);
 }
-export function writeCorpusTextFile(entryPath: string, artifactDir: ArtifactSubdir, filename: string, content: string): boolean {
+export function writeCorpusTextFile(
+  entryPath: string,
+  artifactDir: ArtifactSubdir,
+  filename: string,
+  content: string,
+  overwrite: boolean=false
+): boolean {
   ensureArtifactDir(entryPath, artifactDir);
   const filePath = resolveCorpusFile(entryPath, artifactDir, filename);
+  if (fs.existsSync(filePath) && overwrite) {
+    fs.unlinkSync(filePath);
+  }
   return writeText(filePath, content);
 }
 

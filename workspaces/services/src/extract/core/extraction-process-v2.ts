@@ -5,7 +5,7 @@ import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 
 import { Metadata } from '~/spidering/data-formats';
-import { ArtifactSubdir, expandDir, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
+import { ArtifactSubdir, expandDir, putStrLn, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
 import { Logger } from 'winston';
 import puppeteer from 'puppeteer-extra'
 import { shaEncodeAsHex } from 'commons';
@@ -291,17 +291,9 @@ export const getElemAttr: (attr: string) => Arrow<Elem, string> =
 
     return pipe(
       () => attrContent,
-      TE.map(sdf => {
-        log.info(`getElemAttr(${attr}) => ${sdf}`);
-        return sdf;
-      }),
-      TE.mapLeft(sdf => {
-        log.error(`getElemAttr(${attr}) => ${sdf}`);
-        return sdf;
-      }),
       TE.mapLeft((msg) => ['continue', `getElemAttr error: ${msg}`]),
     );
-  });
+  }, 'getElemAttr');
 
 export const getElemText: Arrow<Elem, string> =
   through((elem: Elem) => {
@@ -375,8 +367,9 @@ export const selectMetaContentAs: (fieldName: string, name: string, attrName?: s
 
 export const saveEvidence: (evidenceName: string) => Arrow<string, unknown> =
   (evidenceName) => through((extractedValue: string, env) => {
+    const text = _.isString(extractedValue)? extractedValue.trim() : 'undefined';
     const candidate: FieldCandidate = {
-      text: extractedValue.trim(),
+      text,
       evidence: getCurrentEvidenceStrings(env),
     }
     env.fieldCandidates.push(candidate);
@@ -536,7 +529,6 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
     const keyEvidence = _.join(evidenceKeys, ' ++ ');
 
     return compose(
-      log('info', () => 'tryEvidenceMapping begin...'),
       composeSeries(...filters),
       tap((_a, env) => {
         _.each(evidenceKeys, evKey => {
@@ -557,8 +549,7 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
         });
         saveFieldRecs(env);
       }),
-      log('info', () => 'tryEvidenceMapping success'),
-      tapEnvLR((env) => {
+      tap((_a, env) => {
         _.remove(env.fields, () => true);
         _.remove(env.fieldCandidates, () => true);
       })
@@ -591,7 +582,7 @@ export const evidenceExists: (evstr: string) => FilterArrow<unknown> =
         return _.some(fc.evidence, ev => regex.test(ev));
       }
     );
-  });
+  }, evstr);
 
 export const summarizeEvidence: Arrow<unknown, unknown> = tapEnvLR((env) => {
   const { fieldCandidates, log } = env
@@ -724,17 +715,6 @@ export interface ExtractContext {
   log: Logger;
   entryPath: string;
 }
-
-
-// and(url~/arxiv.org/, select~/og:description/).implies 'abstract'
-// metaTags.names includesAll [citation_title, citation_author, ]
-// when(all(haveEvidence(  .abstractInFull, DC.Description, og:description )))(
-//
-// )
-//       and  textFor(.abstractInFull) hasClippedVersion == textFor(DC.Description)
-//       then og:description => Title
-//            DC.Description => abstract:clipped
-//            abstractInFull => abstract
 
 
 export async function initExtractionEnv(
