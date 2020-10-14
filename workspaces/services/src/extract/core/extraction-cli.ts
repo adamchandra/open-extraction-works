@@ -8,8 +8,13 @@ import {
   readCorpusJsonFile,
   writeCorpusJsonFile,
   hasCorpusFile,
+  setLogLabel,
+  expandDir,
+  prettyPrint,
+  putStrLn,
 } from 'commons';
-import fs from 'fs-extra';
+
+import parseUrl from 'url-parse';
 
 import path from 'path';
 
@@ -21,13 +26,108 @@ import {
 } from './extraction-prelude';
 
 
+import fs from 'fs-extra';
 import { ExtractContext, initExtractionEnv } from './extraction-process-v2';
 import { Metadata } from '~/spidering/data-formats';
 
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { AbstractFieldAttempts } from './extraction-rules';
+import { radix } from 'commons';
 
+const extractionRecordFileName = 'extraction-records.json';
+
+
+export async function runMainInitFilters(
+  corpusRoot: string,
+): Promise<[radix.Radix<Set<string>>, radix.Radix<number>]> {
+  const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
+
+  const radCounts = radix.createRadix<number>();
+  const radAccum = radix.createRadix<Set<string>>();
+
+  const pumpBuilder = streamPump.createPump()
+    .viaStream<string>(dirEntryStream)
+    .throughF((entryPath) => {
+      const metadata = readCorpusJsonFile<Metadata>(entryPath, '.', 'metadata.json')
+
+      if (metadata === undefined) {
+        return;
+      }
+
+      const { responseUrl } = metadata;
+      const parsedUrl = parseUrl(responseUrl);
+      const { host } = parsedUrl;
+      const paths = parsedUrl.pathname.split('/');
+      const [, path1] = paths.slice(0, paths.length - 1);
+      const hostAndPath = `${host}/${path1}`;
+      const lookup = {
+        host: {
+          okay: host,
+          path: {
+            okay: hostAndPath
+          }
+        },
+
+      }
+      radix.radUpsert(radCounts, [host], (count) => count === undefined ? 1 : count + 1)
+      if (path1 !== undefined) {
+        radix.radUpsert(radCounts, [host, path1], (count) => count === undefined ? 1 : count + 1)
+      }
+
+      const hasExtractionRecord = hasCorpusFile(entryPath, 'extracted-fields', extractionRecordFileName);
+
+      if (!hasExtractionRecord) {
+        return;
+      }
+
+      const extractedFieldsDir = path.join(entryPath, 'extracted-fields');
+      if (!fs.existsSync(extractedFieldsDir)) {
+        return;
+      }
+      const exdir = expandDir(extractedFieldsDir);
+      const gtFiles = _.filter(exdir.files, f => f.endsWith('.gt'));
+
+      _.each(gtFiles, f => {
+        const nameParts = path.basename(f).split(/\./);
+        const gtNamePart = nameParts[nameParts.length - 2];
+        putStrLn(`gtNamePart = ${gtNamePart}`);
+
+        const dotted = gtNamePart.replace(/_/g, '.');
+        const v = _.get(lookup, dotted);
+
+        radix.radUpsert(
+          radAccum, dotted,
+          (strs?: Set<string>) => strs === undefined ? (new Set<string>().add(v)) : strs.add(v)
+        );
+      });
+
+    });
+
+  return pumpBuilder.toPromise()
+    .then(() => {
+      putStrLn('URL Host / Path counts');
+      const pathCounts: [number, string][] = [];
+      radix.radTraverseValues(radCounts, (path, count) => {
+        const jpath = _.join(path, '/');
+        pathCounts.push([count, jpath]);
+      });
+
+      const sorted = _.sortBy(pathCounts, ([c]) => -c);
+      _.each(sorted, ([count, path]) => {
+        putStrLn(`    ${count} : ${path}`);
+      })
+
+      putStrLn('Ground Truth labels');
+      radix.radTraverseValues(radAccum, (path, strs) => {
+        putStrLn(`    ${_.join(path, ' _ ')} =>`);
+        strs.forEach(s => {
+          putStrLn(`      ${s}`);
+        })
+      })
+      return [radAccum, radCounts];
+    });
+}
 
 export async function runFieldExtractor(
   ctx: ExtractContext,
@@ -43,6 +143,7 @@ export async function runFieldExtractor(
 
   return res;
 }
+
 
 export async function runMainExtractFields(
   corpusRoot: string,
@@ -61,18 +162,20 @@ export async function runMainExtractFields(
 
   const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
 
-  let entryNum = 0;
+  // const [radAccum, radCount] = await runMainInitFilters(corpusRoot);
 
   const pumpBuilder = streamPump.createPump()
     .viaStream<string>(dirEntryStream)
-    .tap(() => entryNum += 1)
-    .filter(() => dropN <= entryNum && entryNum <= dropN + takeN)
-    .tap(() => log.info(`Processing Entry#${entryNum}`))
     .filter((entryPath) => entryPath !== undefined)
-    .initEnv<ExtractContext>((entryPath) => ({
-      entryPath: entryPath || '',
-      log,
-    }))
+    .initEnv<ExtractContext>((entryPath) => {
+      const entry = entryPath || '';
+      setLogLabel(log, entry);
+
+      return {
+        entryPath: entry,
+        log,
+      };
+    })
     .filter((entryPath) => entryPath !== '')
     .filter((entryPath) => {
       const pathRE = new RegExp(pathFilter);
@@ -96,11 +199,11 @@ export async function runMainExtractFields(
       if (E.isRight(res)) {
         ctx.log.info('writing extraction records');
         const [, env] = res.right;
-        writeExtractionRecords(env);
+        writeExtractionRecords(env, ['Extraction Success']);
       } else {
         const [ci, env] = res.left;
         ctx.log.error(`error extracting records: ${ci}`);
-        writeExtractionRecords(env);
+        writeExtractionRecords(env, ['Extraction Failure', `${ci}`]);
       }
     });
 
@@ -108,7 +211,7 @@ export async function runMainExtractFields(
     .then(() => undefined);
 }
 
-function writeExtractionRecords(env: ExtractionEnv) {
+function writeExtractionRecords(env: ExtractionEnv, messages: string[]) {
   const { entryPath, fieldRecs } = env;
   const reshaped = _.mapValues(fieldRecs, (value) => {
     return {
@@ -121,6 +224,7 @@ function writeExtractionRecords(env: ExtractionEnv) {
   };
 
   const empty = {
+    messages,
     fields: {
       'title': { count: 0 },
       'abstract': { count: 0 },
@@ -133,8 +237,6 @@ function writeExtractionRecords(env: ExtractionEnv) {
 
   const finalOutput = _.merge({}, empty, output);
 
-  const extractionRecordFileName = 'extraction-records.json';
-
   writeCorpusJsonFile(
     entryPath,
     'extracted-fields',
@@ -144,3 +246,47 @@ function writeExtractionRecords(env: ExtractionEnv) {
   );
 
 }
+
+      // const { responseUrl } = metadata;
+      // const parsedUrl = parseUrl(responseUrl);
+      // const { host } = parsedUrl;
+      // const paths = parsedUrl.pathname.split('/');
+      // const [, path1] = paths.slice(0, paths.length - 1);
+      // const hostAndPath = `${host}/${path1}`;
+
+      // const urlIsMarked = markedUrls.has(host) || markedUrls.has(hostAndPath);
+
+      // if (urlIsMarked) {
+      //   ctx.log.info(`Entry URL host ${host} / and maybe path ${path1} was previously marked, skipping...`);
+      //   return;
+      // }
+
+      // // const hasExtractionRecord = hasCorpusFile(entryPath, 'extracted-fields', extractionRecordFileName);
+      // const isEntryOkay = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.entry_okay.gt`);
+      // const isHostOkay = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.host_okay.gt`);
+      // const isHostPathOkay = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.host_path_okay.gt`);
+      // const isBuryHost = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.bury_host.gt`);
+
+      // const isMarked = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.mark.gt`);
+
+      // if (isHostOkay) {
+      //   ctx.log.info(`Entry has Host-Okay mark, will skip similar hosts ${host} ...`);
+      //   markedUrls.add(host);
+      //   return;
+      // }
+
+      // if (isHostPathOkay) {
+      //   ctx.log.info(`Entry has Host-Path-Okay mark, will skip similar hosts ${hostAndPath} ...`);
+      //   markedUrls.add(hostAndPath);
+      //   return;
+      // }
+
+      // if (isEntryOkay) {
+      //   ctx.log.info('Entry has Entry-Okay mark, skipping ...');
+      //   return;
+      // }
+
+      // if (hasExtractionRecord) {
+      //   ctx.log.info('Entry has Extraction Records, skipping...');
+      //   return;
+      // }

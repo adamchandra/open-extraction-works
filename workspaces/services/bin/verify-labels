@@ -27,10 +27,6 @@ done
 shift $((OPTIND -1))
 
 
-
-
-
-
 jqabs='if .fields.abstract.instances == null then "none" else .fields.abstract.instances[].value end'
 jqabsc='if .fields["abstract-clipped"]?.instances? == null then "none" else .fields["abstract-clipped"].instances[].value end'
 jqauth='if .fields.author.instances? == null then "none" else .fields.author.instances[].value end'
@@ -40,10 +36,10 @@ jqpdfpath='if .fields["pdf-path"].instances == null then "none" else .fields["pd
 
 meta='.responseUrl'
 
-
 find $corpus -type f -name 'extraction-records.json' \
      -exec echo "======= Examining {} ===========" ';' \
      -exec "$BIN/realdir.sh" {} ';' \
+     -exec "$BIN/gt-exists.sh" {} ';' \
      -exec echo Title ';' \
      -exec jq "$jqtitle" {} ';' \
      -exec echo Abstract ';' \

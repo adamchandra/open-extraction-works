@@ -10,25 +10,31 @@ pause(){
     read -p "Press [Enter] key to continue..." fackEnterKey
 }
 
-allokay(){
-	  echo "everything is okay with $infile.all.okay.gt"
-    touch "$infile.all.okay.gt"
+entry_okay(){
+	  echo "everything is okay with $infile.entry.okay.gt"
+    touch "$infile.entry_okay.gt"
+    exit 0
+}
+
+host_okay(){
+	  echo "everything is okay with $infile.host.okay.gt"
+    touch "$infile.host_okay.gt"
+    exit 0
+}
+
+host_path_okay(){
+	  echo "everything is okay with $infile.host_path.okay.gt"
+    touch "$infile.host_path_okay.gt"
+    exit 0
+}
+
+bury_host(){
+	  echo "skip $infile"
+    touch "$infile.bury_host.gt"
     exit 0
 }
 
 skip(){
-	  echo "skip $infile"
-    touch "$infile.skip.gt"
-    exit 0
-}
-
-mark(){
-	  echo "makr $infile"
-    touch "$infile.mark.gt"
-    exit 0
-}
-
-zero(){
 	  echo "skipping"
     exit 0
 }
@@ -37,18 +43,22 @@ show_menus() {
 	  echo "~~~~~~~~~~~~~~~~~~~~~"
 	  echo " Assert Ground Truth "
 	  echo "~~~~~~~~~~~~~~~~~~~~~"
-	  echo "1. Everything Okay"
-	  echo "2. Skip"
-	  echo "3. Mark"
+	  echo "1. Host Okay"
+	  echo "2. Host/Path Okay"
+	  echo "3. Entry Okay"
+	  echo "4. Bury Host"
+	  echo "5. Skip"
 }
 
 read_options(){
 	  local choice
-	  read -p "choice> " choice
+	  read -p "choice> [1 ... 3] " choice
 	  case $choice in
-		    1) allokay ;;
-		    2) skip ;;
-		    3) mark ;;
+		    1) host_okay ;;
+		    2) host_path_okay ;;
+		    3) entry_okay ;;
+		    4) bury_host ;;
+		    5) skip ;;
 	  esac
 }
 

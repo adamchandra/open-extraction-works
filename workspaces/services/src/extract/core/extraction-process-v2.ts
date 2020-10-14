@@ -367,7 +367,7 @@ export const selectMetaContentAs: (fieldName: string, name: string, attrName?: s
 
 export const saveEvidence: (evidenceName: string) => Arrow<string, unknown> =
   (evidenceName) => through((extractedValue: string, env) => {
-    const text = _.isString(extractedValue)? extractedValue.trim() : 'undefined';
+    const text = _.isString(extractedValue) ? extractedValue.trim() : 'undefined';
     const candidate: FieldCandidate = {
       text,
       evidence: getCurrentEvidenceStrings(env),
@@ -394,6 +394,20 @@ export const selectElemAttrEvidence: (queryString: string, contentAttr: string) 
       selectElemAttr(queryString, contentAttr),
       saveEvidence(evidenceName),
       clearEvidence(/^select:/),
+    );
+  };
+
+export const selectAllElemAttrEvidence: (queryString: string, contentAttr: string) => Arrow<CacheFileKey, unknown> =
+  (queryString, contentAttr) => {
+    const evidenceName = `select-all:$(${queryString}).attr(${contentAttr})`;
+    return compose(
+      addEvidence(() => evidenceName),
+      selectAll(queryString),
+      forEachDo(compose(
+        getElemAttr(contentAttr),
+        saveEvidence(evidenceName),
+      )),
+      clearEvidence(/^select-all:/),
     );
   };
 
@@ -531,21 +545,41 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
     return compose(
       composeSeries(...filters),
       tap((_a, env) => {
-        _.each(evidenceKeys, evKey => {
-          const fieldName = mapping[evKey];
+        _.each(evidenceKeys, evKey0 => {
+          const fieldName = mapping[evKey0];
 
-          if (fieldName === '') return;
+          const evKey = evKey0.endsWith('?') ? evKey0.slice(0, evKey0.length - 1) : evKey0;
 
-          const maybeCandidates = candidatesForEvidence(env, evKey);
-          _.each(maybeCandidates, c => {
-            const { text, evidence } = c;
-            const field: Field = {
-              name: fieldName,
-              evidence: [...evidence, keyEvidence],
-              value: text
-            };
-            env.fields.push(field);
+          const evKeys = _.map(evKey.split('|'), s => s.trim());
+
+          _.each(evKeys, (key) => {
+
+            const maybeCandidates = candidatesForEvidence(env, key);
+
+            _.each(maybeCandidates, c => {
+              const { text, evidence } = c;
+
+              const field: Field = {
+                name: fieldName,
+                evidence: [...evidence, keyEvidence],
+                value: text
+              };
+
+              if (fieldName === 'abstract:raw') {
+                const [cleaned0, cleaningRuleResults] = applyCleaningRules(AbstractCleaningRules, text);
+                field.name = 'abstract';
+                field.value = cleaned0;
+                const ruleNames = _.map(cleaningRuleResults, r => {
+                  return `clean: ${r.rule}`;
+                });
+                field.evidence.push(...ruleNames);
+              }
+
+              env.fields.push(field);
+            });
           });
+
+
         });
         saveFieldRecs(env);
       }),
@@ -576,12 +610,16 @@ export const textForEvidence: (env: ExtractionEnv, evstr: string) => string | un
 
 export const evidenceExists: (evstr: string) => FilterArrow<unknown> =
   (evstr) => filter((_a, env) => {
-    const regex = new RegExp(evstr);
-    return _.some(
-      env.fieldCandidates, (fc) => {
-        return _.some(fc.evidence, ev => regex.test(ev));
-      }
-    );
+    if (evstr.endsWith('?')) return true;
+    const evRes = _.map(evstr.split('|'), s => new RegExp(s.trim()));
+    return _.some(evRes, regex => {
+      return _.some(
+        env.fieldCandidates, (fc) => {
+          return _.some(fc.evidence, ev => regex.test(ev));
+        }
+      );
+
+    })
   }, evstr);
 
 export const summarizeEvidence: Arrow<unknown, unknown> = tapEnvLR((env) => {
@@ -677,6 +715,31 @@ export function applyCleaningRules(rules: CleaningRule[], initialString: string)
   return [currentString, cleaningResults];
 }
 
+export const cleanNamedFields: Arrow<unknown, unknown> = tap((_a, env) => {
+  const nameValuePairs = _.toPairs(env.fieldRecs)
+  _.each(nameValuePairs, ([fieldName, fields]) => {
+    if (fieldName === 'abstract') {
+      _.each(fields, field => {
+        const fieldValue = field.value;
+        let cleaned: string | undefined;
+        if (fieldValue) {
+          const [cleaned0, cleaningRuleResults] = applyCleaningRules(AbstractCleaningRules, fieldValue);
+          const ruleNames = _.map(cleaningRuleResults, r => {
+            return `clean: ${r.rule}`;
+          })
+          cleaned = cleaned0;
+          field.evidence.push(...ruleNames);
+        }
+
+        if (cleaned && cleaned.length > 0) {
+          field.value = cleaned;
+        } else {
+          field.value = undefined;
+        }
+      })
+    }
+  });
+});
 export const cleanFields: Arrow<unknown, unknown> = tap((_a, env) => {
   const nameValuePairs = _.toPairs(env.fieldRecs)
   _.each(nameValuePairs, ([name, fields]) => {

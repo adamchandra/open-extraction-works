@@ -1,8 +1,8 @@
-import _ from "lodash";
-import fs from "fs-extra";
-import through from "through2";
-import { Transform, Readable } from "stream";
-import { prettyPrint } from "./pretty-print";
+import _ from 'lodash';
+import fs from 'fs-extra';
+import through from 'through2';
+import { Transform, Readable } from 'stream';
+import { prettyPrint } from './pretty-print';
 import split from 'split';
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import stream from 'stream';
@@ -132,7 +132,7 @@ export function throughAccum<T, Acc>(
 
 export function handlePumpError(error: Error): void {
   if (error) {
-    console.log(`Error:`, error);
+    console.log('Error:', error);
   }
 }
 
@@ -233,24 +233,24 @@ export function stanzaChunker(
   // },
 ): Transform {
   let stanzaBuffer: string[] = [];
-  let state = "awaiting-start";
+  let state = 'awaiting-start';
 
   const chunker = through.obj(
     function(line: string, _enc: string, cb) {
       const isStart = testStart(line);
       const isEnd = testEnd(line);
 
-      if (state === "awaiting-start" && isStart) {
+      if (state === 'awaiting-start' && isStart) {
         stanzaBuffer = [];
         stanzaBuffer.push(line);
-        state = "in-stanza";
-      } else if (state === "in-stanza") {
+        state = 'in-stanza';
+      } else if (state === 'in-stanza') {
         stanzaBuffer.push(line);
       }
 
       if (isEnd) {
-        state = "awaiting-start";
-        const stanza = _.join(stanzaBuffer, "");
+        state = 'awaiting-start';
+        const stanza = _.join(stanzaBuffer, '');
         stanzaBuffer = [];
         return cb(null, stanza);
       }
@@ -312,7 +312,7 @@ export async function promisifyReadableEnd(readStream: Readable): Promise<void> 
     readStream.on('end', function() {
       resolve();
     });
-    readStream.on("data", () => undefined);
+    readStream.on('data', () => undefined);
   });
 }
 

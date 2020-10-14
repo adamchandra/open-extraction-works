@@ -1,9 +1,28 @@
 import _ from 'lodash';
 
 import { arglib } from 'commons';
-import { runMainExtractFields } from '~/extract/core/extraction-cli';
+import { runMainExtractFields, runMainInitFilters } from '~/extract/core/extraction-cli';
 
 const { opt, config, registerCmd } = arglib;
+
+registerCmd(
+  arglib.YArgs,
+  'show-extractor-stats',
+  'run field extractors',
+  config(
+    opt.cwd,
+    opt.existingDir('corpus-root: root directory for corpus files'),
+  )
+)((args: any) => {
+  const { corpusRoot } = args;
+
+  runMainInitFilters(
+    corpusRoot,
+  ).then(() => {
+    console.log('done');
+  });
+
+});
 
 registerCmd(
   arglib.YArgs,

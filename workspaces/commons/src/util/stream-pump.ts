@@ -72,8 +72,6 @@ function bufferChunks<ChunkT, Env>(pb: PumpBuilder<ChunkT, Env>) {
 
 }
 
-
-
 function adaptOnDataFn<ChunkT, Env>(f: WithEnvCB<ChunkT, Env>): WithEnvCBAdapted<ChunkT, Env> {
   return (data: ChunkT | WithEnv<ChunkT, Env>) => {
     if (isWithEnv(data)) {

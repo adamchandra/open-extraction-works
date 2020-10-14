@@ -8,193 +8,29 @@ import {
   log,
   tap,
   filter,
+  composeSeries,
 } from './extraction-prelude';
 
 import {
   clearEvidence,
-  forEachInput,
   forInputs,
   normalizeHtmls,
-  readGlobalDocumentMetadata,
-  saveDocumentMetaDataAs,
-  selectAllMetaContentAs,
   selectAllMetaEvidence,
-  selectElemAttrAs,
   selectElemAttrEvidence,
-  selectElemTextAs,
   selectElemTextEvidence,
   selectGlobalDocumentMetaEvidence,
-  selectMetaContentAs,
   selectMetaEvidence,
   statusFilter,
   summarizeEvidence,
-  summarizeExtraction,
   tryEvidenceMapping,
   urlFilter,
-  _addEvidence
+  _addEvidence,
+  tapEnvLR,
+  selectAllElemAttrEvidence,
+  cleanNamedFields
 } from './extraction-process-v2';
 
 import parseUrl from 'url-parse';
-
-export const FieldExtractionPipeline = attemptSeries(
-  compose(
-    urlFilter(/arxiv.org/), // TODO make logging for pass/fail noisy or quiet
-    // maybe select particular response body/frame, rather that processing all of them
-    // through((responseBodies) => _.filter(responseBodies, rb => rb === 'response-frame-0') )
-    forEachInput(
-      applyAll(
-        selectMetaContentAs('title', 'citation_title'),
-        selectAllMetaContentAs('author', 'citation_author'),
-        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-        selectMetaContentAs('abstract', 'og:description'), // TODO fix: name= vs property=
-      ),
-    ),
-    summarizeExtraction,
-  ),
-
-  compose(
-    urlFilter(/sciencedirect.com\/science/),
-    forEachInput(compose(
-      applyAll(
-        selectMetaContentAs('title', 'citation_title'),
-        // Author : TODO pick up embedded json
-        selectElemAttrAs('pdf-link', 'div.PdfEmbed a.anchor', 'href'),
-        selectElemAttrAs('abstract-clipped', 'meta[property="og:description"]', 'content'),
-        selectElemTextAs('abstract', 'div#abstracts > div.abstract > div'),
-      )
-    )),
-    summarizeExtraction,
-  ),
-
-  compose(
-    urlFilter(/content.iospress.com/),
-    forEachInput(
-      applyAll(
-        selectMetaContentAs('title', 'citation_title'),
-        selectAllMetaContentAs('author', 'citation_author'),
-        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-        selectElemAttrAs('abstract', 'h1[data-abstract]', 'data-abstract'),
-      )
-    ),
-    summarizeExtraction,
-  ),
-
-  compose(
-    urlFilter(/link.springer.com\/article/),
-    forEachInput(
-      applyAll(
-        selectMetaContentAs('title', 'citation_title'),
-        selectAllMetaContentAs('author', 'citation_author'),
-        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-        selectElemAttrAs('abstract-clipped', 'meta[name=description]', 'content'),
-        selectElemAttrAs('abstract', 'meta[name="dc.description"]', 'content'),
-      )
-    ),
-    summarizeExtraction,
-  ),
-  compose(
-    urlFilter(/link.springer.com\/chapter/),
-    forEachInput(
-      applyAll(
-        selectMetaContentAs('title', 'citation_title'),
-        selectAllMetaContentAs('author', 'citation_author'),
-        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-        selectElemAttrAs('abstract-clipped', 'meta[name=description]', 'content'),
-        selectElemTextAs('abstract', 'section#abs1 > p.para'),
-      )
-    ),
-    summarizeExtraction,
-  ),
-
-  compose(
-    urlFilter(/proceedings.mlr.press/),
-    forEachInput(compose(
-      applyAll(
-        selectMetaContentAs('title', 'citation_title'),
-        selectAllMetaContentAs('author', 'citation_author'),
-        selectElemAttrAs('pdf-link', 'meta[name=citation_pdf_url]', 'content'),
-        selectElemAttrAs('abstract-clipped', 'meta[property="og:description"]', 'content'),
-        selectElemTextAs('abstract', 'div#abstract.abstract'),
-      )
-    )),
-    summarizeExtraction,
-  ),
-  compose(
-    urlFilter(/ieeexplore.ieee.org/),
-    forEachInput(compose(
-      readGlobalDocumentMetadata,
-      applyAll(
-        saveDocumentMetaDataAs('title', m => m.title),
-        saveDocumentMetaDataAs('abstract', m => m.abstract),
-        saveDocumentMetaDataAs('pdf-path', m => m.pdfPath),
-      )
-    )),
-    summarizeExtraction,
-  ),
-
-  compose(
-    urlFilter(/mitpressjournals.org/),
-    forEachInput(compose(
-      applyAll(
-        selectMetaContentAs('title', 'DC.Title'),
-        selectAllMetaContentAs('author', 'DC.Creator'),
-        selectElemAttrAs('pdf-link', 'a.show-pdf', 'href'),
-        selectMetaContentAs('abstract-clipped', 'DC.Description'),
-        selectElemTextAs('abstract', 'div.abstractInFull'),
-      )
-    )),
-    summarizeExtraction,
-  ),
-
-  compose(
-    urlFilter(/dl\.acm\.org/),
-    forEachInput(compose(
-      applyAll(
-        selectMetaContentAs('title', 'DC.Title'),
-        selectAllMetaContentAs('author', 'DC.Creator'),
-        selectElemAttrAs('pdf-link', 'li.pdf-file > a', 'href'),
-        selectMetaContentAs('abstract-clipped', 'DC.Description'),
-        selectElemTextAs('abstract', 'div.abstractInFull'),
-      )
-    )),
-    summarizeExtraction,
-  ),
-
-  compose(
-    log('warn', (_a, env) => `no rules matched ${env.metadata.responseUrl}`),
-    summarizeExtraction,
-  )
-);
-
-export const gatherFieldEvidence = forInputs(
-  /response-body/,
-  applyAll(
-    selectGlobalDocumentMetaEvidence(),
-    // Abs/Titles
-    selectMetaEvidence('og:description'),
-    selectMetaEvidence('og:description', 'property'),
-    selectMetaEvidence('description'),
-    selectMetaEvidence('DC.Description'),
-    selectElemAttrEvidence('h1[data-abstract]', 'data-abstract'),
-    selectElemTextEvidence('section#Abs1 > p.Para'),
-    selectElemTextEvidence('.abstract'),
-    selectElemTextEvidence('#abstract'),
-    selectElemTextEvidence('.Abstracts'),
-    selectElemTextEvidence('#Abstracts'),
-    selectElemTextEvidence('.abstractInFull'),
-    //
-    selectMetaEvidence('citation_title'),
-    selectMetaEvidence('DC.Title'),
-    //
-    selectMetaEvidence('citation_pdf_url'),
-    selectElemAttrEvidence('div.PdfEmbed a.anchor', 'href'),
-    selectElemAttrEvidence('a.show-pdf', 'href'),
-    selectElemAttrEvidence('li.pdf-file > a', 'href'),
-    //
-    selectAllMetaEvidence('citation_author'),
-    selectAllMetaEvidence('DC.Creator'),
-  ),
-);
 
 export const checkStatusAndNormalize = compose(
   log('info', (_0, env) => `Processing ${env.metadata.responseUrl}`),
@@ -203,7 +39,7 @@ export const checkStatusAndNormalize = compose(
   filter((a) => a.length > 0),
 )
 
-export const addUrlEvidence = tap((_0, env) => {
+export const addUrlEvidence = tapEnvLR((env) => {
   const parsedUrl = parseUrl(env.metadata.responseUrl);
   const { host } = parsedUrl;
   const paths = parsedUrl.pathname.split('/');
@@ -217,65 +53,228 @@ export const addUrlEvidence = tap((_0, env) => {
   }
 });
 
+
+export const gatherHighwirePressTags = applyAll(
+  selectMetaEvidence('citation_title'),
+  selectMetaEvidence('citation_date'),
+  selectMetaEvidence('citation_pdf_url'),
+  selectMetaEvidence('citation_abstract'),
+  selectAllMetaEvidence('citation_author'),
+);
+
+export const gatherOpenGraphTags = applyAll(
+  selectMetaEvidence('og:url'),
+  selectMetaEvidence('og:url', 'property'),
+  selectMetaEvidence('og:title'),
+  selectMetaEvidence('og:title', 'property'),
+  selectMetaEvidence('og:type'),
+  selectMetaEvidence('og:type', 'property'),
+  selectMetaEvidence('og:description'),
+  selectMetaEvidence('og:description', 'property'),
+);
+
+export const gatherDublinCoreTags = applyAll(
+  selectMetaEvidence('DC.Description'),
+  selectMetaEvidence('DC.Title'),
+  selectAllMetaEvidence('DC.Creator'),
+  selectAllMetaEvidence('DC.Subject'),
+  selectAllMetaEvidence('DC.Identifier'),
+  selectAllMetaEvidence('DC.Type'),
+);
+
+export const gatherSchemaEvidence = forInputs(
+  /response-body/,
+  applyAll(
+    gatherHighwirePressTags,
+    gatherOpenGraphTags,
+    gatherDublinCoreTags,
+
+    // Abs/Titles
+    selectMetaEvidence('description'),
+    selectElemTextEvidence('.abstract'),
+    selectElemTextEvidence('#abstract'),
+    selectElemTextEvidence('#Abstracts'),
+  ),
+);
+
+export const UrlSpecificAttempts = attemptSeries(
+  compose(
+    urlFilter(/ieeexplore.ieee.org/),
+    forInputs(/response-body/, compose(
+      selectGlobalDocumentMetaEvidence(),
+      tryEvidenceMapping({
+        'metadata:title': 'title',
+        'metadata:abstract': 'abstract',
+        'metadata:author': 'author',
+        'metadata:pdf-path': 'pdf-path',
+      }),
+      // TODO make pdf-path into pdf-link
+    )),
+  ),
+  compose(
+    urlFilter(/arxiv.org/),
+    forInputs(/response-body/, compose(
+      applyAll(
+        gatherHighwirePressTags,
+        gatherOpenGraphTags,
+      ),
+      tryEvidenceMapping({
+        'citation_title': 'title',
+        'og:description': 'abstract',
+        'citation_author': 'author',
+        'citation_pdf_url': 'pdf-link',
+      }),
+    )),
+  ),
+  compose(
+    urlFilter(/sciencedirect.com/),
+    forInputs(/response-body/, compose(
+      applyAll(
+        gatherHighwirePressTags,
+        gatherOpenGraphTags,
+        selectElemTextEvidence('.Abstracts'),
+        selectElemTextEvidence('a.author'), // TODO selectAll??
+        selectElemAttrEvidence('div.PdfEmbed a.anchor', 'href'),
+      ),
+      tryEvidenceMapping({ // sciencedirect.com
+        'citation_title': 'title',
+        'og:description': 'abstract-clipped',
+        '.Abstracts': 'abstract:raw',
+        'a.author': 'author',
+        'div.PdfEmbed?': 'pdf-path',
+      }),
+    )),
+  ),
+  compose(
+    urlFilter(/link.springer.com/),
+    forInputs(/response-body/, compose(
+      applyAll(
+        gatherHighwirePressTags,
+        gatherOpenGraphTags,
+        selectElemTextEvidence('section#Abs1 > p.Para'),
+      ),
+      attemptSeries(
+        compose(
+          urlFilter(/\/chapter\//),
+          tryEvidenceMapping({ // link.springer.com/chapter
+            'citation_title': 'title',
+            'citation_author': 'author',
+            'citation_pdf_url': 'pdf-link',
+            'og:description': 'abstract-clipped',
+            'section#Abs1 > p.Para': 'abstract',
+          }),
+        ),
+        compose(
+          urlFilter(/\/article\//),
+          tryEvidenceMapping({ // link.springer.com/article
+            'citation_title': 'title',
+            'citation_author': 'author',
+            'citation_pdf_url': 'pdf-link',
+            'og:description': 'abstract',
+          }),
+        ),
+      )
+    )),
+  ),
+
+  compose(
+    urlFilter(/dl.acm.org/),
+    forInputs(/response-body/, compose(
+      applyAll(
+        gatherDublinCoreTags,
+        selectElemTextEvidence('.citation__title'),
+        selectElemTextEvidence('.abstractInFull'),
+        selectAllElemAttrEvidence('a[class="author-name"]', 'title'),
+        selectElemAttrEvidence('a[title="PDF"]', 'href'),
+      ),
+      tryEvidenceMapping({
+        'DC.Title?': 'title',
+        'citation__title?': 'title',
+        'abstractInFull': 'abstract',
+        'author-name': 'author',
+        'PDF': 'pdf-path',
+      }),
+      // TODO dedup authors, pdf-path => pdf-link
+    )),
+  ),
+
+  compose(
+    urlFilter(/aclweb.org/),
+    forInputs(/response-body/, compose(
+      applyAll(
+        gatherHighwirePressTags,
+        selectElemTextEvidence('.acl-abstract'),
+      ),
+      tryEvidenceMapping({
+        'citation_title': 'title',
+        'citation_author': 'author',
+        'citation_pdf_url': 'pdf-link',
+        'acl-abstract': 'abstract:raw',
+      }),
+    )),
+  ),
+
+  compose(
+    urlFilter(/mitpressjournals.org/),
+    forInputs(/response-body/, compose(
+      applyAll(
+        gatherDublinCoreTags,
+        selectElemAttrEvidence('a[class="show-pdf"]', 'href'),
+        selectElemTextEvidence('.abstractInFull'),
+      ),
+      tryEvidenceMapping({
+        'DC.Title': 'title',
+        'DC.Creator': 'author',
+        'abstractInFull': 'abstract:raw',
+        'show-pdf': 'pdf-link',
+      }),
+    )),
+  ),
+
+  // aaai.org
+  // academic.oup.com
+  // bmcbioinformatics.biomedcentral.com
+  // diglib.eg.org
+  // drops.dagstuhl.de
+  // epubs.siam.org
+  // isca-speech.org
+  // jmlr.org
+  // jstage.jst.go.jp
+  // onlinelibrary.wiley.com
+  // papers.nips.cc
+  // proceedings.mlr.press
+  // ptewarin.net
+);
+
+
+
 export const AbstractFieldAttempts = compose(
   checkStatusAndNormalize,
-  addUrlEvidence,
-  gatherFieldEvidence,
-  clearEvidence(/^url:/),
 
   attemptSeries(
-    tryEvidenceMapping({ // ieee
-      'metadata:title': 'title',
-      'metadata:abstract': 'abstract',
-      'metadata:author': 'author',
-      'metadata:pdf-path': 'pdf-path',
-    }),
-    tryEvidenceMapping({ // link.springer.com/chapter
+    UrlSpecificAttempts,
+    // Url non-specific attempts
+    compose(
+      addUrlEvidence,
+      gatherSchemaEvidence,
+      clearEvidence(/^url:/),
+      filter(() => false, 'always fail') // <<- attemptSeries stops at first successful function, so we must fail to continue
+    ),
+    tryEvidenceMapping({
       'citation_title': 'title',
-      'section#Abs1 > p.Para': 'abstract',
-      'og:description': 'abstract-clipped',
-      '"description"': 'abstract-clipped',
       'citation_author': 'author',
       'citation_pdf_url': 'pdf-link',
-    }),
-    tryEvidenceMapping({ // link.springer.com/article
-      'citation_title': 'title',
-      'og:description': 'abstract',
-      'DC.Description': 'abstract',
-      '"description"': 'abstract-clipped',
-      'citation_author': 'author',
-      'citation_pdf_url': 'pdf-link',
-    }),
-    tryEvidenceMapping({ // sciencedirect.com
-      'host:.*sciencedirect.com': '',
-      'citation_title': 'title',
-      '.Abstracts': 'abstract:raw',
-      'og:description': 'abstract-clipped',
-      'citation_author': 'author',
-      'div.PdfEmbed': 'pdf-path',
-    }),
-    tryEvidenceMapping({ // proceedings.mlr.press
-      'citation_title': 'title',
-      '#abstract': 'abstract',
-      'og:description': 'abstract-clipped',
-      'citation_author': 'author',
-      'citation_pdf_url': 'pdf-link',
-    }),
-    tryEvidenceMapping({ // arxiv.org
-      'host:arxiv.org': '',
-      'citation_title': 'title',
-      'og:description': 'abstract',
-      'citation_author': 'author',
-      'citation_pdf_url': 'pdf-link',
+      'DC.Description|og:description': 'abstract',
     }),
     tryEvidenceMapping({
-      'og:description': 'title',
-      'DC.Title': 'title',
-      'abstractInFull': 'abstract',
-      'DC.Description': 'abstract-clipped',
-      'DC.Creator': 'author',
-      'a.show-pdf': 'pdf-link', // li.pdf-file for dl.acm.org
+      'citation_title': 'title',
+      'citation_author': 'author',
+      'citation_pdf_url?': 'pdf-link',
+      '\\.abstract|#abstract': 'abstract:raw',
     }),
+    // TODO trim Abstract: Motivation ...
   ),
   summarizeEvidence,
 )
+
+

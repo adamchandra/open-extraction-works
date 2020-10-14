@@ -1,16 +1,16 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 export type Radix<T> = { [s: string]: Radix<T> | T };
 export type RadixPath = string[];
 
-const RadixValKey = "_$";
+const RadixValKey = '_$';
 
 export const createRadix = <T>(): Radix<T> => ({} as Radix<T>);
 
 function cleanPath(p: string | string[]): string[] {
   let pathParts: string[];
-  if (typeof p === "string") {
-    pathParts = p.split(".");
+  if (typeof p === 'string') {
+    pathParts = p.split('.');
   } else {
     pathParts = p;
   }
