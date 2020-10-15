@@ -271,12 +271,14 @@ export const loadPageFromCache: Arrow<CacheFileKey, Page> =
       const pagePromise = browser.newPage()
         .then(async page => {
           await page.setContent(fileContent, {
-            timeout: 4000,
+            timeout: 8000,
             waitUntil: 'domcontentloaded',
+            // waitUntil: 'load',
           });
           browserPageCache[cacheKey] = page;
           return page;
         });
+
       return pagePromise;
     }
 
@@ -286,7 +288,7 @@ export const loadPageFromCache: Arrow<CacheFileKey, Page> =
 export const selectOne: (queryString: string) => Arrow<CacheFileKey, Elem> =
   (queryString) => compose(
     loadPageFromCache,
-    through((page: Page, {}) => {
+    through((page: Page, { }) => {
       return pipe(
         () => _queryOneP(page, queryString),
         TE.mapLeft((msg) => ['continue', `selectElemAttr error: ${msg}`])
@@ -297,7 +299,7 @@ export const selectOne: (queryString: string) => Arrow<CacheFileKey, Elem> =
 export const selectAll: (queryString: string) => Arrow<CacheFileKey, Elem[]> =
   (queryString) => compose(
     loadPageFromCache,
-    through((page: Page, {}) => {
+    through((page: Page, { }) => {
       return pipe(
         () => _queryAllP(page, queryString),
         TE.mapLeft((msg) => ['continue', `selectElemAttr error: ${msg}`])
@@ -355,7 +357,7 @@ export const matchesSelector: (query: string) => FilterArrow<Elem> =
 export const selectElemAttr: (queryString: string, contentAttr: string) => Arrow<CacheFileKey, string> =
   (queryString, contentAttr) => compose(
     loadPageFromCache,
-    through((page: Page, {}) => {
+    through((page: Page, { }) => {
       return pipe(
         () => _selectElementAttrP(page, queryString, contentAttr),
         TE.mapLeft((msg) => ['continue', `selectElemAttr error: ${msg}`])
@@ -795,6 +797,25 @@ export interface ExtractContext {
 }
 
 
+// const allResourceTypes = ['document', 'stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
+const blockedResourceTypes = [
+  // 'document',
+  'stylesheet',
+  'image',
+  'media',
+  'font',
+  'script',
+  'texttrack',
+  'xhr',
+  'fetch',
+  // 'eventsource',
+  'websocket',
+  'manifest',
+  'other'
+];
+puppeteer.use(blockResources({
+  blockedTypes: new Set(blockedResourceTypes)
+}));
 
 export async function initExtractionEnv(
   entryPath: string,
@@ -806,12 +827,7 @@ export async function initExtractionEnv(
   const pathPrefix = path.basename(entryPath).slice(0, 6);
   const logPrefix = [pathPrefix];
 
-  // const allResourceTypes = ['document', 'stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
-  const blockedResourceTypes = ['stylesheet', 'image', 'media', 'script', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
 
-  puppeteer.use(blockResources({
-    blockedTypes: new Set(blockedResourceTypes)
-  }));
 
   const browser = await puppeteer
     .launch({

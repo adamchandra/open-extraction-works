@@ -129,6 +129,8 @@ export async function runMainInitFilters(
     });
 }
 
+import Async from 'async';
+
 export async function runFieldExtractor(
   ctx: ExtractContext,
   metadata: Metadata,
@@ -138,6 +140,10 @@ export async function runFieldExtractor(
 
   const env = await initExtractionEnv(entryPath, ctx, metadata);
   const res = await extractionPipeline(TE.right([metadata, env]))();
+
+  const browserPages = _.map(_.toPairs(env.browserPageCache), ([, p]) => p);
+
+  await Async.each(browserPages, async page => page.close());
 
   await env.browser.close();
 
