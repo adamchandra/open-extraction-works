@@ -2,10 +2,10 @@ import _ from 'lodash';
 
 import { Metadata } from '~/spidering/data-formats';
 import { Logger } from 'winston';
-import { ExtractionEvidence, Field } from './extraction-records';
-import * as ft from './function-types';
+import * as ft from '../core/function-defs';
 
 import { Browser, Page } from 'puppeteer';
+import { ExtractionEvidence, Field } from '../core/extraction-records';
 
 export interface NormalForms {
   'css-norm': null;

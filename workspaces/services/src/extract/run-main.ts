@@ -7,13 +7,10 @@ import {
   getConsoleAndFileLogger,
   readCorpusJsonFile,
   writeCorpusJsonFile,
-  readAlphaRecStream,
   hasCorpusFile,
   setLogLabel,
   expandDir,
-  prettyPrint,
   putStrLn,
-  AlphaRecord,
 } from 'commons';
 
 import parseUrl from 'url-parse';
@@ -22,23 +19,22 @@ import path from 'path';
 
 import {
   Arrow,
-  // ExtractionEnv,
   PerhapsW,
   ExtractionEnv
-} from './extraction-prelude';
+} from './app/extraction-prelude';
 
 
 import fs from 'fs-extra';
-import { ExtractContext, initExtractionEnv } from './extraction-process-v2';
+import { ExtractContext, initExtractionEnv } from './app/extraction-process';
 import { Metadata } from '~/spidering/data-formats';
 
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
-import { AbstractFieldAttempts } from './extraction-rules';
 import { radix } from 'commons';
+import Async from 'async';
+import { AbstractFieldAttempts } from './app/extraction-rules';
 
 const extractionRecordFileName = 'extraction-records.json';
-
 
 export async function runMainInitFilters(
   corpusRoot: string,
@@ -131,10 +127,6 @@ export async function runMainInitFilters(
     });
 }
 
-import Async from 'async';
-import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
-import { Field } from './extraction-records';
-import { getBasicLogger } from '~/utils/basic-logging';
 
 export async function runFieldExtractor(
   ctx: ExtractContext,
@@ -155,13 +147,12 @@ export async function runFieldExtractor(
   return res;
 }
 
-
 export async function runMainExtractFields(
   corpusRoot: string,
   logpath: string,
   logLevel: string,
-  dropN: number,
-  takeN: number,
+  _dropN: number,
+  _takeN: number,
   pathFilter: string,
   urlFilter: string,
 ): Promise<void> {

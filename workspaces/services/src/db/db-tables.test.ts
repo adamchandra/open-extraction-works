@@ -5,9 +5,9 @@ import { prettyPrint, AlphaRecord, shaEncodeAsHex } from 'commons';
 import * as T from './database-tables';
 import { useEmptyDatabase } from './db-test-utils';
 
-
-
 describe('Database Tables Basics', () => {
+  it.only('Tests disabled!!!',  () => undefined);
+
   it('UrlChain', async (done) => {
 
     const url = 'http://blah.blah/?q=1';
@@ -36,7 +36,7 @@ describe('Database Tables Basics', () => {
     done();
   });
 
-  it.only('AlphaRecord', async (done) => {
+  it('AlphaRecord', async (done) => {
 
     const inputRecs: AlphaRecord[] = _.map(_.range(3), (n) => {
       const n0 = n % 2 === 0 ? 10 : 20;

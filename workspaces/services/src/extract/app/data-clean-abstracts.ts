@@ -1,5 +1,17 @@
 import _ from 'lodash';
-import { CleaningRule } from '../core/extraction-process-v2';
+
+import { Change } from 'commons';
+
+export interface CleaningRule {
+  name: string;
+  guards: RegExp[];
+  run(str: string, guards: RegExp[]): string | undefined;
+}
+
+export interface CleaningRuleResult {
+  rule: string;
+  changes: Change[]
+}
 
 /* eslint-disable  @typescript-eslint/explicit-module-boundary-types */
 export const AbstractCleaningRules: CleaningRule[] = [

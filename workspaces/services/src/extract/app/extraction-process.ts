@@ -37,31 +37,19 @@ import {
 } from './extraction-prelude';
 
 
-import { ExtractionEvidence, Field } from './extraction-records';
+import { ExtractionEvidence, Field } from '../core/extraction-records';
 
 import path from 'path';
 import { runTidyCmdBuffered } from '~/utils/run-cmd-tidy-html';
-import { Elem, expandCaseVariations, _queryAllP, _queryOneP, _selectElementAttrP } from './html-queries';
+import { Elem, expandCaseVariations, _queryAllP, _queryOneP, _selectElementAttrP } from '../core/html-queries';
 import { runFileCmd } from '~/utils/run-cmd-file';
+
 
 import parseUrl from 'url-parse';
 import { GlobalDocumentMetadata } from './ieee-metadata';
-import { AbstractCleaningRules } from '../abstracts/data-clean-abstracts';
+import { AbstractCleaningRules, CleaningRule, CleaningRuleResult } from './data-clean-abstracts';
 
 export type CacheFileKey = string;
-
-import { Change } from 'commons';
-
-export interface CleaningRule {
-  name: string;
-  guards: RegExp[];
-  run(str: string, guards: RegExp[]): string | undefined;
-}
-
-export interface CleaningRuleResult {
-  rule: string;
-  changes: Change[]
-}
 
 export function _addEvidence(env: ExtractionEnv, evidence: string, weight: number = 0) {
   const e: ExtractionEvidence = {

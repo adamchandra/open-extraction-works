@@ -4,7 +4,7 @@ import _ from 'lodash';
 
 import { isLeft, isRight } from 'fp-ts/Either'
 import { prettyPrint, putStrLn, stripMargin } from 'commons';
-import { selectElementAttr, _queryOne, _queryAll, getOuterHtml, getOuterHtmls, expandCaseVariations } from './html-queries';
+import { selectElementAttr, _queryOne, _queryAll,  expandCaseVariations } from './html-queries';
 
 import puppeteer from 'puppeteer-extra'
 import { Browser } from 'puppeteer';
@@ -125,7 +125,7 @@ describe('HTML jquery-like css queries', () => {
         await Async.forEachOfSeries(elems, async (elem, index) => {
           const outerHtml = await elem.evaluate(e => e.outerHTML);
           prettyPrint({ query, outerHtml, result: index });
-          const regexTest: RegExp = _.get(regexTests, index);
+          // const regexTest: RegExp = _.get(regexTests, index);
           // expect(regexTest.test(outerHtml)).toBe(true);
         });
       } else {
@@ -138,7 +138,7 @@ describe('HTML jquery-like css queries', () => {
     done();
   });
 
-  it.only('should create all expansions', () => {
+  it('should create all expansions', () => {
     const cases1 = expandCaseVariations('A.B.C', (n) => `meta[name="${n}"]`);
     const cases2 = expandCaseVariations('DC.Creator', (n) => `meta[name="${n}"]`);
     prettyPrint({ cases1, cases2 });
@@ -164,7 +164,7 @@ describe('HTML jquery-like css queries', () => {
         await Async.forEachOfSeries(elems, async (elem, index) => {
           const outerHtml = await elem.evaluate(e => e.outerHTML);
           prettyPrint({ query, outerHtml, index });
-          const regexTest: RegExp = _.get(regexTests, index);
+          // const regexTest: RegExp = _.get(regexTests, index);
           // expect(regexTest.test(outerHtml)).toBe(true);
         });
       } else {

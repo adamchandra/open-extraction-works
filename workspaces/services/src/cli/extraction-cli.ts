@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import { arglib } from 'commons';
-import { runMainExtractFields, runMainInitFilters } from '~/extract/core/extraction-cli';
+import { runMainExtractFields, runMainInitFilters } from '~/extract/run-main';
 
 const { opt, config, registerCmd } = arglib;
 

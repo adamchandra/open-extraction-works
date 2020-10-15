@@ -2,7 +2,7 @@ import 'chai/register-should';
 import _ from 'lodash';
 
 import { consoleTransport, newLogger, prettyPrint, putStrLn } from 'commons';
-import * as ft from './function-types';
+import * as ft from './function-defs';
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { isRight, isLeft } from 'fp-ts/Either';
@@ -34,7 +34,6 @@ const {
   Arrow,
   ExtractionResult,
   asW,
-  asWCI,
   forEachDo,
   attemptSeries,
   composeSeries,
@@ -284,7 +283,7 @@ describe('Extraction Prelude / Primitives', () => {
       tapLeft(() => logs.push(`${name}:end:left`)),
     );
 
-  it.only('attemptSeries with failed inputs', async (done) => {
+  it('attemptSeries with failed inputs', async (done) => {
     const logs: string[] = [];
     const pushLog = bracketLog(logs);
 
@@ -325,10 +324,10 @@ describe('Extraction Prelude / Primitives', () => {
 
     if (isRight(res)) {
       const right = res.right;
-      const [a, env] = right;
+      const [a, ] = right;
       prettyPrint({ msg: 'attemptSeries: right', logs, a });
     } else {
-      const [ci, env] = res.left;
+      const [ci, ] = res.left;
       prettyPrint({ msg: 'attemptSeries: left', logs, ci });
     }
 

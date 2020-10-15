@@ -43,7 +43,7 @@ describe('High-level Database API', () => {
   });
 
 
-  it.only('should commit spidering metadata to db', async (done) => {
+  it('should commit spidering metadata to db', async (done) => {
     const metadata = mockMetadata(3);
     const alphaRecord =  mockAlphaRecord(0);
     // prettyPrint({ metadata, alphaRecord });

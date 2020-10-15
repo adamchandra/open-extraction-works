@@ -25,7 +25,7 @@ import {
   _addEvidence,
   tapEnvLR,
   selectAllElemAttrEvidence,
-} from './extraction-process-v2';
+} from './extraction-process';
 
 import parseUrl from 'url-parse';
 

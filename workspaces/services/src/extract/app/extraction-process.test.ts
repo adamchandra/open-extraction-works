@@ -1,15 +1,15 @@
 import 'chai/register-should';
 import path from 'path';
 import _ from 'lodash';
-import { getConsoleAndFileLogger, putStrLn, readCorpusJsonFile } from 'commons';
+import { getConsoleAndFileLogger, readCorpusJsonFile } from 'commons';
 import fs from 'fs-extra';
 import cproc from 'child_process';
 import Async from 'async';
 
-import { getBasicConsoleLogger } from '~/utils/basic-logging';
-import { runFieldExtractor } from './extraction-cli';
+
 import { AbstractFieldAttempts } from './extraction-rules';
 import { Metadata } from '~/spidering/data-formats';
+import { runFieldExtractor } from '../run-main';
 
 describe('Field Extraction Pipeline', () => {
   const testCorpus = './test/resources/spidered-corpus';
@@ -23,7 +23,7 @@ describe('Field Extraction Pipeline', () => {
     cproc.execSync(`cp -rl ${testCorpus} ${testScratchDir}/`)
   });
 
-  it.only('should run extraction rules', async (done) => {
+  it('should run extraction rules', async (done) => {
     const examples = [
       '20019', // arxiv.org
       // '22dae',

@@ -1,7 +1,7 @@
 import 'chai/register-should';
 
 import _ from 'lodash';
-import { prettyPrint, parseJsonStripMargin, stripMargin } from 'commons';
+import { prettyPrint, parseJsonStripMargin } from 'commons';
 import { ExtractionRecord } from './extraction-records';
 import { initGroundTruthAssertions } from './ground-truth-records';
 
