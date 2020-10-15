@@ -5,9 +5,14 @@ import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 
 import { Metadata } from '~/spidering/data-formats';
-import { ArtifactSubdir, expandDir, putStrLn, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
+import { ArtifactSubdir, expandDir, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
 import { Logger } from 'winston';
+
 import puppeteer from 'puppeteer-extra'
+import { Page } from 'puppeteer'
+// @ts-ignore
+import blockResources from 'puppeteer-extra-plugin-block-resources';
+
 import { shaEncodeAsHex } from 'commons';
 import { diffByChars } from 'commons';
 
@@ -36,7 +41,7 @@ import { ExtractionEvidence, Field } from './extraction-records';
 
 import path from 'path';
 import { runTidyCmdBuffered } from '~/utils/run-cmd-tidy-html';
-import { Elem, expandCaseVariations, _queryAll, _queryOne, _selectElementAttr } from './html-queries';
+import { Elem, expandCaseVariations, _queryAllP, _queryOneP, _selectElementAttrP } from './html-queries';
 import { runFileCmd } from '~/utils/run-cmd-file';
 
 import parseUrl from 'url-parse';
@@ -63,7 +68,9 @@ function removeEvidence(env: ExtractionEnv, regex: RegExp) {
 
 
 export const addEvidence: <A>(f: (a: A, env: ExtractionEnv) => string) => Arrow<A, A> =
-  (f) => tap((a, env) => _addEvidence(env, f(a, env)));
+  (f) => tap((a, env) => {
+    _addEvidence(env, f(a, env));
+  });
 
 export const tapEnvLR: <A>(f: (env: ExtractionEnv) => unknown) => Arrow<A, A> =
   (f) => compose(
@@ -74,8 +81,9 @@ export const tapEnvLR: <A>(f: (env: ExtractionEnv) => unknown) => Arrow<A, A> =
   );
 
 export const clearEvidence: (evidenceTest: RegExp) => Arrow<unknown, unknown> =
-  (evidenceTest: RegExp) =>
-    tapEnvLR((env) => removeEvidence(env, evidenceTest))
+  (evidenceTest: RegExp) => {
+    return tapEnvLR((env) => removeEvidence(env, evidenceTest))
+  }
 
 
 function getCurrentEvidenceStrings(env: ExtractionEnv): string[] {
@@ -252,13 +260,35 @@ export const saveDocumentMetaDataEvidence: (name: string, f: (m: GlobalDocumentM
 //////////////////
 ///// jquery/css selector and Elem functions
 
+export const loadPageFromCache: Arrow<CacheFileKey, Page> =
+  through((cacheKey: CacheFileKey, { browser, fileContentCache, browserPageCache }) => {
+    if (cacheKey in browserPageCache) {
+      return browserPageCache[cacheKey];
+    }
+    if (cacheKey in fileContentCache) {
+      const fileContent = fileContentCache[cacheKey];
+
+      const pagePromise = browser.newPage()
+        .then(async page => {
+          await page.setContent(fileContent, {
+            timeout: 4000,
+            waitUntil: 'domcontentloaded',
+          });
+          browserPageCache[cacheKey] = page;
+          return page;
+        });
+      return pagePromise;
+    }
+
+    return ClientFunc.halt(`cache has no record for key ${cacheKey}`);
+  });
 
 export const selectOne: (queryString: string) => Arrow<CacheFileKey, Elem> =
   (queryString) => compose(
-    readCache,
-    through((content: string, { browser }) => {
+    loadPageFromCache,
+    through((page: Page, {}) => {
       return pipe(
-        () => _queryOne(browser, content, queryString),
+        () => _queryOneP(page, queryString),
         TE.mapLeft((msg) => ['continue', `selectElemAttr error: ${msg}`])
       )
     })
@@ -266,17 +296,17 @@ export const selectOne: (queryString: string) => Arrow<CacheFileKey, Elem> =
 
 export const selectAll: (queryString: string) => Arrow<CacheFileKey, Elem[]> =
   (queryString) => compose(
-    readCache,
-    through((content: string, { browser }) => {
+    loadPageFromCache,
+    through((page: Page, {}) => {
       return pipe(
-        () => _queryAll(browser, content, queryString),
+        () => _queryAllP(page, queryString),
         TE.mapLeft((msg) => ['continue', `selectElemAttr error: ${msg}`])
       )
     })
   );
 
 export const getElemAttr: (attr: string) => Arrow<Elem, string> =
-  (attr: string) => through((elem: Elem, { log }) => {
+  (attr: string) => through((elem: Elem, { }) => {
 
     const attrContent: Promise<E.Either<string, string>> =
       elem.evaluate((e, attrname) => e.getAttribute(attrname), attr)
@@ -285,9 +315,7 @@ export const getElemAttr: (attr: string) => Arrow<Elem, string> =
           E.right(text))
         .catch((err) => {
           return E.left(`getElemAttr error ${err}`);
-        })
-
-      ;
+        });
 
     return pipe(
       () => attrContent,
@@ -323,12 +351,13 @@ export const matchesSelector: (query: string) => FilterArrow<Elem> =
     return result.length > 0;
   });
 
+
 export const selectElemAttr: (queryString: string, contentAttr: string) => Arrow<CacheFileKey, string> =
   (queryString, contentAttr) => compose(
-    readCache,
-    through((content: string, { browser }) => {
+    loadPageFromCache,
+    through((page: Page, {}) => {
       return pipe(
-        () => _selectElementAttr(browser, content, queryString, contentAttr),
+        () => _selectElementAttrP(page, queryString, contentAttr),
         TE.mapLeft((msg) => ['continue', `selectElemAttr error: ${msg}`])
       )
     })
@@ -511,26 +540,12 @@ export const urlFilter: (urlTest: RegExp) => Arrow<unknown, string[]> =
 export const forInputs: (re: RegExp, arrow: Arrow<string, unknown>) => Arrow<unknown, unknown> =
   (re, arrow) => compose(
     listTidiedHtmls,
-    through((inputs) => _.filter(inputs, input => re.test(input))),
+    through((inputs) => _.filter(inputs, input => re.test(input)), `m/${re.source}/`),
     forEachDo(
       compose(
         log('info', a => `processing input ${a}`),
         addEvidence((a) => `input:${a}`),
         arrow,
-        clearEvidence(/^input:/),
-      )
-    )
-  );
-
-export const forEachInput: (arrow: Arrow<string, unknown>) => Arrow<string[], unknown> =
-  (arrow) => compose(
-    listTidiedHtmls,
-    forEachDo(
-      compose(
-        log('info', a => `processing input ${a}`),
-        addEvidence((a) => `input:${a}`),
-        arrow,
-        tap((_a, env) => saveFieldRecs(env), 'collect-fields'),
         clearEvidence(/^input:/),
       )
     )
@@ -780,6 +795,7 @@ export interface ExtractContext {
 }
 
 
+
 export async function initExtractionEnv(
   entryPath: string,
   ctx: ExtractContext,
@@ -790,8 +806,17 @@ export async function initExtractionEnv(
   const pathPrefix = path.basename(entryPath).slice(0, 6);
   const logPrefix = [pathPrefix];
 
+  // const allResourceTypes = ['document', 'stylesheet', 'image', 'media', 'font', 'script', 'texttrack', 'xhr', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
+  const blockedResourceTypes = ['stylesheet', 'image', 'media', 'script', 'fetch', 'eventsource', 'websocket', 'manifest', 'other'];
+
+  puppeteer.use(blockResources({
+    blockedTypes: new Set(blockedResourceTypes)
+  }));
+
   const browser = await puppeteer
-    .launch({ headless: true });
+    .launch({
+      headless: true
+    });
 
   const env: ExtractionEnv = {
     log,
@@ -804,6 +829,7 @@ export async function initExtractionEnv(
     fieldCandidates: [],
     evidence: [],
     fileContentCache: {},
+    browserPageCache: {},
     enterNS(ns: string[]) {
       setLogLabel(log, _.join(ns, '/'));
     },

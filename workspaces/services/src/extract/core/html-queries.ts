@@ -9,9 +9,8 @@ import {
   Page,
   Browser,
   ElementHandle,
+  errors as puppeteerErrors
 } from 'puppeteer';
-
-import { prettyPrint } from 'commons';
 
 export type AttrSelection = E.Either<string, string>;
 
@@ -38,16 +37,12 @@ export function expandCaseVariations(seed: string, sub: (s: string) => string): 
   return expanded;
 }
 
-export async function _queryAll(
-  browser: Browser,
-  sourceHtml: string,
+export async function _queryAllP(
+  page: Page,
   query: string
 ): Promise<ElemSelectAll> {
-  const page: Page = await browser.newPage();
 
   try {
-
-    await page.setContent(sourceHtml);
     const elems: ElementHandle<Element>[] = await page.$$(query);
     return E.right(elems);
 
@@ -59,6 +54,42 @@ export async function _queryAll(
   }
 }
 
+export async function _queryAll(
+  browser: Browser,
+  sourceHtml: string,
+  query: string
+): Promise<ElemSelectAll> {
+  const page: Page = await browser.newPage();
+
+  try {
+    await page.setContent(sourceHtml, {
+      timeout: 4000,
+      waitUntil: 'domcontentloaded',
+    });
+
+    return _queryAllP(page, query);
+
+  } catch (error) {
+    if (error instanceof Error) {
+      return E.left(`${error.name}: ${error.message}`);
+    }
+    return E.left(error);
+  }
+}
+
+export async function _queryOneP(
+  page: Page,
+  query: string
+): Promise<ElemSelectOne> {
+  return _queryAllP(page, query)
+    .then(elems => {
+      return pipe(elems, E.chain(es => {
+        return es.length > 0
+          ? E.right(es[0])
+          : E.left(`empty selection '${query}'`);
+      }));
+    });
+}
 export async function _queryOne(
   browser: Browser,
   sourceHtml: string,
@@ -118,16 +149,12 @@ export async function selectElementAttr(
   return result;
 }
 
-
-export async function _selectElementAttr(
-  browser: Browser,
-  sourceHtml: string,
+export async function _selectElementAttrP(
+  page: Page,
   elementSelector: string,
   attributeName: string
 ): Promise<AttrSelection> {
-  const page: Page = await browser.newPage();
   try {
-    await page.setContent(sourceHtml);
 
     const maybeAttr = await page.$eval(elementSelector, (elem, attr) => {
       const attrValue = elem.getAttribute(attr);
@@ -142,6 +169,36 @@ export async function _selectElementAttr(
 
     return E.right(attrValue);
   } catch (error) {
+
+    if (error instanceof puppeteerErrors.TimeoutError) {
+      // TODO Do something if this is a timeout.
+    }
+    if (error instanceof Error) {
+      return E.left(`${error.name}: ${error.message}`);
+    }
+    return E.left(error);
+  }
+}
+
+export async function _selectElementAttr(
+  browser: Browser,
+  sourceHtml: string,
+  elementSelector: string,
+  attributeName: string
+): Promise<AttrSelection> {
+  const page: Page = await browser.newPage();
+  try {
+    await page.setContent(sourceHtml, {
+      timeout: 4000,
+      waitUntil: 'domcontentloaded',
+    });
+
+    return _selectElementAttrP(page, elementSelector, attributeName);
+  } catch (error) {
+
+    if (error instanceof puppeteerErrors.TimeoutError) {
+      // TODO Do something if this is a timeout.
+    }
     if (error instanceof Error) {
       return E.left(`${error.name}: ${error.message}`);
     }

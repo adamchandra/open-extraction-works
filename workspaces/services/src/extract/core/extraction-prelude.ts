@@ -5,7 +5,7 @@ import { Logger } from 'winston';
 import { ExtractionEvidence, Field } from './extraction-records';
 import * as ft from './function-types';
 
-import { Browser } from 'puppeteer';
+import { Browser, Page } from 'puppeteer';
 
 export interface NormalForms {
   'css-norm': null;
@@ -32,6 +32,7 @@ export type ExtractionEnv = {
   evidence: ExtractionEvidence[];
   fieldCandidates: FieldCandidate[];
   fileContentCache: Record<string, string>;
+  browserPageCache: Record<string, Page>;
   browser: Browser;
   enterNS(ns: string[]): void;
   exitNS(ns: string[]): void;

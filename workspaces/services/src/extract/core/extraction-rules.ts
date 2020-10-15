@@ -6,9 +6,7 @@ import {
   applyAll,
   attemptSeries,
   log,
-  tap,
   filter,
-  composeSeries,
 } from './extraction-prelude';
 
 import {
@@ -27,7 +25,6 @@ import {
   _addEvidence,
   tapEnvLR,
   selectAllElemAttrEvidence,
-  cleanNamedFields
 } from './extraction-process-v2';
 
 import parseUrl from 'url-parse';
@@ -89,11 +86,11 @@ export const gatherSchemaEvidence = forInputs(
     gatherOpenGraphTags,
     gatherDublinCoreTags,
 
-    // Abs/Titles
     selectMetaEvidence('description'),
     selectElemTextEvidence('.abstract'),
     selectElemTextEvidence('#abstract'),
     selectElemTextEvidence('#Abstracts'),
+    selectElemTextEvidence('.abstractInFull'),
   ),
 );
 
@@ -108,7 +105,6 @@ export const UrlSpecificAttempts = attemptSeries(
         'metadata:author': 'author',
         'metadata:pdf-path': 'pdf-path',
       }),
-      // TODO make pdf-path into pdf-link
     )),
   ),
   compose(
@@ -136,7 +132,7 @@ export const UrlSpecificAttempts = attemptSeries(
         selectElemTextEvidence('a.author'), // TODO selectAll??
         selectElemAttrEvidence('div.PdfEmbed a.anchor', 'href'),
       ),
-      tryEvidenceMapping({ // sciencedirect.com
+      tryEvidenceMapping({
         'citation_title': 'title',
         'og:description': 'abstract-clipped',
         '.Abstracts': 'abstract:raw',
@@ -194,7 +190,6 @@ export const UrlSpecificAttempts = attemptSeries(
         'author-name': 'author',
         'PDF': 'pdf-path',
       }),
-      // TODO dedup authors, pdf-path => pdf-link
     )),
   ),
 
@@ -230,20 +225,6 @@ export const UrlSpecificAttempts = attemptSeries(
       }),
     )),
   ),
-
-  // aaai.org
-  // academic.oup.com
-  // bmcbioinformatics.biomedcentral.com
-  // diglib.eg.org
-  // drops.dagstuhl.de
-  // epubs.siam.org
-  // isca-speech.org
-  // jmlr.org
-  // jstage.jst.go.jp
-  // onlinelibrary.wiley.com
-  // papers.nips.cc
-  // proceedings.mlr.press
-  // ptewarin.net
 );
 
 
@@ -267,14 +248,16 @@ export const AbstractFieldAttempts = compose(
       'DC.Description|og:description': 'abstract',
     }),
     tryEvidenceMapping({
-      'citation_title': 'title',
-      'citation_author': 'author',
+      'citation_title|DC.Title': 'title',
+      'citation_author|DC.Creator': 'author',
       'citation_pdf_url?': 'pdf-link',
-      '\\.abstract|#abstract': 'abstract:raw',
+      '\\.abstractInFull|\\.abstract|#abstract': 'abstract:raw',
+    }),
+    tryEvidenceMapping({
+      'og:title': 'title',
+      'og:description': 'abstract',
     }),
     // TODO trim Abstract: Motivation ...
   ),
   summarizeEvidence,
 )
-
-
