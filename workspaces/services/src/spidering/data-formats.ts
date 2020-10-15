@@ -5,7 +5,7 @@ import {
 } from 'puppeteer';
 
 import { AlphaRecord } from 'commons';
-import { UrlChain, UrlChainLink } from '~/extract/urls/url-fetch-chains';
+import { UrlChain, UrlChainLink } from '~/utils/url-fetch-chains';
 
 export function createRequestChain(request: Request): UrlChain {
   const reqRedirectChain = request.redirectChain();
