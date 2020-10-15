@@ -46,10 +46,22 @@ import { runFileCmd } from '~/utils/run-cmd-file';
 
 import parseUrl from 'url-parse';
 import { GlobalDocumentMetadata } from './ieee-metadata';
-import { CleaningRule, CleaningRuleResult } from './extraction-process';
 import { AbstractCleaningRules } from '../abstracts/data-clean-abstracts';
 
 export type CacheFileKey = string;
+
+import { Change } from 'commons';
+
+export interface CleaningRule {
+  name: string;
+  guards: RegExp[];
+  run(str: string, guards: RegExp[]): string | undefined;
+}
+
+export interface CleaningRuleResult {
+  rule: string;
+  changes: Change[]
+}
 
 export function _addEvidence(env: ExtractionEnv, evidence: string, weight: number = 0) {
   const e: ExtractionEvidence = {

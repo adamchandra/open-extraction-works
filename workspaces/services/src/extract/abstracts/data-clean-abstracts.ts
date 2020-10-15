@@ -1,6 +1,5 @@
 import _ from 'lodash';
-
-import { CleaningRule } from '../core/extraction-process';
+import { CleaningRule } from '../core/extraction-process-v2';
 
 /* eslint-disable  @typescript-eslint/explicit-module-boundary-types */
 export const AbstractCleaningRules: CleaningRule[] = [

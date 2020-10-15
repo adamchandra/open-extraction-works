@@ -1,15 +1,17 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
+
+    "incremental": true,
 
     "esModuleInterop": true,
     "importHelpers": true,
     "allowSyntheticDefaultImports": true,
 
-    "incremental": true,
     "experimentalDecorators": true,
     "strict": true,
     "noEmit": false,

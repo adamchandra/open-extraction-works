@@ -7,11 +7,13 @@ import {
   getConsoleAndFileLogger,
   readCorpusJsonFile,
   writeCorpusJsonFile,
+  readAlphaRecStream,
   hasCorpusFile,
   setLogLabel,
   expandDir,
   prettyPrint,
   putStrLn,
+  AlphaRecord,
 } from 'commons';
 
 import parseUrl from 'url-parse';
@@ -130,6 +132,9 @@ export async function runMainInitFilters(
 }
 
 import Async from 'async';
+import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
+import { Field } from './extraction-records';
+import { getBasicLogger } from '~/utils/basic-logging';
 
 export async function runFieldExtractor(
   ctx: ExtractContext,
@@ -296,3 +301,82 @@ function writeExtractionRecords(env: ExtractionEnv, messages: string[]) {
       //   ctx.log.info('Entry has Extraction Records, skipping...');
       //   return;
       // }
+
+// export async function runMainGatherAbstracts(
+//   corpusRoot: string,
+//   alphaRecordCsv: string,
+// ): Promise<void> {
+//   const inputStream = readAlphaRecStream(alphaRecordCsv);
+
+//   const urlStream = streamPump.createPump()
+//     .viaStream<AlphaRecord>(inputStream)
+//     .throughF((inputRec: AlphaRecord) => {
+//       const { url, noteId } = inputRec;
+
+//       const entryEncPath = makeHashEncodedPath(url, 3);
+//       const entryPath = entryEncPath.toPath();
+//       const entryFullpath = path.resolve(corpusRoot, entryPath);
+//       const extractionRec = readExtractionRecord(entryFullpath);
+
+//       if (extractionRec) {
+//         const abstractInstance0: Field | undefined = _.get(extractionRec, 'fields.abstract.instances[0]');
+//         if (abstractInstance0 && abstractInstance0.value) {
+//           prettyPrint({ entryPath, abstractInstance0 });
+//           const { name, value } = abstractInstance0;
+//           return ({
+//             url,
+//             noteId,
+//             fields: [
+//               { name, value }
+//             ]
+//           });
+//         }
+//       }
+//       return ({
+//         url,
+//         id: noteId,
+//         fields: undefined
+//       });
+//     }).gather()
+//     ;
+
+//   const result = await urlStream.toPromise();
+
+//   if (!result) {
+//     putStrLn(`no records found using ${alphaRecordCsv} in ${corpusRoot}`);
+//     return;
+//   }
+//   fs.writeJsonSync('gather-abstracts.json', result);
+// }
+
+// const groundTruthFilename = 'ground-truth-labels.json';
+
+// export async function runMainUpdateGroundTruths(
+//   corpusRoot: string,
+// ): Promise<void> {
+//   const dirEntryStream = walkScrapyCacheCorpus(corpusRoot);
+//   const logpath = corpusRoot;
+//   const log = getBasicLogger(logpath, 'ground-truth-update-log.json');
+
+//   const pumpBuilder = streamPump.createPump()
+//     .viaStream<string>(dirEntryStream)
+//     .initEnv<ExtractionAppContext>(() => ({
+//       log,
+//     }))
+//     .tap((entryPath: string, ctx) => {
+//       const extractionRecord = readExtractionRecord(entryPath);
+//       const existingGroundTruths = readCorpusJsonFile(entryPath, 'ground-truth', groundTruthFilename);
+//       if (extractionRecord) {
+//         if (existingGroundTruths) {
+//           ctx.log.warn('TODO Make sure ground truth data does not conflict with extraction record ');
+//           return;
+//         }
+//         const initGroundTruth = initGroundTruthAssertions(extractionRecord);
+//         ctx.log.warn(`initializing ground-truth for ${entryPath}`);
+//         writeCorpusJsonFile(entryPath, 'ground-truth', groundTruthFilename, initGroundTruth);
+//       }
+//     });
+
+//   return pumpBuilder.toPromise()
+//     .then(() => undefined);
+// }
