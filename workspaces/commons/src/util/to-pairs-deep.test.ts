@@ -1,10 +1,10 @@
-import "chai";
-import _ from "lodash";
+import 'chai';
+import _ from 'lodash';
 import { prettyPrint } from './pretty-print';
 import { getQualifiedKey, getQualifiedValue, toIQualifiedPaths, toQualifiedKeyValues, toQualifiedPath } from './to-pairs-deep';
 
 
-describe("toPairsDeep implementation", () => {
+describe('toPairsDeep implementation', () => {
 
   const sampleRec: Record<string, any> = {
     quux: [
@@ -28,12 +28,12 @@ describe("toPairsDeep implementation", () => {
         ]
       }
     ],
-    bar: "some bar value",
+    bar: 'some bar value',
   };
 
 
 
-  it("should create a list of all paths/values in object", () => {
+  it('should create a list of all paths/values in object', () => {
     const examples = [
       sampleRec,
     ];

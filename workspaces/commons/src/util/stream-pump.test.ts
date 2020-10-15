@@ -1,16 +1,16 @@
-import "chai";
+import 'chai';
 
-import _ from "lodash";
+import _ from 'lodash';
 
-import { createPump } from "./stream-pump";
+import { createPump } from './stream-pump';
 import { arrayStream, isDefined } from './stream-utils';
-import { Readable } from "stream";
+import { Readable } from 'stream';
 import { prettyPrint } from './pretty-print';
 
-describe("Pump Builder", () => {
+describe('Pump Builder', () => {
 
-  it("return pump as a promise", async done => {
-    const astr = arrayStream("0 1 2 -30 100".split(" "));
+  it('return pump as a promise', async done => {
+    const astr = arrayStream('0 1 2 -30 100'.split(' '));
     const expected = [0, 1, 2, -30, 100];
     const pumpBuilder = createPump()
       .viaStream<string>(astr)
@@ -29,10 +29,10 @@ describe("Pump Builder", () => {
 
   });
 
-  it("should compose pipeline function with type safety", async done => {
-    const f1: (s: string) => string[] = s => s.split(" ");
+  it('should compose pipeline function with type safety', async done => {
+    const f1: (s: string) => string[] = s => s.split(' ');
     const f2: (s: string[]) => number[] = s => s.map(s0 => parseInt(s0));
-    const astr = arrayStream(["0 1 2 -30 100"]);
+    const astr = arrayStream(['0 1 2 -30 100']);
     const expected = [0, 1, 2, -30, 100];
 
     const pumpBuilder = createPump()
@@ -52,7 +52,7 @@ describe("Pump Builder", () => {
     return arrayStream(_.range(start, end));
   }
 
-  it("should filter a stream", async done => {
+  it('should filter a stream', async done => {
     const astr = numberStream(1, 10);
     const expected = [2, 4, 6, 8];
 
@@ -68,7 +68,7 @@ describe("Pump Builder", () => {
   });
 
 
-  it("should narrow types when filtering", async done => {
+  it('should narrow types when filtering', async done => {
     const astr = numberStream(1, 10);
 
     const pumpBuilder = createPump()
@@ -87,7 +87,7 @@ describe("Pump Builder", () => {
     pumpBuilder.toPromise().then(() => done());
   });
 
-  it("should include an Env", async done => {
+  it('should include an Env', async done => {
     const astr = numberStream(1, 10);
     // const expected = [2, 4, 6, 8];
 
@@ -121,7 +121,7 @@ describe("Pump Builder", () => {
     pumpBuilder.toPromise().then(() => done());
   });
 
-  it("should gather with or without an Env", async done => {
+  it('should gather with or without an Env', async done => {
     const astr = numberStream(1, 10);
 
     interface MyEnv {
@@ -144,7 +144,7 @@ describe("Pump Builder", () => {
     pumpBuilder.toPromise().then(() => done());
   });
 
-  it("should convert to promise that yield data", async done => {
+  it('should convert to promise that yield data', async done => {
     const astr = numberStream(1, 10);
 
     interface MyEnv {

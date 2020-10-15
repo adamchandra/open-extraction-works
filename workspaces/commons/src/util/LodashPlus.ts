@@ -2,7 +2,7 @@
  * Some functional helpers building on, or in the style of, lodash.
  */
 
-import _ from "lodash";
+import _ from 'lodash';
 
 export function zipWithIndex(vs: any[], ibegin = 0) {
   return _.zip(vs, _.range(ibegin, vs.length + ibegin));

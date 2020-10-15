@@ -9,7 +9,7 @@ import { prettyPrint } from '~/util/pretty-print';
 describe('File corpus operations',  () => {
   const testDirPath = './test/resources/test-dirs';
 
-  it("should traverse all files/directories using readable stream", async (done) => {
+  it('should traverse all files/directories using readable stream', async (done) => {
 
     const filesRead: string[] = [];
 

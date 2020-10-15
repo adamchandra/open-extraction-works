@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 export type Primitive = string | boolean | number | null | undefined;
 

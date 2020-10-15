@@ -1,9 +1,9 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import { updateCorpusJsonFile, readCorpusJsonFile } from './corpus-file-walkers';
-import path from "path";
-import fs from "fs-extra";
+import path from 'path';
+import fs from 'fs-extra';
 import { prettyPrint } from '~/util/pretty-print';
 
 export function initTestCorpusDirs(scratchDir: string): { corpusRoot: string, corpusPath: string } {
@@ -27,7 +27,7 @@ Y25,dblp.org/journals/LOGCOM/2013,Title: Some Other Title,http://localhost:9000/
   };
 }
 
-describe("Corpus filesystem access utilities", () => {
+describe('Corpus filesystem access utilities', () => {
   const scratchTestDir = 'test-tmp.d';
 
   beforeEach(() => {
@@ -36,7 +36,7 @@ describe("Corpus filesystem access utilities", () => {
 
   // it("should stream corpus entry directories", () => {});
 
-  it("should read/write/update artifact files", () => {
+  it('should read/write/update artifact files', () => {
 
     interface Foo {
       count: number;

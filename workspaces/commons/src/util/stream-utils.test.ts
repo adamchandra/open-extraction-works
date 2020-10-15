@@ -1,5 +1,5 @@
-import "chai";
-import { prettyPrint } from "./pretty-print";
+import 'chai';
+import { prettyPrint } from './pretty-print';
 
 import {
   stanzaChunker,
@@ -8,16 +8,16 @@ import {
   charStream,
   arrayStream,
   tapStream,
-} from "./stream-utils";
+} from './stream-utils';
 
-import pumpify from "pumpify";
+import pumpify from 'pumpify';
 
 import util from 'util';
 import stream from 'stream';
 
 const pipeline = util.promisify(stream.pipeline);
 
-describe("Stream utils ", () => {
+describe('Stream utils ', () => {
   const delay = (t: number) => new Promise(resolve => setTimeout(resolve, t));
 
   async function doAsyncStuff(s: string): Promise<string> {
@@ -26,8 +26,8 @@ describe("Stream utils ", () => {
     })
   }
 
-  it("process async throughput in order", async done => {
-    const astr = charStream("abc");
+  it('process async throughput in order', async done => {
+    const astr = charStream('abc');
 
     const output: string[] = [];
     await pipeline(
@@ -38,7 +38,7 @@ describe("Stream utils ", () => {
       })
     );
     // prettyPrint({ output });
-    expect(output).toEqual(["a_a", "b_b", "c_c"]);
+    expect(output).toEqual(['a_a', 'b_b', 'c_c']);
 
     done();
   });
@@ -71,24 +71,24 @@ describe("Stream utils ", () => {
   //   });
   // });
 
-  it("should properly catch pipeline errors", async done => {
-    const astr = charStream("abcde");
-    const pipe = pumpify.obj(astr, prettyPrintTrans("aabb"));
+  it('should properly catch pipeline errors', async done => {
+    const astr = charStream('abcde');
+    const pipe = pumpify.obj(astr, prettyPrintTrans('aabb'));
 
-    pipe.on("data", (data: string) => {
+    pipe.on('data', (data: string) => {
       prettyPrint({ data });
       done();
     });
   });
 
 
-  it("should turn stream of lines into stanzas (line groups)", async done => {
+  it('should turn stream of lines into stanzas (line groups)', async done => {
     // const astr = es.readArray("{ a b c } { d } { e }".split(" "));
-    const astr = arrayStream("{ a b c } { d } { e }".split(" "));
+    const astr = arrayStream('{ a b c } { d } { e }'.split(' '));
 
     const chunker = stanzaChunker(
-      l => l === "{",
-      l => l === "}",
+      l => l === '{',
+      l => l === '}',
     );
     const pipe = pumpify.obj(
       astr,
@@ -96,13 +96,13 @@ describe("Stream utils ", () => {
       chunker
     );
 
-    pipe.on("data", (data: string) => {
-      const lines = data.split("\n");
+    pipe.on('data', (data: string) => {
+      const lines = data.split('\n');
       prettyPrint({ lines, data });
     });
 
-    pipe.on("end", () => {
-      prettyPrint({ msg: "done" });
+    pipe.on('end', () => {
+      prettyPrint({ msg: 'done' });
       done();
     });
   });

@@ -13,12 +13,12 @@ interface CountUniqExample {
 }
 
 
-describe("Sorted Uniq Counting", () => {
+describe('Sorted Uniq Counting', () => {
 
-  it("should count/uniq by identity", () => {
+  it('should count/uniq by identity', () => {
     const examples: CountUniqExample[] = [
       { example: [0, 1, 2],            expect: [[0, 1], [1, 1], [2, 1]] },
-      { example: "aabbc".split(""),    expect: [["a", 2], ["b", 2], ["c", 1]] }
+      { example: 'aabbc'.split(''),    expect: [['a', 2], ['b', 2], ['c', 1]] }
     ];
 
 
@@ -29,7 +29,7 @@ describe("Sorted Uniq Counting", () => {
     });
   });
 
-  it("should count/uniq by custom function", () => {
+  it('should count/uniq by custom function', () => {
     const examples: CountUniqExample[] = [
       { example: [1.1, 1.2, 2.3, 2.4], expect: [[1.1, 2], [2.3, 2]], f: Math.floor }
     ];

@@ -19,7 +19,7 @@ function getCallerContext() {
   const callerContext = _.join(
     _.map(_.reverse(lines), l => {
       let line = _.trim(l);
-      const index = line.indexOf("at ");
+      const index = line.indexOf('at ');
       line = line.slice(index + 3, line.length);
       const parts = _.split(line, '(');
       const callingContext = _.trim(parts[0]);
@@ -122,7 +122,7 @@ const inspectOptionDefaults = {
  *      z: 3
  *      ===
  */
-const [fst, lst, mid, sole] = "╭╰│═".split(''); /*  "┏┗┃═" */
+const [fst, lst, mid, sole] = '╭╰│═'.split(''); /*  "┏┗┃═" */
 
 export function prettyPrint(vsobj: any, options: Partial<InspectOptions> = {}): void {
   let callerContext = '';
@@ -152,7 +152,7 @@ export function prettyPrint(vsobj: any, options: Partial<InspectOptions> = {}): 
     const ins0 = insLines[0];
 
     const indented = _.map(insLines.slice(1), (l, li) => {
-      const indentPad = "".padEnd(maxlen);
+      const indentPad = ''.padEnd(maxlen);
       return `    ${indentPad}${l}`;
     }).join('\n');
     const continuation = indented.length > 0? `\n${indented}` : ''
@@ -170,7 +170,7 @@ export function putStrLn(...vs: any[]) {
     }
     return util.inspect(v, inspectOptionDefaults);
   });
-  const fmt = fmts.join(" ");
+  const fmt = fmts.join(' ');
   process.stdout.write(fmt);
   process.stdout.write('\n');
 }

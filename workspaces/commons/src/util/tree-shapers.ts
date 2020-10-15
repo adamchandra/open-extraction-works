@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 import * as Tree from 'fp-ts/lib/Tree';
 
 export type NodeType = number;

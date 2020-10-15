@@ -1,13 +1,13 @@
-import "chai/register-should";
+import 'chai/register-should';
 
-import _ from "lodash";
+import _ from 'lodash';
 import { Edges, makeTreeFromPairs } from './tree-shapers';
 import * as Tree from 'fp-ts/lib/Tree';
 import { stripMargin } from './string-utils';
 
-describe("Tree Creation", () => {
+describe('Tree Creation', () => {
 
-  it("smokescreen", () => {
+  it('smokescreen', () => {
 
     const graphPairs: Edges<number> = [
       [10, 11],
@@ -35,7 +35,7 @@ describe("Tree Creation", () => {
     });
   });
 
-  it("should create distinct, unconnected trees", () => {
+  it('should create distinct, unconnected trees', () => {
     const graphPairs: Edges<number> = [
       [0, 1],
       [0, 2],
@@ -50,7 +50,7 @@ describe("Tree Creation", () => {
     expect(trees).toHaveLength(3);
   });
 
-  it("should create a right-slanting list", () => {
+  it('should create a right-slanting list', () => {
     const graphPairs: Edges<number> = [
       [0, 1],
       [1, 2],
@@ -71,7 +71,7 @@ describe("Tree Creation", () => {
     });
   });
 
-  it("not care about input order", () => {
+  it('not care about input order', () => {
     const graphPairs: Edges<number> = [
       [1, 2],
       [0, 1],
@@ -92,7 +92,7 @@ describe("Tree Creation", () => {
     });
   });
 
-  it("should fix bug #???", () => {
+  it('should fix bug #???', () => {
     const graphPairs: Edges<number> = [
       [41, 42],
       [42, 43],

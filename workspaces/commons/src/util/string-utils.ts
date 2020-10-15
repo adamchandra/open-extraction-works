@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 import sliceAnsi from 'slice-ansi';
 import chalk from 'chalk';
@@ -52,23 +52,23 @@ export function clipParagraph(width: number, height: number, para: string): stri
   let clipped: string;
   if (wrappedLines.length > height) {
     const elidedStartLine = _.clamp(height - 4, 1, wrappedLines.length);
-    const clippedHead = wrappedLines.slice(0, elidedStartLine).join("\n");
+    const clippedHead = wrappedLines.slice(0, elidedStartLine).join('\n');
     const len = wrappedLines.length;
-    const clippedEnd = wrappedLines.slice(len - 3).join("\n");
+    const clippedEnd = wrappedLines.slice(len - 3).join('\n');
     const clippedCount = len - height;
     const middle = `... + ${clippedCount} lines`;
     clipped = _.join([clippedHead, middle, clippedEnd], '\n');
   } else {
-    clipped = wrappedLines.join("\n");
+    clipped = wrappedLines.join('\n');
   }
 
   return clipped;
 }
 
 export function stripMargin(block: string): string {
-  const lines = block.split("\n");
+  const lines = block.split('\n');
   const stripped = stripMargins(lines);
-  return stripped.join("\n");
+  return stripped.join('\n');
 }
 
 export function stripMargins(lines: string[]): string[] {
