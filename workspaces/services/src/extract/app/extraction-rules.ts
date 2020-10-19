@@ -1,10 +1,10 @@
 import _ from 'lodash';
 
-import { flow as compose } from 'fp-ts/function'
+import { flow as fpflow, pipe } from 'fp-ts/function'
 
 import {
-  applyAll,
-  attemptSeries,
+  gatherSuccess,
+  takeFirstSuccess,
   log,
   filter,
 } from './extraction-prelude';
@@ -29,6 +29,9 @@ import {
 
 import parseUrl from 'url-parse';
 
+// <A extends readonly unknown[]>
+const compose: typeof fpflow = (...fs: []) => <A extends readonly unknown[]>(a: A) => pipe(a, ...fs);
+
 export const checkStatusAndNormalize = compose(
   log('info', (_0, env) => `Processing ${env.metadata.responseUrl}`),
   statusFilter,
@@ -51,7 +54,7 @@ export const addUrlEvidence = tapEnvLR((env) => {
 });
 
 
-export const gatherHighwirePressTags = applyAll(
+export const gatherHighwirePressTags = gatherSuccess(
   selectMetaEvidence('citation_title'),
   selectMetaEvidence('citation_date'),
   selectMetaEvidence('citation_pdf_url'),
@@ -59,7 +62,7 @@ export const gatherHighwirePressTags = applyAll(
   selectAllMetaEvidence('citation_author'),
 );
 
-export const gatherOpenGraphTags = applyAll(
+export const gatherOpenGraphTags = gatherSuccess(
   selectMetaEvidence('og:url'),
   selectMetaEvidence('og:url', 'property'),
   selectMetaEvidence('og:title'),
@@ -70,7 +73,7 @@ export const gatherOpenGraphTags = applyAll(
   selectMetaEvidence('og:description', 'property'),
 );
 
-export const gatherDublinCoreTags = applyAll(
+export const gatherDublinCoreTags = gatherSuccess(
   selectMetaEvidence('DC.Description'),
   selectMetaEvidence('DC.Title'),
   selectAllMetaEvidence('DC.Creator'),
@@ -81,7 +84,7 @@ export const gatherDublinCoreTags = applyAll(
 
 export const gatherSchemaEvidence = forInputs(
   /response-body/,
-  applyAll(
+  gatherSuccess(
     gatherHighwirePressTags,
     gatherOpenGraphTags,
     gatherDublinCoreTags,
@@ -94,7 +97,7 @@ export const gatherSchemaEvidence = forInputs(
   ),
 );
 
-export const UrlSpecificAttempts = attemptSeries(
+export const UrlSpecificAttempts = takeFirstSuccess(
   compose(
     urlFilter(/ieeexplore.ieee.org/),
     forInputs(/response-body/, compose(
@@ -110,7 +113,7 @@ export const UrlSpecificAttempts = attemptSeries(
   compose(
     urlFilter(/arxiv.org/),
     forInputs(/response-body/, compose(
-      applyAll(
+      gatherSuccess(
         gatherHighwirePressTags,
         gatherOpenGraphTags,
       ),
@@ -125,7 +128,7 @@ export const UrlSpecificAttempts = attemptSeries(
   compose(
     urlFilter(/sciencedirect.com/),
     forInputs(/response-body/, compose(
-      applyAll(
+      gatherSuccess(
         gatherHighwirePressTags,
         gatherOpenGraphTags,
         selectElemTextEvidence('.Abstracts'),
@@ -144,12 +147,12 @@ export const UrlSpecificAttempts = attemptSeries(
   compose(
     urlFilter(/link.springer.com/),
     forInputs(/response-body/, compose(
-      applyAll(
+      gatherSuccess(
         gatherHighwirePressTags,
         gatherOpenGraphTags,
         selectElemTextEvidence('section#Abs1 > p.Para'),
       ),
-      attemptSeries(
+      takeFirstSuccess(
         compose(
           urlFilter(/\/chapter\//),
           tryEvidenceMapping({ // link.springer.com/chapter
@@ -176,7 +179,7 @@ export const UrlSpecificAttempts = attemptSeries(
   compose(
     urlFilter(/dl.acm.org/),
     forInputs(/response-body/, compose(
-      applyAll(
+      gatherSuccess(
         gatherDublinCoreTags,
         selectElemTextEvidence('.citation__title'),
         selectElemTextEvidence('.abstractInFull'),
@@ -196,7 +199,7 @@ export const UrlSpecificAttempts = attemptSeries(
   compose(
     urlFilter(/aclweb.org/),
     forInputs(/response-body/, compose(
-      applyAll(
+      gatherSuccess(
         gatherHighwirePressTags,
         selectElemTextEvidence('.acl-abstract'),
       ),
@@ -212,7 +215,7 @@ export const UrlSpecificAttempts = attemptSeries(
   compose(
     urlFilter(/mitpressjournals.org/),
     forInputs(/response-body/, compose(
-      applyAll(
+      gatherSuccess(
         gatherDublinCoreTags,
         selectElemAttrEvidence('a[class="show-pdf"]', 'href'),
         selectElemTextEvidence('.abstractInFull'),
@@ -225,6 +228,21 @@ export const UrlSpecificAttempts = attemptSeries(
       }),
     )),
   ),
+  compose(
+    urlFilter(/academic.oup.com/),
+    forInputs(/response-body/, compose(
+      gatherSuccess(
+        gatherHighwirePressTags,
+        selectElemTextEvidence('section[class="abstract"] p[class="chapter-para"]'),
+      ),
+      tryEvidenceMapping({
+        'citation_title': 'title',
+        'citation_author': 'author',
+        'citation_pdf_url': 'pdf-link',
+        'abstract': 'abstract:raw',
+      }),
+    )),
+  ),
 );
 
 
@@ -232,14 +250,14 @@ export const UrlSpecificAttempts = attemptSeries(
 export const AbstractFieldAttempts = compose(
   checkStatusAndNormalize,
 
-  attemptSeries(
+  takeFirstSuccess(
     UrlSpecificAttempts,
     // Url non-specific attempts
     compose(
       addUrlEvidence,
       gatherSchemaEvidence,
       clearEvidence(/^url:/),
-      filter(() => false, 'always fail') // <<- attemptSeries stops at first successful function, so we must fail to continue
+      filter(() => false, 'always fail') // <<- takeFirstSuccess stops at first successful function, so we must fail to continue
     ),
     tryEvidenceMapping({
       'citation_title': 'title',

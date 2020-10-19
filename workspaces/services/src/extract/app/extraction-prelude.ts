@@ -51,9 +51,9 @@ export const {
   ExtractionResult,
   asW,
   forEachDo,
-  attemptSeries,
-  composeSeries,
-  applyAll,
+  takeFirstSuccess,
+  takeWhileSuccess,
+  gatherSuccess,
 } = fp;
 
 export type ControlCode = ft.ControlCode;
@@ -74,6 +74,5 @@ export type ExtractionFunction<A, B> = ft.ExtractionFunction<A, B, EnvT>;
 export type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
 export type FilterFunction<A> = ft.FilterFunction<A, EnvT>;
 export type EnvFunction<A> = ft.EnvFunction<A, EnvT>;
-export type FanoutArrow<A, B> = (ra: ExtractionResult<A[]>) => ExtractionResult<B[]>;
 
 

@@ -30,9 +30,9 @@ import {
   tapLeft,
   ClientFunc,
   ClientResult,
-  composeSeries,
+  takeWhileSuccess,
   log,
-  applyAll,
+  gatherSuccess,
   FieldCandidate
 } from './extraction-prelude';
 
@@ -217,7 +217,7 @@ export const grepLines: (regex: RegExp) => Arrow<CacheFileKey, string[]> =
 export const selectGlobalDocumentMetaEvidence: () => Arrow<CacheFileKey, unknown> =
   () => compose(
     readGlobalDocumentMetadata,
-    applyAll(
+    gatherSuccess(
       saveDocumentMetaDataEvidence('metadata:title', m => [m.title]),
       saveDocumentMetaDataEvidence('metadata:abstract', m => [m.abstract]),
       saveDocumentMetaDataEvidence('metadata:pdf-path', m => [m.pdfPath]),
@@ -560,7 +560,7 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
     const keyEvidence = _.join(evidenceKeys, ' ++ ');
 
     return compose(
-      composeSeries(...filters),
+      takeWhileSuccess(...filters),
       tap((_a, env) => {
         _.each(evidenceKeys, evKey0 => {
           const fieldName = mapping[evKey0];
@@ -591,8 +591,10 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
                 });
                 field.evidence.push(...ruleNames);
               }
+              if (field.value !== undefined && field.value.length>0) {
+                env.fields.push(field);
+              }
 
-              env.fields.push(field);
             });
           });
 

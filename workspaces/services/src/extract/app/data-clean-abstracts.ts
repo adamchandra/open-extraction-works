@@ -24,6 +24,15 @@ export const AbstractCleaningRules: CleaningRule[] = [
       return str.replace(/^abstract */i, '');
     }
   },
+  {
+    name: "starts w/'motivation'",
+    guards: [
+      /^motivation/i
+    ],
+    run: (str) => {
+      return str.replace(/^motivation */i, '');
+    }
+  },
 
   {
     name: "clip @ 'References'",
@@ -103,21 +112,22 @@ export const AbstractCleaningRules: CleaningRule[] = [
     }
   },
   {
-    name: 'trim extra space',
-    guards: [
-      /[ ][ ]+/g
-    ],
-    run: (str) => {
-      const regex = /[ ]+/g;
-      return str.replace(regex, ' ');
-    }
-  },
-  {
     name: 'remove newlines',
     guards: [
     ],
     run: (str) => {
       return str.split('\n').join(' ');
+    }
+  },
+
+  {
+    name: 'trim extra space',
+    guards: [
+      /[ ][ ]+/g
+    ],
+    run: (str) => {
+      const regex = /[ ]+/gm;
+      return str.replace(regex, ' ');
     }
   },
 
@@ -183,14 +193,14 @@ export const AbstractCleaningRules: CleaningRule[] = [
     }
   },
 
-  // {
-  //   name: 'abstract too short',
-  //   guards: [],
-  //   run: (str) => {
-  //     if (str.length < 200) return '';
-  //     return;
-  //   }
-  // },
+  {
+    name: 'abstract too short',
+    guards: [],
+    run: (str) => {
+      if (str.length < 200) return '';
+      return;
+    }
+  },
 
 ];
 

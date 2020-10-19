@@ -1,354 +1,253 @@
 import 'chai/register-should';
 import _ from 'lodash';
 
-import { consoleTransport, newLogger, prettyPrint, putStrLn } from 'commons';
+import { consoleTransport, newLogger, prettyPrint } from 'commons';
 import * as ft from './function-defs';
 import * as TE from 'fp-ts/TaskEither';
-import * as E from 'fp-ts/Either';
-import { isRight, isLeft } from 'fp-ts/Either';
+import { isRight } from 'fp-ts/Either';
 import Async from 'async';
 import { flow as compose } from 'fp-ts/function'
 import { Logger } from 'winston';
 
+
 interface EnvT {
   ns: [];
   b: boolean;
-  msg: string;
   enterNS(ns: string[]): void;
   exitNS(ns: string[]): void;
   log: Logger;
+  messages: string[];
 }
 
 const fp = ft.createFPackage<EnvT>();
 
 type ExtractionResult<A> = ft.ExtractionResult<A, EnvT>;
 type Arrow<A, B> = ft.Arrow<A, B, EnvT>;
-type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
+type PerhapsW<A> = ft.PerhapsW<A, EnvT>;
+// type FilterArrow<A> = ft.FilterArrow<A, EnvT>;
 
 const {
   tap,
   tapLeft,
-  // log,
   filter,
-  // ClientFunc,
   Arrow,
-  ExtractionResult,
+  through,
+  // ExtractionResult,
   asW,
   forEachDo,
-  attemptSeries,
-  composeSeries,
-  through,
+  takeFirstSuccess,
+  takeWhileSuccess,
+  gatherSuccess,
 } = fp;
 
 
-describe('Extraction Prelude / Primitives', () => {
+// const compose: typeof fpflow = (...fs: []) => <A extends readonly unknown[]>(a: A) => pipe(a, ...fs);
+
+const withMessage: <A, B>(name: string, arrow: Arrow<A, B>) => Arrow<A, B> =
+  (name, arrow) => compose(
+    // ra,
+    tap((_a, env) => env.messages.push(`${name}:enter:right`)),
+    tapLeft((_a, env) => env.messages.push(`${name}:enter:left`)),
+    arrow,
+    tap((_a, env) => env.messages.push(`${name}:exit:right`)),
+    tapLeft((_a, env) => env.messages.push(`${name}:exit:left`)),
+  );
+
+
+// const fgood: (s: string) => Arrow<string, string> = s => withMessage(`succ:${s}`, filter<string>(() => true));
+const fbad: (s: string) => Arrow<string, string> = s => withMessage(`fail:${s}`, filter<string>(() => false));
+const fgood_: Arrow<string, string> = withMessage('succ', filter<string>(() => true));
+const fbad_: Arrow<string, string> = withMessage('fail', filter<string>(() => false));
+const emit = (msg: string) => tap<string>((_a, env) => env.messages.push(msg));
+const emitL = (msg: string) => tapLeft<string>((_a, env) => env.messages.push(msg));
+
+
+
+function initEnv<A>(a: A): ExtractionResult<A> {
   const logger = newLogger(consoleTransport('info'));
-  const initEnv: EnvT = {
+  const env0: EnvT = {
     ns: [],
     b: true,
-    msg: 'begin',
-    enterNS(_ns: string[]) {
-      // putStrLn(`enter> ${_.join(ns, '/')}`);
-    },
-    exitNS(_ns: string[]) {
-      // putStrLn(`exit> ${_.join(ns, '/')}`);
-    },
+    enterNS(_ns: string[]) {/* */ },
+    exitNS(_ns: string[]) {/* */ },
     log: logger,
+    messages: []
   };
-  const strlen = (s: string): number => s.length;
 
-  const arrowStrLen: Arrow<string, number> =
-    Arrow.lift(strlen)
+  // return TE.right(asW(`input#${dummy += 1}`, env0));
+  return TE.right(asW(a, env0));
+}
 
-  it('should create basic arrows/results', async (done) => {
-    const wFoobar = asW('foobar', initEnv);
-    const er1: ExtractionResult<string> = ExtractionResult.liftW(wFoobar);
-    const er1res = await er1();
 
-    expect(isRight(er1res) && er1res.right === wFoobar).toBe(true);
+function getEnvMessages(res: PerhapsW<unknown>): string[] {
+  if (isRight(res)) {
+    const [, env] = res.right;
+    return env.messages;
+  } else {
+    const [, env] = res.left;
+    return env.messages;
+  }
+}
 
-    const erLen = await arrowStrLen(er1)();
-    expect(isRight(erLen) && erLen.right[0] === 6).toBe(true);
+let dummy = 0;
+async function runTakeWhileSuccess(fns: Arrow<string, string>[]): Promise<string[]> {
+  const res = await takeWhileSuccess(...fns)(initEnv(`input#${dummy += 1}`))();
+  return getEnvMessages(res);
+}
 
-    done();
-  });
 
-  it('control flow: forEachDo', async (done) => {
+async function runTakeFirstSuccess(fns: Arrow<string, string>[]): Promise<string[]> {
+  const res = await takeFirstSuccess(...fns)(initEnv(`input#${dummy += 1}`))();
+  return getEnvMessages(res);
+}
 
-    const strArray = _.map(
-      _.range(3),
-      (i) => _.repeat('x', i + 1)
-    );
+async function runGatherSuccess(fns: Arrow<string, string>[]): Promise<string[]> {
+  const res = await gatherSuccess(...fns)(initEnv(`input#${dummy += 1}`))();
+  return getEnvMessages(res);
+}
 
-    const wStrArray = ExtractionResult.lift(strArray, initEnv);
+async function runForEachDo(fn: Arrow<number, string>): Promise<string[]> {
+  const inputs = _.range(4);
+  const env0 = initEnv(inputs);
+  const res = await forEachDo(fn)(env0)();
+  return getEnvMessages(res);
+}
 
-    const res = await forEachDo(arrowStrLen)(wStrArray)();
-    // prettyPrint({ res });
-    expect(isRight(res)).toBe(true);
+describe('Extraction Prelude / Primitives', () => {
 
-    if (isRight(res)) {
-      const right = res.right;
-      expect(right).toStrictEqual([[1, 2, 3], initEnv]);
-    }
+  // it('should create basic arrows/results', async (done) => {});
+  // it('tap() composition', async (done) => { });
 
-    done();
-  });
+  it('takeWhileSuccess examples', async (done) => {
+    const examples: Array<[Arrow<string, string>[], string[]]> = [
+      [[emit('A:okay'), fbad_, emit('B:bad')],
+      ['A:okay']],
+      [[emit('A:okay'), emit('B:okay'), fbad_, emit('B:bad')],
+      ['A:okay', 'B:okay']],
+      [[emit('A:okay'), fgood_, emit('B:okay'), fbad_, emitL('CL:okay')],
+      ['A:okay', 'B:okay', 'CL:okay']],
+      [[fbad_, emit('B:bad')],
+      []],
+    ];
 
-  it('control flow: attemptSeries', async (done) => {
-    let checkedNums: string[] = [];
 
-    const isNumberArrow = (n: number) => Arrow.lift(
-      (a: number) => {
-        checkedNums.push(`is(${n}) ? ${a}`);
-        return a === n ? E.right(a) : E.left('halt')
-      }
-    );
+    await Async.eachOf(examples, async ([example, expectedMessages], n) => {
+      const messages = await runTakeWhileSuccess(example)
 
-    const nums = _.map(_.range(10), (i) => ExtractionResult.lift(i, initEnv));
-    const isNum = _.map(_.range(10), (i) => isNumberArrow(i));
+      const haveExpectedMessages = _.every(expectedMessages, em => messages.includes(em));
+      const haveBadMessages = _.some(messages, msg => /bad/.test(msg));
 
-    await Async.eachSeries(_.range(5), async i => {
-      checkedNums = [];
-      const result = await attemptSeries(
-        ...isNum.slice(1, 3)
-      )(nums[i])();
-      if (i === 1 || i === 2) {
-        expect(isRight(result) && result.right[0] === i).toBe(true);
-      } else {
-        expect(isLeft(result) && result.left[0] === 'continue').toBe(true);
-      }
+      // prettyPrint({ msg: `example: ${n}`, messages, expectedMessages });
+
+      expect(haveExpectedMessages).toBe(true);
+      expect(haveBadMessages).toBe(false);
     });
 
-    checkedNums = [];
-    const resEmpty = await attemptSeries()(nums[0])();
-    expect(isLeft(resEmpty) && resEmpty.left[0] === 'continue').toBe(true);
 
     done();
   });
 
-  it('tap() composition', async (done) => {
-    const urlFilter: FilterArrow<string> =
-      compose(
-        tap((a) => putStrLn(`starting URL filter ${a} `)),
-        tap((a) => putStrLn(`ending URL filter ${a}`)), // <- tap(['my..', true]) => putStrLn(..)
-      );
-    const extractionPipeline =
-      urlFilter
+  it('takeFirstSuccess examples', async (done) => {
+    const examples: Array<[Arrow<string, string>[], string[]]> = [
+      // Always stop at first emit:
+      [[emit('A:okay'), emit('B:bad')],
+      ['A:okay']],
+      [[emit('A:okay'), fgood_, emit('B:bad')],
+      ['A:okay']],
+      [[emit('A:okay'), fbad_, emit('B:bad')],
+      ['A:okay']],
 
-    await extractionPipeline(TE.right(['my love E.M.', initEnv]))();
+      // Skip any initial failures
+      [[fbad('1'), emit('A:okay'), emit('B:bad')],
+      ['A:okay']],
 
+      [[fbad('2'), fbad('3'), emit('A:okay'), emit('B:bad')],
+      ['A:okay']],
 
-    done();
-  });
+      [[fbad_, fgood_, emit('A:okay'), emit('B:bad')],
+      []],
 
-  it('composeSeries/attemptSeries', async (done) => {
-    let logs: string[] = [];
-    const inputString = TE.right(asW('Four score and seven years', initEnv));
-
-    const succeedingFunc = compose(
-      tap(() => logs.push('s1')),
-      filter<string>((a) => /Four/.test(a)),
-      tap(() => logs.push('s2')),
-    );
-
-    const failingFunc = compose(
-      tap(() => logs.push('e1')),
-      filter<string>((a) => /Five/.test(a)),
-      tap(() => logs.push('e2')),
-    );
-
-    await composeSeries(
-      succeedingFunc,
-      failingFunc,
-      failingFunc,
-    )(inputString)();
-
-    expect(logs).toStrictEqual(['s1', 's2', 'e1'])
-
-    logs = [];
-    await attemptSeries(
-      succeedingFunc,
-      failingFunc,
-      failingFunc,
-    )(inputString)();
-
-    expect(logs).toStrictEqual(['s1', 's2'])
-
-    logs = [];
-    await composeSeries(
-      failingFunc,
-      succeedingFunc,
-      failingFunc,
-    )(inputString)();
-
-    expect(logs).toStrictEqual(['e1'])
-
-    logs = [];
-    await attemptSeries(
-      failingFunc,
-      failingFunc,
-      succeedingFunc,
-    )(inputString)();
-
-    expect(logs).toStrictEqual(['e1', 'e1', 's1', 's2'])
-
-    done();
-  });
-
-  it('composeSeries/attemptSeries with failed inputs', async (done) => {
-    let logs: string[] = [];
-    // const inputString = TE.right(asW('Four score and seven years', initEnv));
-    // const inputString: ExtractionResult<string> = TE.left(asWCI('halt', initEnv));
-    const inputString: ExtractionResult<string> =
-      TE.right(asW('Four score and seven years', initEnv));
-
-    const preprocessInput: Arrow<string, string> = compose(
-      tap(() => logs.push('preRightBegin')),
-      through(s => s.slice(0, 4)),
-      filter<string>((a) => /Five/.test(a)),
-      tap(() => logs.push('preRightEnd')),
-      tapLeft(() => logs.push('preLeftEnd')),
-    );
-
-    const succeedingFunc: Arrow<string, string> = compose(
-      tap(() => logs.push('succRightBegin')),
-      tapLeft(() => logs.push('succLeftBegin')),
-      filter<string>((a) => /Four/.test(a)),
-      tap(() => logs.push('succRightEnd')),
-      tapLeft(() => logs.push('succLeftEnd')),
-    );
+    ];
 
 
-    const failingFunc: Arrow<string, string> = compose(
-      tap(() => logs.push('failRightBegin')),
-      tapLeft(() => logs.push('failLeftBegin')),
-      filter<string>((a) => /Five/.test(a)),
-      tap(() => logs.push('failRightEnd')),
-      tapLeft(() => logs.push('failLeftEnd')),
-    );
+    await Async.eachOf(examples, async ([example, expectedMessages], _n) => {
+      const messages = await runTakeFirstSuccess(example)
+      const haveExpectedMessages = _.every(expectedMessages, em => messages.includes(em));
+      const haveBadMessages = _.some(messages, msg => /bad/.test(msg));
 
-    await composeSeries(
-      preprocessInput,
-      succeedingFunc,
-      failingFunc,
-      failingFunc,
-    )(inputString)();
+      // prettyPrint({ msg: `example: ${n}`, messages, expectedMessages });
 
-    prettyPrint({ msg: 'composeSeries', logs });
-    // expect(logs).toStrictEqual(['s1', 's2', 'e1'])
-
-    logs = [];
-    await attemptSeries(
-      preprocessInput,
-      succeedingFunc,
-      failingFunc,
-      failingFunc,
-    )(inputString)();
-
-    prettyPrint({ msg: 'attemptSeries', logs });
-
-    // expect(logs).toStrictEqual(['s1', 's2'])
-
-    // logs = [];
-    // await composeSeries(
-    //   failingFunc,
-    //   succeedingFunc,
-    //   failingFunc,
-    // )(inputString)();
-
-    // expect(logs).toStrictEqual(['e1'])
-
-    // logs = [];
-    // await attemptSeries(
-    //   failingFunc,
-    //   failingFunc,
-    //   succeedingFunc,
-    // )(inputString)();
-
-    // expect(logs).toStrictEqual(['e1', 'e1', 's1', 's2'])
-
-
-
+      expect(haveExpectedMessages).toBe(true);
+      expect(haveBadMessages).toBe(false);
+    });
 
 
     done();
   });
 
-  const bracketLog: (logs: string[]) => <A, B>(name: string, arrow: Arrow<A, B>) => Arrow<A, B> =
-    (logs) => (name, arrow) => compose(
-      tap(() => logs.push(`${name}:begin:right`)),
-      tapLeft(() => logs.push(`${name}:begin:left`)),
-      arrow,
-      tap(() => logs.push(`${name}:end:right`)),
-      tapLeft(() => logs.push(`${name}:end:left`)),
-    );
+  it('gatherSuccess examples', async (done) => {
+    const examples: Array<[Arrow<string, string>[], string[]]> = [
+      [[emit('A:okay'), emit('B:okay')],
+      ['A:okay', 'B:okay']],
+      [[emit('A:okay'), fgood_, emit('B:okay')],
+      ['A:okay', 'B:okay']],
+      [[emit('A:okay'), fbad_, emit('B:okay')],
+      ['A:okay', 'B:okay']],
+      [[fbad_, fgood_, emit('A:okay'), fbad_, emit('B:okay'), fbad_],
+      ['A:okay', 'B:okay']],
 
-  it('attemptSeries with failed inputs', async (done) => {
-    const logs: string[] = [];
-    const pushLog = bracketLog(logs);
-
-    const inputString: ExtractionResult<string> =
-      TE.right(asW('Four score', initEnv));
-
-    const addString: (str: string) => Arrow<string, string> =
-      (str) => compose(
-        through(s => s + ' ' + str),
-        tap((a) => putStrLn(`addString(${str}) => ${a}`)),
-        tap((a) => logs.push(`addString(${str}) => ${a}`)),
-      );
+    ];
 
 
-    const succeedingFunc: Arrow<string, string> =
-      pushLog('succ', compose(
-      tap((a) => putStrLn(`succ() => ${a}`)),
-      filter<string>((a) => /Four/.test(a)),
-    ));
+    await Async.eachOf(examples, async ([example, expectedMessages], _n) => {
+      const messages = await runGatherSuccess(example)
+      const haveExpectedMessages = _.every(expectedMessages, em => messages.includes(em));
+      const haveBadMessages = _.some(messages, msg => /bad/.test(msg));
 
-    const failingFunc: Arrow<string, string> = pushLog('fail', compose(
-      tap((a) => putStrLn(`fail() => ${a}`)),
-      filter<string>((a) => /Five/.test(a)),
-    ));
+      // prettyPrint({ msg: `example: ${_n}`, messages, expectedMessages });
 
-    const res = await compose(
-      addString('and'),
-      addString('seven'),
-      addString('years'),
-      // failingFunc,
-
-      attemptSeries(
-        failingFunc,
-        failingFunc,
-        succeedingFunc,
-        failingFunc,
-      ))(inputString)();
-
-    if (isRight(res)) {
-      const right = res.right;
-      const [a, ] = right;
-      prettyPrint({ msg: 'attemptSeries: right', logs, a });
-    } else {
-      const [ci, ] = res.left;
-      prettyPrint({ msg: 'attemptSeries: left', logs, ci });
-    }
-
+      expect(haveExpectedMessages).toBe(true);
+      expect(haveBadMessages).toBe(false);
+    });
 
 
     done();
   });
 
-  it('filter composition', async (done) => {
-    // liftFilter
+  it('forEachDo examples', async (done) => {
+    // Expected results for n=[1..4]
+    const expected: Array<string[]> = [
+      // if n % 1 === 0 output 'n:okay'
+      ['1:okay', '2:okay', '3:okay', '4:okay'],
+      // if n % 2 === 0 output 'n:okay'
+      ['2:okay', '4:okay'],
+      ['3:okay'],
+      ['4:okay'],
+    ];
 
-    //   ifThen(
-    //     allOf(
-    //       haveEvidence(/abstractInFull/),
-    //       haveEvidence(/og:description/),
-    //     ), requireAll(doRun(
-    //       applyLabel('abstract', textForEvidence('abstractInFull')),
-    //       applyLabel('title', textForEvidence('og:description')),
-    //     ))
-    //   )
 
+    const modOkay = (mod: number) => compose(
+      filter<number>((n) => n % mod === 0),
+      through((n) => `${n}:okay`)
+    )
+
+
+    await Async.eachOf(expected, async (exp, _n) => {
+      if (typeof _n !== 'number') {
+        return done('fail');
+      }
+      const n = _n + 1;
+      const inputs = _.map(_.range(4), i => i + 1);
+      const env0 = initEnv(inputs);
+      const res = await forEachDo(modOkay(n))(env0)();
+      if (isRight(res)) {
+        const [a] = res.right;
+        // prettyPrint({ msg: `example: ${n}`, a });
+        expect(a).toStrictEqual(exp);
+      } else {
+        return done('fail');
+      }
+    });
 
     done();
   });
