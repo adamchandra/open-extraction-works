@@ -2,6 +2,7 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 import Redis from 'ioredis';
+import { prettyPrint, putStrLn } from 'commons';
 
 describe('IORedis library tests and examples', () => {
 
@@ -24,8 +25,8 @@ describe('IORedis library tests and examples', () => {
   });
 
   it('should do pub/sub', async (done) => {
-    const rclient =  new Redis();
-    const subClient =  new Redis();
+    const rclient = new Redis();
+    const subClient = new Redis();
 
     await subClient.subscribe('topic.foo');
     await subClient.subscribe('exit');
@@ -46,6 +47,51 @@ describe('IORedis library tests and examples', () => {
 
     await rclient.publish('topic.foo', 'foo.msg');
     rclient.publish('exit', 'quit');
+  });
+
+  it.only('pass function arguments', async (done) => {
+
+
+    const exitClient = new Redis();
+    const rclient = new Redis();
+    const subClient = new Redis();
+
+    try {
+
+      exitClient.on('message', (channel) => {
+        if (channel === 'exit') {
+          rclient.quit()
+            .then(() => subClient.quit())
+            .then(() => exitClient.quit())
+            .then(() => done());
+        }
+      });
+
+      await rclient.del('mylist');
+
+
+      rclient.brpop('mylist', 0)
+        .then((rval) => {
+
+          putStrLn(`rval ${rval}`);
+
+        });
+
+      putStrLn('awaiting pop.. ');
+
+      await subClient.rpush('mylist', '{ arg: 0 }');
+
+    } catch (error) {
+      putStrLn(`Error: ${error}`);
+    }
+
+
+    // rclient.brpop
+    // rclient.brpoplpush
+    // rclient.blpop
+
+    rclient.publish('exit', 'quit');
+
   });
 
 });

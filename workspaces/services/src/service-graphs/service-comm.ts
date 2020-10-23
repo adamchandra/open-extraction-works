@@ -3,212 +3,221 @@ import Redis from 'ioredis';
 import Async from 'async';
 import winston from 'winston';
 import { getServiceLogger } from './service-logger';
+import {
+  Forward,
+  HandlerInstance,
+  HandlerSet,
+  Message,
+  Thunk,
+} from './service-defs';
+import { newRedis } from './ioredis-conn';
 
-const RedisConnectionEvents = [
-  'ready',
-  'close',
-  'end',
-  'error',
-  'connect',
-  'reconnecting'
-];
 
-type Thunk = () => Promise<void>;
-type HandlerInstance = (msg: string) => Promise<void>;
-type HandlerSet = Record<string, HandlerInstance>;
-
-type HandlerScope = keyof {
-  'inbox': null,
-  'local': null,
-};
-
-type HandlerSets = Record<HandlerScope, HandlerSet[]>;
-
-export interface ServiceComm {
+export interface ServiceComm<T> {
   name: string;
+  serviceT?: T;
   log: winston.Logger;
-  addHandler: (scope: HandlerScope, regex: string, handler: HandlerInstance) => void;
-  sendTo(name: string, msg: string): Promise<void>;
-  sendSelf(selfMsg: string, channel: string, msg: string): Promise<void>;
-  emit(msg: string): Promise<void>;
+  addHandler: (regex: string, handler: HandlerInstance<T>) => void;
+  send(message: Message): Promise<void>;
+  connect: (serviceT: T) => Promise<void>;
   quit: () => Promise<void>;
 
   // Internal use:
   subscriber: Redis.Redis;
-  handlerSets: HandlerSets;
+  handlerSets: HandlerSet<T>[];
   isShutdown: boolean;
-  send(name: string, scope: HandlerScope, msg: string): Promise<void>;
 }
 
 
-function newRedis(name: string, opts?: Redis.RedisOptions): Redis.Redis {
-  const isDockerized = process.env['DOCKERIZED'] === 'true';
-  const host = isDockerized ? 'redis' : 'localhost';
-  const allOpts = _.merge({}, { host }, opts);
-  const client = new Redis(allOpts);
-  installEventEchoing(client, name);
-  return client;
-}
-
-export interface LocalMessage {
-  sourceMsg: string;
-  localMessage: string;
-  channel: string;
-  qualifiedMessage: string;
-  receiver: string;
-  scope: string;
-  sender: string;
-  message: string;
-}
-
-export function unpackLocalMessage(sourceMsg: string): LocalMessage {
-  const [localMessage, channel, qualifiedMessage] = sourceMsg.split(/::/);
-  const [receiver, scope] = channel.split(/\./);
-  const [sender, message] = qualifiedMessage.split(/:/);
-  return {
-    sourceMsg, localMessage, channel, qualifiedMessage,
-    receiver, scope, sender, message,
-  };
-}
-
-function getScopedMessageHandlers(
-  scope: string,
-  message: string,
-  serviceComm: ServiceComm
+function getMessageHandlers<T>(
+  message: Message,
+  serviceComm: ServiceComm<T>,
+  serviceT: T
 ): Thunk[] {
-  const handlerScope: HandlerScope = scope as any;
-  const scopedHandlers = serviceComm.handlerSets[handlerScope];
+  const { handlerSets } = serviceComm;
+  const { messageType } = message;
 
-  if (scopedHandlers === undefined) {
-    serviceComm.log.error(`Error: Received unknown scoped message ${message} in ${scope}`);
-    return [];
-  }
-  return _.flatMap(scopedHandlers, (hs) => {
-    return _.flatMap(_.toPairs(hs), ([k, v]) => {
-      const keyMatches = message.match(k)
+  const handlers = _.flatMap(handlerSets, (hs) => {
+    return _.flatMap(_.toPairs(hs), ([handlerKey, handler]) => {
+      const keyMatches = messageType.match(handlerKey)
       if (keyMatches) {
-        return [() => v(message)];
+        const bh = _.bind(handler, serviceT);
+        return [() => bh(message)];
       }
       return [];
     })
   });
+
+  return handlers;
 }
 
-export function createServiceComm(name: string): Promise<ServiceComm> {
 
-  return new Promise((resolve, reject) => {
-    const subscriber = newRedis(name);
+export function newServiceComm<T>(name: string): ServiceComm<T> {
+  const serviceComm: ServiceComm<T> = {
+    name,
+    // serviceT,
+    subscriber: newRedis(name),
+    isShutdown: false,
+    log: getServiceLogger(`${name}/comm`),
+    handlerSets: [],
+    async send(msg: Message): Promise<void> {
+      if (this.isShutdown) return;
+      const channel = msg.channel();
+      const packedMsg = Message.pack(msg);
 
-    const serviceComm: ServiceComm = {
-      name,
-      subscriber,
-      isShutdown: false,
-      log: getServiceLogger(`${name}/comm`),
-      handlerSets: {
-        'inbox': [],
-        'local': [],
-      },
-      async send(recipient: string, scope: HandlerScope, msg: string): Promise<void> {
-        if (this.isShutdown) return;
+      const publisher = this.subscriber.duplicate();
+      await publisher.publish(channel, packedMsg);
+      await publisher.quit();
+    },
 
-        const publisher = this.subscriber.duplicate();
-        await publisher.publish(`${recipient}.${scope}`, msg);
-        await publisher.quit();
-      },
-      async sendTo(recipient: string, msg: string): Promise<void> {
-        const prefixedMsg = `${name}:${msg}`;
-        this.log.debug(`sending> #${msg} -[to]-> ${recipient}`)
-        return this.send(recipient, 'inbox', prefixedMsg);
-      },
-      async sendSelf(selfMsg: string, channel: string, msg: string): Promise<void> {
-        return this.send(this.name, 'local', `${selfMsg}::${channel}::${msg}`);
-      },
-      async emit(msg: string): Promise<void> {
-        const prefixedMsg = `${name}:${msg}`;
-        return this.sendSelf('emit', `${this.name}.inbox`, prefixedMsg);
-      },
-      addHandler(scope: HandlerScope, regex: string, handler: HandlerInstance): void {
-        const handlerSet: HandlerSet = {};
-        handlerSet[regex] = handler;
-        this.handlerSets[scope].push(handlerSet);
-      },
-      async quit(): Promise<void> {
-        const self = this;
-        return new Promise((resolve) => {
-          self.subscriber.on('end', () => resolve())
-          self.isShutdown = true;
-          self.subscriber.quit();
-        });
-      }
-    };
+    addHandler(regex: string, handler: HandlerInstance<T>): void {
+      const handlerSet: HandlerSet<T> = {};
+      handlerSet[regex] = handler;
+      this.handlerSets.push(handlerSet);
+    },
 
-    subscriber.on('message', (channel: string, msg: string) => {
+    async connect(serviceT: T): Promise<void> {
+      const self = this;
+      self.serviceT = serviceT;
 
-      const channelParts = channel.split(/\./);
-      const [, channelScope] = channelParts;
-      if (channelScope === undefined) {
-        serviceComm.log.error(`Error: Unknown scope in ${channel}: msg: ${msg}`);
-        return;
-      }
+      return new Promise((resolve, reject) => {
+        const subscriber = self.subscriber;
 
-      const handlersForMessage = getScopedMessageHandlers(channelScope, msg, serviceComm);
+        subscriber.on('message', (channel: string, packedMsg: string) => {
+          const message = Message.unpack(packedMsg);
 
-      const haveHandlers = handlersForMessage.length > 0;
-      const isLocalMessage = channelScope === 'local';
+          const handlersForMessage = getMessageHandlers<T>(message, serviceComm, serviceT);
 
-      if (isLocalMessage) {
-        const lm = unpackLocalMessage(msg);
-        switch (lm.localMessage) {
-          case 'received' :
+          const haveHandlers = handlersForMessage.length > 0;
+
+          const respondIfHandled = async () => {
             if (haveHandlers) {
-              serviceComm.log.info(`${lm.localMessage}> #${lm.sender}:${lm.message} handler#${handlersForMessage.length}`);
-            } else {
-              serviceComm.log.debug(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
+              const forwardLocal = Message.create({
+                from: name,
+                to: name,
+                messageType: 'handled',
+              }, Forward.create(message))
+              return serviceComm.send(forwardLocal);
             }
-            break;
-          case 'handled':
-            serviceComm.log.info(`${lm.localMessage}> #${lm.sender}:${lm.message}`);
-            break;
-        }
+          };
 
-        Async.mapSeries(handlersForMessage, async (handler) => {
-          handler()
-            .catch(error => {
-              serviceComm.log.error(`${lm.localMessage}:local> #${lm.sender}:${lm.message}: ERROR: ${error}`);
-            })
-        }).catch((err) => {
-          serviceComm.log.error(`> ${msg} on ${channel}: ${err}`)
-        });
-        return;
-      }
+          const rcvd = Message.create({
+            from: name,
+            to: name,
+            messageType: 'received',
+          }, Forward.create(message))
 
-      const respondIfHandled = async () => {
-        if (haveHandlers) {
-          return serviceComm.sendSelf('handled', channel, msg);
-        }
-      };
-      serviceComm.sendSelf('received', channel, msg)
-        .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
-        .then(respondIfHandled)
-        .catch((err) => {
-          serviceComm.log.warn(`> ${msg} on ${channel}: ${err}`)
+          // TODO message payload type Dispatch?
+          serviceComm.send(rcvd)
+            .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
+            .then(respondIfHandled)
+            .catch((err) => {
+              serviceComm.log.warn(`> ${packedMsg} on ${channel}: ${err}`)
+            });
         });
-    });
 
-    subscriber.on('ready', () => {
-      subscriber.subscribe(`${name}.inbox`, `${name}.local`)
-        .then(() => resolve(serviceComm))
-        .catch((err) => {
-          serviceComm.log.error(`subscribe> ${err}`)
-          reject(`${name} subscribe> ${err}`)
+        subscriber.on('ready', () => {
+          subscriber.subscribe(`${name}`)
+            .then(() => resolve())
+            .catch((err) => {
+              serviceComm.log.error(`subscribe> ${err}`)
+              reject(`${name} subscribe> ${err}`)
+            });
         });
-    });
-  });
+      });
+    },
+    async quit(): Promise<void> {
+      const self = this;
+      return new Promise((resolve) => {
+        self.subscriber.on('end', () => resolve())
+        self.isShutdown = true;
+        self.subscriber.quit();
+      });
+    }
+  };
+  return serviceComm;
 }
 
-function installEventEchoing(r: Redis.Redis, name: string) {
-  const log = getServiceLogger(`${name}/redis`);
-  _.each(RedisConnectionEvents, (e: string) => {
-    r.on(e, () => log.debug(`event:${e}`));
-  });
-}
+
+
+// export function createServiceComm<T>(name: string, serviceT: T): Promise<ServiceComm<T>> {
+
+//   return new Promise((resolve, reject) => {
+//     const subscriber = newRedis(name);
+
+//     const serviceComm: ServiceComm<T> = {
+//       name,
+//       // serviceT,
+//       subscriber,
+//       isShutdown: false,
+//       log: getServiceLogger(`${name}/comm`),
+//       handlerSets: [],
+//       async send(msg: Message): Promise<void> {
+//         if (this.isShutdown) return;
+//         const channel = msg.channel();
+//         const packedMsg = Message.pack(msg);
+
+//         const publisher = this.subscriber.duplicate();
+//         await publisher.publish(channel, packedMsg);
+//         await publisher.quit();
+//       },
+
+//       addHandler(regex: string, handler: HandlerInstance<T>): void {
+//         const handlerSet: HandlerSet<T> = {};
+//         handlerSet[regex] = handler;
+//         this.handlerSets.push(handlerSet);
+//       },
+//       async quit(): Promise<void> {
+//         const self = this;
+//         return new Promise((resolve) => {
+//           self.subscriber.on('end', () => resolve())
+//           self.isShutdown = true;
+//           self.subscriber.quit();
+//         });
+//       }
+//     };
+
+//     subscriber.on('message', (channel: string, packedMsg: string) => {
+//       const message = Message.unpack(packedMsg);
+
+//       const handlersForMessage = getMessageHandlers<T>(message, serviceComm, serviceT);
+
+//       const haveHandlers = handlersForMessage.length > 0;
+
+//       const respondIfHandled = async () => {
+//         if (haveHandlers) {
+//           const forwardLocal = Message.create({
+//             from: name,
+//             to: name,
+//             messageType: 'handled',
+//           }, Forward.create(message))
+//           return serviceComm.send(forwardLocal);
+//         }
+//       };
+
+//       const rcvd = Message.create({
+//         from: name,
+//         to: name,
+//         messageType: 'received',
+//       }, Forward.create(message))
+
+//       // TODO message payload type Dispatch?
+//       serviceComm.send(rcvd)
+//         .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
+//         .then(respondIfHandled)
+//         .catch((err) => {
+//           serviceComm.log.warn(`> ${packedMsg} on ${channel}: ${err}`)
+//         });
+//     });
+
+//     subscriber.on('ready', () => {
+//       subscriber.subscribe(`${name}`)
+//         .then(() => resolve(serviceComm))
+//         .catch((err) => {
+//           serviceComm.log.error(`subscribe> ${err}`)
+//           reject(`${name} subscribe> ${err}`)
+//         });
+//     });
+//   });
+// }
+

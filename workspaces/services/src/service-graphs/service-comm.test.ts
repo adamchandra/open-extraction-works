@@ -1,84 +1,42 @@
 import 'chai/register-should';
+import { prettyPrint } from 'commons/dist';
 
 import _ from 'lodash';
-import { createTestServices, assertAllStringsIncluded } from './service-test-utils';
+import { newRedis } from './ioredis-conn';
+import { newServiceComm, ServiceComm } from './service-comm';
+import { Message, MEvent } from './service-defs';
+// import { Forward, Message, MEvent } from './service-defs';
+// import { createTestServices, assertAllStringsIncluded } from './service-test-utils';
 
-describe('Service Communication Hub lifecycle', () => {
+describe('Redis-based Service Communication ', () => {
   process.env['service-comm.loglevel'] = 'warn';
 
-  it('should startup, link, and shutdown service hub with satellites', async (done) => {
-    const logMessages: string[] = [];
-    const numServices = 3;
-    const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
-      return [
-        `service-${svcNum}: ServiceHub:link`,
-        `ServiceHub: service-${svcNum}:ack~link`,
-        `ServiceHub: service-${svcNum}:done~link`,
-        `service-${svcNum}: ServiceHub:shutdown`,
-        `ServiceHub: service-${svcNum}:ack~shutdown`,
-      ];
-    })
-    const [hub,] = await createTestServices(numServices, logMessages);
+  interface MyService {
+    serviceComm: ServiceComm<MyService>;
+  }
 
-    await hub.shutdownSatellites();
+  it('should pass messages between several services', async (done) => {
+    const mainRedis = newRedis('main');
 
-    await hub.commLink.quit();
+    const msg = Message.create({
+      from: 'me', to: 'you', messageType: 'ping'
+    }, MEvent.create('Hey There!'))
+    const pmsg = Message.pack(msg);
 
-    const receivedAllExpectedMessages = assertAllStringsIncluded(expectedMessages, logMessages);
-    expect(receivedAllExpectedMessages).toBe(true);
+
+    const myService: MyService = {
+      serviceComm: newServiceComm<MyService>('service-1')
+    }
+    await myService.serviceComm.connect(myService);
+
+    await mainRedis.publish('service-1', pmsg);
+
+
+    await myService.serviceComm.quit();
+    await mainRedis.quit();
+
+
     done();
-  });
-
-
-  it("should pass control between services on 'run' message", async (done) => {
-    const logMessages: string[] = [];
-    const numServices = 3;
-    const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
-      return [
-        `inbox: ServiceHub: service-${svcNum}:done~run`,
-        `inbox: service-${svcNum}: ServiceHub:run`,
-      ];
-    })
-
-    const [hub] = await createTestServices(numServices, logMessages);
-
-    hub.commLink.addHandler(
-      'inbox', `service-${numServices - 1}:done~run`,
-      async () => {
-        await hub.shutdownSatellites();
-        await hub.commLink.quit();
-
-        const receivedAllExpectedMessages = assertAllStringsIncluded(expectedMessages, logMessages);
-        expect(receivedAllExpectedMessages).toBe(true);
-        done();
-      }
-    );
-    await hub.commLink.sendTo('service-0', 'run');
-  });
-
-  it("should pass control between services on 'step' message", async (done) => {
-    const logMessages: string[] = [];
-    const numServices = 3;
-    const expectedMessages = _.flatMap(_.range(numServices), svcNum => {
-      return [
-        `inbox: ServiceHub: service-${svcNum}:done~step`,
-        `inbox: service-${svcNum}: ServiceHub:step`,
-      ];
-    })
-    const [hub] = await createTestServices(numServices, logMessages);
-
-    hub.commLink.addHandler(
-      'inbox', `service-${numServices - 1}:done~step`,
-      async () => {
-        await hub.shutdownSatellites();
-        await hub.commLink.quit();
-        const receivedAllExpectedMessages = assertAllStringsIncluded(expectedMessages, logMessages);
-        expect(receivedAllExpectedMessages).toBe(true);
-        done();
-      }
-    );
-
-    await hub.commLink.sendTo('service-0', 'step');
   });
 
 

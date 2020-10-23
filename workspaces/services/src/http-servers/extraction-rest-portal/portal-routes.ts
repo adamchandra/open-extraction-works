@@ -50,6 +50,29 @@ export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
   return p;
 }
 
+async function postRecordJson(
+  serviceComm: ServiceComm,
+  ctx: Context,
+  next: () => Promise<any>
+): Promise<Router> {
+  const requestBody = ctx.request.body;
+  const responseBody: Record<string, string> = {};
+  ctx.response.body = responseBody;
+
+  if (requestBody) {
+    // TODO validate requestBody as AlphaRecord[]
+    const alphaRec: AlphaRecord = requestBody;
+    // const extractedFields: string = await serviceComm.yield(alphaRec);
+
+    responseBody.status = 'ok';
+    // responseBody.fields = extractedFields;
+  } else {
+    responseBody.status = 'error';
+  }
+
+  // await serviceComm.emit('step');
+  return next();
+}
 async function postBatchCsv(
   serviceComm: ServiceComm,
   ctx: Context,
@@ -74,7 +97,7 @@ async function postBatchCsv(
 
   // TODO this emit can be moved to middleware outside of here
   // TODO await serviceComm.emit('step', 'done');
-  await serviceComm.emit('step');
+  // await serviceComm.emit('step');
   return next();
 }
 
@@ -98,11 +121,13 @@ export function initPortalRouter(serviceComm: ServiceComm): Router {
   const pathPrefix = '^/extractor'
 
   const curriedPostBatchCsv = _.curry(postBatchCsv)(serviceComm);
+  const postRecordJson_ = _.curry(postRecordJson)(serviceComm);
 
   apiRouter
     .get(new RegExp(`${pathPrefix}/batch.csv$`), getBatchCsv)
     .get(new RegExp(`${pathPrefix}/$`), getRoot)
     .post(new RegExp(`${pathPrefix}/fields.json$`), koaBody(), curriedPostBatchCsv)
+    .post(new RegExp(`${pathPrefix}/record.json$`), koaBody(), postRecordJson_)
     ;
 
   return apiRouter;

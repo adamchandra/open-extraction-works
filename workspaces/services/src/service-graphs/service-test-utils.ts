@@ -3,6 +3,7 @@ import { defineSatelliteService, createSatelliteService, SatelliteService, Servi
 import Async from 'async';
 
 // Create a Hub/Satellite service network with specified # of satellites
+
 export async function createTestServices(n: number, runLog: string[]): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
   const hubName = 'ServiceHub';
   const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
@@ -18,11 +19,18 @@ export async function createTestServices(n: number, runLog: string[]): Promise<[
     async (serviceName) => {
       const serviceDef = defineSatelliteService<void>(
         async () => undefined, {
+          async step() {
+            this.log.info(`${this.serviceName} [step]> `)
+          },
+
+          async run(payload: any) {
+            this.log.info(`${this.serviceName} [run]> payload=${payload} `)
+          },
       });
 
       const satService = await createSatelliteService(hubName, serviceName, serviceDef);
-      satService.commLink.addHandler('inbox', '.*', recordLogMsgHandler(serviceName, 'inbox'));
-      satService.commLink.addHandler('local', '.*', recordLogMsgHandler(serviceName, 'local'));
+      satService.satComm.commLink.addHandler('inbox', '.*', recordLogMsgHandler(serviceName, 'inbox'));
+      satService.satComm.commLink.addHandler('local', '.*', recordLogMsgHandler(serviceName, 'local'));
       return satService;
     });
 

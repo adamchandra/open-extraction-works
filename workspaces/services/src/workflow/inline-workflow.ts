@@ -1,5 +1,14 @@
 import _ from 'lodash';
-import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub, SatelliteServiceDef } from '~/service-graphs/service-hub';
+
+
+import {
+  createHubService,
+  createSatelliteService,
+  defineSatelliteService,
+  SatelliteService,
+  ServiceHub,
+  SatelliteServiceDef
+} from '~/service-graphs/service-hub';
 
 import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
 import { Server } from 'http';
@@ -28,6 +37,7 @@ export const WorkflowServiceNames: WorkflowServiceName[] = [
 
 const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> = {
   'RestPortal': defineSatelliteService<Server>(
+    // async call(f: () => Yield<AlphaRecord>|Fulfill<ExtractedFields>): Promise<Maybe<ExtractedFields>> {}
     (serviceComm) => startRestPortal(serviceComm), {
     async shutdown() {
       this.log.debug(`${this.serviceName} [shutdown]> `)
@@ -41,14 +51,16 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   }),
 
   'UploadIngestor': defineSatelliteService<void>(
+    // async call(f: <F>(r: AlphaRecord) => Yield<AlphaRecord>|Fulfill<ExtractedFields>): Promise<void> {}
     async () => undefined, {
     async step(): Promise<void> {
       this.log.info('[step]> ')
       await insertNewUrlChains()
-    }
+    },
   }),
 
   'Spider': defineSatelliteService<SpiderService>(
+    // async call(f: <F>(r: AlphaRecord) => F<AlphaRecord>): Promise<void> {}
     async () => createSpiderService(), {
     async step() {
       this.log.info(`${this.serviceName} [step]> `)
@@ -69,7 +81,8 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
             committedMeta.statusCode === 'http:200';
             const corpusEntryStatus = await insertCorpusEntry(committedMeta.url);
             this.log.info(`created new corpus entry ${corpusEntryStatus.entryId}: ${corpusEntryStatus.statusCode}`)
-            // await this.commLink.echoBack('step');
+
+            await this.satComm.echoBack('step');
           }
         } else {
           putStrLn(`Metadata is undefined for url ${nextUrl}`);

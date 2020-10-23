@@ -246,7 +246,6 @@ export const UrlSpecificAttempts = takeFirstSuccess(
 );
 
 
-
 export const AbstractFieldAttempts = compose(
   checkStatusAndNormalize,
 
@@ -275,7 +274,6 @@ export const AbstractFieldAttempts = compose(
       'og:title': 'title',
       'og:description': 'abstract',
     }),
-    // TODO trim Abstract: Motivation ...
   ),
   summarizeEvidence,
 )

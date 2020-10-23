@@ -249,49 +249,6 @@ function writeExtractionRecords(env: ExtractionEnv, messages: string[]) {
 
 }
 
-      // const { responseUrl } = metadata;
-      // const parsedUrl = parseUrl(responseUrl);
-      // const { host } = parsedUrl;
-      // const paths = parsedUrl.pathname.split('/');
-      // const [, path1] = paths.slice(0, paths.length - 1);
-      // const hostAndPath = `${host}/${path1}`;
-
-      // const urlIsMarked = markedUrls.has(host) || markedUrls.has(hostAndPath);
-
-      // if (urlIsMarked) {
-      //   ctx.log.info(`Entry URL host ${host} / and maybe path ${path1} was previously marked, skipping...`);
-      //   return;
-      // }
-
-      // // const hasExtractionRecord = hasCorpusFile(entryPath, 'extracted-fields', extractionRecordFileName);
-      // const isEntryOkay = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.entry_okay.gt`);
-      // const isHostOkay = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.host_okay.gt`);
-      // const isHostPathOkay = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.host_path_okay.gt`);
-      // const isBuryHost = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.bury_host.gt`);
-
-      // const isMarked = hasCorpusFile(entryPath, 'extracted-fields', `${extractionRecordFileName}.mark.gt`);
-
-      // if (isHostOkay) {
-      //   ctx.log.info(`Entry has Host-Okay mark, will skip similar hosts ${host} ...`);
-      //   markedUrls.add(host);
-      //   return;
-      // }
-
-      // if (isHostPathOkay) {
-      //   ctx.log.info(`Entry has Host-Path-Okay mark, will skip similar hosts ${hostAndPath} ...`);
-      //   markedUrls.add(hostAndPath);
-      //   return;
-      // }
-
-      // if (isEntryOkay) {
-      //   ctx.log.info('Entry has Entry-Okay mark, skipping ...');
-      //   return;
-      // }
-
-      // if (hasExtractionRecord) {
-      //   ctx.log.info('Entry has Extraction Records, skipping...');
-      //   return;
-      // }
 
 // export async function runMainGatherAbstracts(
 //   corpusRoot: string,

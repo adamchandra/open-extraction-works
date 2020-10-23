@@ -1,11 +1,8 @@
 import 'chai/register-should';
-
 import _ from 'lodash';
-import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
+import { runServiceHub, runService, WorkflowServiceNames } from './inline-workflow';
 import { prettyPrint, AlphaRecord, } from 'commons';
 import got from 'got';
-import { useEmptyDatabase } from '~/db/db-test-utils';
-
 
 describe('End-to-end Extraction workflows', () => {
   const hubName = 'ServiceHub';
@@ -40,8 +37,7 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
 
 
 
-  it('should run end-to-end via async service graph', async (done) => {
-    await useEmptyDatabase(async () => undefined);
+  it('should run end-to-end', async (done) => {
 
     const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
 
@@ -61,7 +57,7 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
       }
     );
 
-    const getResponse = await got('http://localhost:3100/extractor/batch.csv');
+    const getResponse = await got.get('http://localhost:3100/extractor/batch.csv');
 
     prettyPrint({ response: getResponse.body });
 
@@ -69,6 +65,9 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
       'http://localhost:3100/extractor/fields.json', {
       json: liveRecs
     });
+
+    prettyPrint({ retval: retval.body });
+
   });
 
   // it.only('should run end-to-end via blocking function call', async (done) => {
