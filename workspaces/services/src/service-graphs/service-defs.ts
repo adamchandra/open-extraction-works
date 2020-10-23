@@ -1,17 +1,40 @@
 
+import { parseJSON, isLeft, toError } from 'fp-ts/lib/Either';
+
+function parseJson(s: string): any | undefined {
+  const parsed = parseJSON(s, toError);
+
+  if (isLeft(parsed)) {
+    const syntaxError = parsed.left;
+    const posRE = /position (\d+)/;
+    const posMatch = syntaxError.message.match(posRE);
+
+    if (posMatch && posMatch.length > 1) {
+      const errIndex = parseInt(posMatch[1]);
+      const begin = Math.max(0, errIndex - 50);
+      const end = Math.min(s.length, errIndex + 50);
+      const pre = s.slice(begin, errIndex + 1)
+      const post = s.slice(errIndex + 1, end)
+      console.log(`${syntaxError}\nContext:\n${pre} <-- Error\n${post}`);
+    }
+    return;
+  }
+  return parsed.right;
+}
+
 export type Thunk = () => Promise<void>;
-export type HandlerInstance<This, R=unknown> = (this: This, msg: Message) => Promise<R>;
 
-// export type HandlerInstance<This, A=unknown, B = unknown> = (this: This, a: A) => Promise<B>;
-export type HandlerSet<This> = Record<string, HandlerInstance<This>>;
+export type MessageHandler<This> = (this: This, msg: Message) => Promise<Message | void>;
+export type MessageHandlers<This> = Record<string, MessageHandler<This>>;
 
-// export type HandlerSets = Record<HandlerScope, HandlerSet[]>;
-// export type HandlerSets<This> = HandlerSet<This>[];
+export type DispatchHandler<This, A = unknown, B = unknown> = (this: This, a: A) => Promise<B>;
+export type DispatchHandlers<This> = Record<string, DispatchHandler<This>>;
 
 export interface Forward {
   kind: 'forward';
   body: Message
 }
+
 export const Forward = {
   create(message: Message): Forward {
     return {
@@ -33,21 +56,51 @@ export const MEvent = {
     }
   }
 }
+
 export interface Empty {
   kind: 'empty';
+}
+
+export interface Dispatch {
+  kind: 'dispatch';
+  func: string;
+  arg: string;
+}
+
+export const Dispatch = {
+  create(func: string, arg: string): Dispatch {
+    return {
+      kind: 'dispatch',
+      func, arg
+    };
+  }
+}
+
+export interface Yield {
+  kind: 'yield';
+  value: any;
+}
+
+export const Yield = {
+  create(value: any): Yield {
+    return {
+      kind: 'yield', value
+    };
+  }
 }
 
 
 export type Payload =
   Forward
   | MEvent
+  | Dispatch
+  | Yield
   | Empty
   ;
 
 export interface Headers {
   from: string;
   to: string;
-  // scope: HandlerScope;
   messageType: string;
 }
 
@@ -96,6 +149,15 @@ export function packPayload(payload: Payload): string {
       const pmsg = packMessage(payload.body);
       return `fwd:${pmsg}`;
     }
+    case 'dispatch': {
+      const { func, arg } = payload
+      return `dsp:${func}:${arg}`;
+    }
+    case 'yield': {
+      const { value } = payload
+      const vstr = JSON.stringify(value);
+      return `yld:${vstr}`;
+    }
     case 'empty': {
       return 'nil:';
     }
@@ -118,6 +180,25 @@ export function unpackPayload(packed: string): Payload {
       const p: Payload = {
         kind: 'forward',
         body: unpackMessage(body)
+      };
+      return p;
+    }
+    case 'dsp': {
+      const divider = body.indexOf(':')
+      const func = body.substr(0, divider);
+      const arg = body.substr(divider + 1);
+      const p: Payload = {
+        kind: 'dispatch',
+        func,
+        arg
+      };
+      return p;
+    }
+    case 'yld': {
+      const parsed = parseJson(body);
+      const p: Payload = {
+        kind: 'yield',
+        value: parsed
       };
       return p;
     }

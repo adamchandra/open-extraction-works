@@ -4,27 +4,55 @@ import Async from 'async';
 import winston from 'winston';
 import { getServiceLogger } from './service-logger';
 import {
-  Forward,
-  HandlerInstance,
-  HandlerSet,
+  MessageHandlers,
+  DispatchHandlers,
   Message,
   Thunk,
+  Yield,
 } from './service-defs';
+
 import { newRedis } from './ioredis-conn';
 
+import { prettyPrint } from 'commons';
+
+import { parseJSON, isLeft, toError } from 'fp-ts/lib/Either';
+
+function parseJson(s: string): any | undefined {
+  const parsed = parseJSON(s, toError);
+
+  if (isLeft(parsed)) {
+    const syntaxError = parsed.left;
+    const posRE = /position (\d+)/;
+    const posMatch = syntaxError.message.match(posRE);
+
+    if (posMatch && posMatch.length > 1) {
+      const errIndex = parseInt(posMatch[1]);
+      const begin = Math.max(0, errIndex - 50);
+      const end = Math.min(s.length, errIndex + 50);
+      const pre = s.slice(begin, errIndex + 1)
+      const post = s.slice(errIndex + 1, end)
+      console.log(`${syntaxError}\nContext:\n${pre} <-- Error\n${post}`);
+    }
+    return;
+  }
+  return parsed.right;
+}
 
 export interface ServiceComm<T> {
   name: string;
   serviceT?: T;
   log: winston.Logger;
-  addHandler: (regex: string, handler: HandlerInstance<T>) => void;
+  // addHandler(regex: string, handler: MessageHandler<T>): void;
+  addHandlers(m: MessageHandlers<T>): void;
+  addDispatches(d: DispatchHandlers<T>): void;
   send(message: Message): Promise<void>;
-  connect: (serviceT: T) => Promise<void>;
-  quit: () => Promise<void>;
+  connect(serviceT: T): Promise<void>;
+  quit(): Promise<void>;
 
   // Internal use:
   subscriber: Redis.Redis;
-  handlerSets: HandlerSet<T>[];
+  messageHandlers: MessageHandlers<T>;
+  dispatchHandlers: DispatchHandlers<T>;
   isShutdown: boolean;
 }
 
@@ -34,32 +62,31 @@ function getMessageHandlers<T>(
   serviceComm: ServiceComm<T>,
   serviceT: T
 ): Thunk[] {
-  const { handlerSets } = serviceComm;
+  const { messageHandlers } = serviceComm;
   const { messageType } = message;
 
-  const handlers = _.flatMap(handlerSets, (hs) => {
-    return _.flatMap(_.toPairs(hs), ([handlerKey, handler]) => {
-      const keyMatches = messageType.match(handlerKey)
+  const handlers = _.flatMap(
+    _.toPairs(messageHandlers), ([handlerKey, handler]) => {
+      const keyMatches = messageType === handlerKey;
       if (keyMatches) {
         const bh = _.bind(handler, serviceT);
         return [() => bh(message)];
       }
       return [];
-    })
-  });
+    });
 
   return handlers;
 }
 
-
 export function newServiceComm<T>(name: string): ServiceComm<T> {
+
   const serviceComm: ServiceComm<T> = {
     name,
-    // serviceT,
     subscriber: newRedis(name),
     isShutdown: false,
     log: getServiceLogger(`${name}/comm`),
-    handlerSets: [],
+    messageHandlers: {},
+    dispatchHandlers: {},
     async send(msg: Message): Promise<void> {
       if (this.isShutdown) return;
       const channel = msg.channel();
@@ -70,10 +97,19 @@ export function newServiceComm<T>(name: string): ServiceComm<T> {
       await publisher.quit();
     },
 
-    addHandler(regex: string, handler: HandlerInstance<T>): void {
-      const handlerSet: HandlerSet<T> = {};
-      handlerSet[regex] = handler;
-      this.handlerSets.push(handlerSet);
+    addDispatches(dispatches: DispatchHandlers<T>): void {
+      const all = {
+        ...this.dispatchHandlers,
+        ...dispatches,
+      }
+      this.dispatchHandlers = all;
+    },
+    addHandlers(messageHandlers: MessageHandlers<T>): void {
+      const all = {
+        ...this.messageHandlers,
+        ...messageHandlers,
+      }
+      this.messageHandlers = all;
     },
 
     async connect(serviceT: T): Promise<void> {
@@ -82,45 +118,28 @@ export function newServiceComm<T>(name: string): ServiceComm<T> {
 
       return new Promise((resolve, reject) => {
         const subscriber = self.subscriber;
+        const log = self.log;
 
         subscriber.on('message', (channel: string, packedMsg: string) => {
+          log.verbose(`${name} received> ${packedMsg}`);
+
           const message = Message.unpack(packedMsg);
 
           const handlersForMessage = getMessageHandlers<T>(message, serviceComm, serviceT);
 
-          const haveHandlers = handlersForMessage.length > 0;
 
-          const respondIfHandled = async () => {
-            if (haveHandlers) {
-              const forwardLocal = Message.create({
-                from: name,
-                to: name,
-                messageType: 'handled',
-              }, Forward.create(message))
-              return serviceComm.send(forwardLocal);
-            }
-          };
-
-          const rcvd = Message.create({
-            from: name,
-            to: name,
-            messageType: 'received',
-          }, Forward.create(message))
-
-          // TODO message payload type Dispatch?
-          serviceComm.send(rcvd)
-            .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
-            .then(respondIfHandled)
+          Async.mapSeries(handlersForMessage, async (handler) => handler())
             .catch((err) => {
-              serviceComm.log.warn(`> ${packedMsg} on ${channel}: ${err}`)
+              log.warn(`> ${packedMsg} on ${channel}: ${err}`)
             });
         });
 
         subscriber.on('ready', () => {
           subscriber.subscribe(`${name}`)
+            .then(() => log.info(`${name}> connected`))
             .then(() => resolve())
             .catch((err) => {
-              serviceComm.log.error(`subscribe> ${err}`)
+              log.error(`subscribe> ${err}`)
               reject(`${name} subscribe> ${err}`)
             });
         });
@@ -135,8 +154,33 @@ export function newServiceComm<T>(name: string): ServiceComm<T> {
       });
     }
   };
+
+  serviceComm.addHandlers({
+    async dispatch(msg) {
+      prettyPrint({ p: 'dispatching', msg });
+      const { from, to, payload } = msg;
+      if (payload.kind === 'dispatch') {
+        const { func, arg } = payload;
+        const f = serviceComm.dispatchHandlers[func];
+        if (f !== undefined) {
+          const argz = parseJson(arg);
+          const bf = _.bind(f, this);
+          const result = await bf(argz);
+          prettyPrint({ p: 'dispatched', arg, result });
+
+          const response = Message.create({
+            from: to, to: from, messageType: 'yield'
+          }, Yield.create(result));
+
+          await serviceComm.send(response);
+        }
+      }
+    }
+  });
+
   return serviceComm;
 }
+
 
 
 
@@ -163,9 +207,9 @@ export function newServiceComm<T>(name: string): ServiceComm<T> {
 //       },
 
 //       addHandler(regex: string, handler: HandlerInstance<T>): void {
-//         const handlerSet: HandlerSet<T> = {};
-//         handlerSet[regex] = handler;
-//         this.handlerSets.push(handlerSet);
+//         const messageHandlers: HandlerSet<T> = {};
+//         messageHandlers[regex] = handler;
+//         this.handlerSets.push(messageHandlers);
 //       },
 //       async quit(): Promise<void> {
 //         const self = this;
@@ -221,3 +265,29 @@ export function newServiceComm<T>(name: string): ServiceComm<T> {
 //   });
 // }
 
+
+// const haveHandlers = handlersForMessage.length > 0;
+
+// const respondIfHandled = async () => {
+//   if (haveHandlers) {
+//     const forwardLocal = Message.create({
+//       from: name,
+//       to: name,
+//       messageType: 'handled',
+//     }, Forward.create(message))
+//     return serviceComm.send(forwardLocal);
+//   }
+// };
+
+// const rcvd = Message.create({
+//   from: name,
+//   to: name,
+//   messageType: 'received',
+// }, Forward.create(message))
+
+// serviceComm.send(rcvd)
+//   .then(() => Async.mapSeries(handlersForMessage, async (handler) => handler()))
+//   .then(respondIfHandled)
+//   .catch((err) => {
+//     log.warn(`> ${packedMsg} on ${channel}: ${err}`)
+//   });

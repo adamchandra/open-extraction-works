@@ -1,5 +1,5 @@
 module.exports = {
   extends: [
-    "../commons/.eslintrc.js"
+    '../commons/.eslintrc.js'
   ]
 }

@@ -6,6 +6,7 @@ import winston from 'winston';
 import Async from 'async';
 import { Forward, HandlerInstance, Message } from './service-defs';
 
+
 export type LifecycleName = keyof {
   startup: null,
   shutdown: null,
@@ -28,9 +29,9 @@ export const LifecyclePhase: Record<LifecycleName, LifecycleMod[]> = {
   ping: ['ack'],
 };
 
-export interface SatelliteComm {
+export interface SatelliteComm<T> {
   hubName: string;
-  commLink: ServiceComm;
+  commLink: ServiceComm<T>;
   sendHub(msg: LifecycleMod, includeMessage: Message): Promise<void>;
   // echoBack(msg: string): Promise<void>;
   // run<A, B>(a: A): Promise<B>;
@@ -38,32 +39,32 @@ export interface SatelliteComm {
 }
 
 // export type LifecycleHandler<T, R> = (this: SatelliteService<T>, payload: unknown) => Promise<R>;
-export type LifecycleHandler<T, R> = HandlerInstance<T, R>;
-export type LifecycleHandlers<T> = Record<LifecycleName, LifecycleHandler<T, void>>;
+
+export type LifecycleHandlers<T> = Record<LifecycleName, HandlerInstance<T, unknown>>;
 
 export interface SatelliteService<T> extends Partial<LifecycleHandlers<T>> {
   serviceName: string;
   // commLink: ServiceComm;
-  satComm: SatelliteComm;
+  satComm: SatelliteComm<T>;
   log: winston.Logger;
   cargo: T;
 }
 
 export interface ServiceHub {
   name: string;
-  commLink: ServiceComm;
+  commLink: ServiceComm<ServiceHub>;
   addSatelliteService(name: string): Promise<void>;
   shutdownSatellites(): Promise<void>;
 }
 
 export interface SatelliteServiceDef<T> {
   lifecyleHandlers: Partial<LifecycleHandlers<T>>;
-  cargoInit: (sc: ServiceComm) => Promise<T>;
+  cargoInit: (sc: ServiceComm<T>) => Promise<T>;
 }
 
 
 export function defineSatelliteService<T>(
-  cargoInit: (sc: ServiceComm) => Promise<T>,
+  cargoInit: (sc: ServiceComm<T>) => Promise<T>,
   lifecyleHandlers: Partial<LifecycleHandlers<T>>
 ): SatelliteServiceDef<T> {
   return {
@@ -79,7 +80,7 @@ export async function createSatelliteService<T>(
   serviceDef: SatelliteServiceDef<T>
 ): Promise<SatelliteService<T>> {
   const commLink = await createServiceComm(satelliteName);
-  const satComm: SatelliteComm = {
+  const satComm: SatelliteComm<T> = {
     hubName,
     commLink,
     async sendHub(hubMessage: LifecycleMod, includeMsg: Message): Promise<void> {
@@ -147,7 +148,6 @@ export async function createSatelliteService<T>(
       commLink.addHandler(
         '.*',
         async (msg: Message) => {
-          // const lm = unpackLocalMessage(msg);
           switch (msg.messageType) {
             case 'received':
               return satComm.sendHub('ack', msg);
@@ -161,21 +161,31 @@ export async function createSatelliteService<T>(
             // case 'yield-back':
             //   prettyPrint({ msg: 'yielding back...', lm });
             //   return satComm.sendHub(`yield-back~${lm.message}`);
+            case 'dispatch':
+              putStrLn(`${name} dispatch: ${msg}`);
+
+              if (msg.payload.kind === 'dispatch') {
+                const { arg, func } = msg.payload;
+                await runHandler(func);
+              }
+
+            case 'shutdown':
+              await commLink.quit();
             default:
               commLink.log.warn(`${satelliteName} [unhandled]> #${msg}`);
           }
         });
 
-      commLink.addHandler(
-        `${hubName}:.*`,
-        async (message: Message) => {
-          const [, msg] = message.split(/:/);
-          putStrLn(`${name} inbox: ${message}`);
-          await runHandler(msg);
-          if (msg === 'shutdown') {
-            await commLink.quit();
-          }
-        });
+      // commLink.addHandler(
+      //   `${hubName}:.*`,
+      //   async (message: Message) => {
+      //     const [, msg] = message.split(/:/);
+      //     putStrLn(`${name} inbox: ${message}`);
+      //     await runHandler(msg);
+      //     if (msg === 'shutdown') {
+      //       await commLink.quit();
+      //     }
+      //   });
 
       await runHandler('startup');
 
@@ -183,7 +193,7 @@ export async function createSatelliteService<T>(
     });
 }
 
-async function establishSatelliteConnection(hubComm: ServiceComm, satelliteName: string): Promise<void> {
+async function establishSatelliteConnection(hubComm: ServiceComm<unknown>, satelliteName: string): Promise<void> {
   let pingedSatellite = false;
   hubComm.addHandler(
     `${satelliteName}:done~link`,
