@@ -1,74 +1,26 @@
-
-import { parseJSON, isLeft, toError } from 'fp-ts/lib/Either';
-
-function parseJson(s: string): any | undefined {
-  const parsed = parseJSON(s, toError);
-
-  if (isLeft(parsed)) {
-    const syntaxError = parsed.left;
-    const posRE = /position (\d+)/;
-    const posMatch = syntaxError.message.match(posRE);
-
-    if (posMatch && posMatch.length > 1) {
-      const errIndex = parseInt(posMatch[1]);
-      const begin = Math.max(0, errIndex - 50);
-      const end = Math.min(s.length, errIndex + 50);
-      const pre = s.slice(begin, errIndex + 1)
-      const post = s.slice(errIndex + 1, end)
-      console.log(`${syntaxError}\nContext:\n${pre} <-- Error\n${post}`);
-    }
-    return;
-  }
-  return parsed.right;
-}
+import _ from 'lodash';
+import { putStrLn, newIdGenerator, parseJson } from 'commons';
 
 export type Thunk = () => Promise<void>;
 
-export type MessageHandler<This> = (this: This, msg: Message) => Promise<Message | void>;
+export type MessageHandler<This> = (this: This, msg: Message & AddrTo & AddrFrom) => Promise<Message & AddrTo | void>;
 export type MessageHandlers<This> = Record<string, MessageHandler<This>>;
+export type MessageHandlerDef<This> = [string, MessageHandler<This>];
 
-export type DispatchHandler<This, A = unknown, B = unknown> = (this: This, a: A) => Promise<B>;
+export type DispatchHandler<This, A = any, B = any> = (this: This, a: A) => Promise<B>;
 export type DispatchHandlers<This> = Record<string, DispatchHandler<This>>;
 
-export interface Forward {
-  kind: 'forward';
-  body: Message
-}
-
-export const Forward = {
-  create(message: Message): Forward {
-    return {
-      kind: 'forward',
-      body: message
-    }
-  }
-}
-
-export interface MEvent {
-  kind: 'event';
-  body: string;
-}
-export const MEvent = {
-  create(body: string): MEvent {
-    return {
-      kind: 'event',
-      body
-    }
-  }
-}
-
-export interface Empty {
-  kind: 'empty';
-}
+const nextId = newIdGenerator(1);
 
 export interface Dispatch {
   kind: 'dispatch';
   func: string;
-  arg: string;
+  arg: any;
 }
 
+
 export const Dispatch = {
-  create(func: string, arg: string): Dispatch {
+  create(func: string, arg: any): Dispatch {
     return {
       kind: 'dispatch',
       func, arg
@@ -89,127 +41,203 @@ export const Yield = {
   }
 }
 
+export interface Push {
+  kind: 'push';
+  msg: MessageBody;
+}
 
-export type Payload =
-  Forward
-  | MEvent
+export const Push = {
+  create(msg: MessageBody): Push {
+    return {
+      kind: 'push', msg
+    };
+  }
+}
+
+export interface Ack {
+  kind: 'ack';
+  acked: string;
+}
+
+export const Ack = {
+  create(msg: MessageBody): Ack {
+    return {
+      kind: 'ack', acked: msg.kind
+    };
+  }
+}
+
+export type Ping = { kind: 'ping' };
+export const Ping: Ping = { kind: 'ping' };
+
+export type Quit = { kind: 'quit' };
+export const Quit: Quit = { kind: 'quit' };
+
+
+export type MessageBody =
+  Yield
   | Dispatch
-  | Yield
-  | Empty
+  | Push
+  | Ping
+  | Quit
+  | Ack
   ;
 
-export interface Headers {
-  from: string;
+
+
+
+export interface AddrTo {
   to: string;
-  messageType: string;
 }
 
-export interface Message extends Headers {
-  channel(): string;
-  payload: Payload;
+export interface AddrFrom {
+  from: string;
 }
+
+export type Address = AddrFrom & AddrTo;
+
+export interface Headers extends Address {
+  id: number;
+}
+
+export type Message = MessageBody & Headers;
+
 export const Message = {
   pack: packMessage,
   unpack: unpackMessage,
-  create: newMessage,
+  address(body: MessageBody, headers: Partial<Headers>): Message {
+    const defaultHeaders: Headers = {
+      from: '', to: '', id: 0
+    };
+    const m: Message = _.merge({}, body, defaultHeaders, headers);
+    return m;
+  }
 }
 
-function packMessage(msg: Message): string {
-  const { from, to, messageType } = msg;
-  const hdrs = `${from}->${to}.${messageType}`;
-  const pld = packPayload(msg.payload);
-  return `${hdrs} :: ${pld}`;
-
-}
-
-function unpackMessage(packed: string): Message {
-  const divider = packed.indexOf('::')
-  const hdrs = packed.substr(0, divider).trim();
-  const pld = packed.substr(divider + 2).trim();
-  const [from, toScope] = hdrs.split(/->/)
-  const [to, messageType] = toScope.split('.')
-  const payload = unpackPayload(pld);
-  return newMessage({ from, to, messageType }, payload);
-}
-
-function newMessage(init: Headers, mpayload?: Payload): Message {
-  const payload: Payload = mpayload ? mpayload : { kind: 'empty' };
-  return {
-    ...init,
-    payload,
-    channel: () => `${init.to}`
-  };
-}
-
-export function packPayload(payload: Payload): string {
-  switch (payload.kind) {
-    case 'event':
-      return `evt:${payload.body}`;
-    case 'forward': {
-      const pmsg = packMessage(payload.body);
-      return `fwd:${pmsg}`;
-    }
+export function packMessageBody(message: MessageBody): string {
+  switch (message.kind) {
     case 'dispatch': {
-      const { func, arg } = payload
-      return `dsp:${func}:${arg}`;
+      const { func, arg } = message;
+      const varg = arg === undefined ? '"null"' : JSON.stringify(arg);
+      return `dispatch/${func}:${varg}`;
     }
     case 'yield': {
-      const { value } = payload
+      const { value } = message;
       const vstr = JSON.stringify(value);
-      return `yld:${vstr}`;
+      return `yield/${vstr}`;
     }
-    case 'empty': {
-      return 'nil:';
+    case 'push': {
+      const { msg } = message;
+      const vstr = packMessageBody(msg);
+      return `push/${vstr}`;
+    }
+    case 'ping': {
+      return 'ping';
+    }
+    case 'ack': {
+      const { acked } = message;
+      return `ack/${acked}`;
+    }
+    case 'quit': {
+      return 'quit';
     }
   }
 }
 
-export function unpackPayload(packed: string): Payload {
-  // putStrLn(`unpackPayload: ${packed}`);
-  const prefix = packed.substr(0, 3);
-  const body = packed.substr(4);
-  switch (prefix) {
-    case 'evt': {
-      const p: Payload = {
-        kind: 'event',
-        body
-      };
-      return p;
-    }
-    case 'fwd': {
-      const p: Payload = {
-        kind: 'forward',
-        body: unpackMessage(body)
-      };
-      return p;
-    }
-    case 'dsp': {
+export function unpackMessageBody(packedMessage: string): MessageBody {
+  const slashIndex = packedMessage.indexOf('/')
+  let msgKind = packedMessage;
+  let body = '';
+
+  if (slashIndex > 0) {
+    msgKind = packedMessage.substr(0, slashIndex);
+    body = packedMessage.substr(slashIndex + 1);
+  }
+
+  let unpackedMsg: MessageBody;
+
+  switch (msgKind) {
+    case 'dispatch': {
       const divider = body.indexOf(':')
       const func = body.substr(0, divider);
-      const arg = body.substr(divider + 1);
-      const p: Payload = {
-        kind: 'dispatch',
+      const argstr = body.substr(divider + 1);
+      const arg = parseJson(argstr);
+      unpackedMsg = {
+        kind: msgKind,
         func,
         arg
       };
-      return p;
+      break;
     }
-    case 'yld': {
-      const parsed = parseJson(body);
-      const p: Payload = {
-        kind: 'yield',
-        value: parsed
+    case 'yield': {
+      unpackedMsg = {
+        kind: msgKind,
+        value: parseJson(body)
       };
-      return p;
+      break;
+    }
+    case 'push': {
+      unpackedMsg = {
+        kind: msgKind,
+        msg: unpackMessageBody(body)
+      };
+      break;
     }
 
-    case 'nil': {
-      const p: Payload = {
-        kind: 'empty',
+    case 'ack': {
+      unpackedMsg = {
+        kind: msgKind,
+        acked: body
       };
-      return p;
+      break;
     }
+    case 'ping':
+    case 'quit':
+      unpackedMsg = {
+        kind: msgKind,
+      };
+      break;
     default:
-      throw new Error(`Could not unpack Message payload ${packed}`)
+      putStrLn(`Default:Could not unpack Message ${packedMessage}`);
+      throw new Error(`Could not unpack Message payload ${packedMessage}`)
   }
+
+  return unpackedMsg;
+}
+
+export function updateHeaders(message: Message, headers: Partial<Headers>): Message {
+  return _.assign(message, headers);
+}
+
+
+export function unpackHeaders(headers: string): Headers {
+  const [ids, to, from] = headers.split(/:/)
+  const id = parseInt(ids, 10);
+  return { id, to, from };
+}
+export function packHeaders(message: Message): string {
+  const { from, to, id } = message;
+  const hdrs = `${id}:${to}:${from}>`;
+  return hdrs;
+}
+
+export function packMessage(message: Message): string {
+  const hdrs = packHeaders(message);
+  const pmsg = packMessageBody(message);
+  return `${hdrs}${pmsg}`;
+}
+
+
+export function unpackMessage(packed: string): Message & Address {
+  const divider = packed.indexOf('>')
+  const hdrs = packed.substr(0, divider).trim();
+  const message = packed.substr(divider + 1).trim();
+
+  const headers: Headers = unpackHeaders(hdrs);
+  const body: MessageBody = unpackMessageBody(message);
+
+  return ({
+    ...headers,
+    ...body
+  });
 }

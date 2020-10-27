@@ -41,8 +41,9 @@ export function makeNowTimeString(): string {
 
 export const delay = (t: number) => new Promise(resolve => setTimeout(resolve, t));
 
-export function newIdGenerator() {
-  let currId = -1;
+
+export function newIdGenerator(start: number) {
+  let currId = start-1;
   const nextId = () => {
     currId += 1;
     return currId;

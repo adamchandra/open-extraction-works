@@ -3,17 +3,15 @@ import { prettyPrint } from 'commons';
 
 import _ from 'lodash';
 import { newServiceComm, ServiceComm } from './service-comm';
+
 import {
   Dispatch,
-  // MessageHandler,
-  MessageHandlers,
-  // DispatchHandler,
-  DispatchHandlers,
   Message,
-  MEvent,
-  Yield
+  // MessageHandler,
+  // DispatchHandler,
+  Ping,
+  Quit
 } from './service-defs';
-
 
 
 describe('Redis-based Service Communication ', () => {
@@ -65,21 +63,22 @@ describe('Redis-based Service Communication ', () => {
     await myController.serviceComm.connect(myController);
 
     await myController.serviceComm.send(
-      Message.create({
-        from: 'controller', to: 'service-1', messageType: 'ping'
-      }, MEvent.create('Hey There!'))
+      Message.address(Ping, { to: 'service-1' })
     );
 
     await myController.serviceComm.send(
-      Message.create({
-        from: 'controller', to: 'service-1', messageType: 'dispatch'
-      }, Dispatch.create('callme', '{ "key1": 34, "key2": { "key3": "and another!"}}'))
+      Message.address(
+        Dispatch.create('callme', '{ "key1": 34, "key2": { "key3": "and another!"}}'),
+        { to: 'service-1' }
+      )
     );
 
+
     await myController.serviceComm.send(
-      Message.create({
-        from: 'controller', to: 'service-1', messageType: 'quit'
-      }, { kind: 'empty' })
+      Message.address(
+        Quit,
+        { to: 'service-1' }
+      )
     );
 
     await myController.serviceComm.quit();

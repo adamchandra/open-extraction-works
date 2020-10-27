@@ -1,6 +1,5 @@
 import _ from 'lodash';
 
-
 import {
   createHubService,
   createSatelliteService,
@@ -14,8 +13,8 @@ import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-serv
 import { Server } from 'http';
 import { promisify } from 'util';
 import { createSpiderService, SpiderService } from '~/spidering/spider-service';
-import { commitMetadata, getNextUrlForSpidering, insertCorpusEntry, insertNewUrlChains } from '~/db/db-api';
-import { putStrLn } from 'commons';
+import { AlphaRecord, putStrLn } from 'commons';
+import { Metadata } from '~/spidering/data-formats';
 
 type WorkflowServiceName = keyof {
   RestPortal: null,
@@ -37,59 +36,43 @@ export const WorkflowServiceNames: WorkflowServiceName[] = [
 
 const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> = {
   'RestPortal': defineSatelliteService<Server>(
-    // async call(f: () => Yield<AlphaRecord>|Fulfill<ExtractedFields>): Promise<Maybe<ExtractedFields>> {}
-    (serviceComm) => startRestPortal(serviceComm), {
-    async shutdown() {
-      this.log.debug(`${this.serviceName} [shutdown]> `)
+    (serviceComm) => startRestPortal(serviceComm),
+    {
+      async shutdown() {
+        this.log.debug(`${this.serviceName} [shutdown]> `)
 
-      const server = this.cargo;
-      const doClose = promisify(server.close).bind(server);
-      return doClose().then(() => {
-        this.log.debug(`${this.serviceName} [server:shutdown]> `)
-      });
-    }
-  }),
+        const server = this.cargo;
+        const doClose = promisify(server.close).bind(server);
+        return doClose().then(() => {
+          this.log.debug(`${this.serviceName} [server:shutdown]> `)
+        });
+      }
+    }),
 
   'UploadIngestor': defineSatelliteService<void>(
-    // async call(f: <F>(r: AlphaRecord) => Yield<AlphaRecord>|Fulfill<ExtractedFields>): Promise<void> {}
     async () => undefined, {
-    async step(): Promise<void> {
-      this.log.info('[step]> ')
-      await insertNewUrlChains()
+    async run(alphaRec: AlphaRecord): Promise<AlphaRecord> {
+      this.log.info(`[run]> ${alphaRec}`)
+      return alphaRec;
     },
   }),
 
   'Spider': defineSatelliteService<SpiderService>(
-    // async call(f: <F>(r: AlphaRecord) => F<AlphaRecord>): Promise<void> {}
     async () => createSpiderService(), {
-    async step() {
-      this.log.info(`${this.serviceName} [step]> `)
+    async run(alphaRec: AlphaRecord): Promise<Metadata | undefined> {
+      this.log.info(`[run]> ${alphaRec}`)
       const spider = this.cargo;
-      let nextUrl = await getNextUrlForSpidering();
-      while (nextUrl !== undefined) {
-        const metadata = await spider
-          .scrape(nextUrl)
-          .catch((error: Error) => {
-            putStrLn('Error', error.name, error.message);
-            return undefined;
-          });
+      const nextUrl = alphaRec.url;
 
-        if (metadata !== undefined) {
-          const committedMeta = await commitMetadata(metadata);
-          this.log.info(`committing Metadata ${committedMeta}`)
-          if (committedMeta) {
-            committedMeta.statusCode === 'http:200';
-            const corpusEntryStatus = await insertCorpusEntry(committedMeta.url);
-            this.log.info(`created new corpus entry ${corpusEntryStatus.entryId}: ${corpusEntryStatus.statusCode}`)
-
-            await this.satComm.echoBack('step');
-          }
-        } else {
-          putStrLn(`Metadata is undefined for url ${nextUrl}`);
-        }
-        nextUrl = await getNextUrlForSpidering();
-      }
+      const metadata = await spider
+        .scrape(nextUrl)
+        .catch((error: Error) => {
+          putStrLn('Error', error.name, error.message);
+          return undefined;
+        });
+      return metadata;
     },
+
     async shutdown() {
       this.log.debug(`${this.serviceName} [shutdown]> `)
       const spider = this.cargo;
@@ -103,10 +86,16 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
 
   'FieldExtractor': defineSatelliteService<void>(
     async () => undefined, {
+    async run(input: any): Promise<void> {
+      this.log.info(`[run]> ${input}`)
+    },
   }),
 
   'FieldBundler': defineSatelliteService<void>(
     async () => undefined, {
+    async run(input: any): Promise<void> {
+      this.log.info(`[run]> ${input}`)
+    },
   }),
 };
 

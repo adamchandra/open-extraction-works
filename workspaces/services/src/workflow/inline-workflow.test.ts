@@ -7,9 +7,9 @@ import got from 'got';
 describe('End-to-end Extraction workflows', () => {
   const hubName = 'ServiceHub';
   const orderedServices = WorkflowServiceNames;
-  process.env['service-comm.loglevel'] = 'info';
-  process.env['UploadIngestor.loglevel'] = 'debug';
-  process.env['Spider.loglevel'] = 'debug';
+  process.env['service-comm.loglevel'] = 'verbose';
+  // process.env['UploadIngestor.loglevel'] = 'debug';
+  // process.env['Spider.loglevel'] = 'debug';
 
   const sampleRecs: AlphaRecord[] = _.map(_.range(4), (n) => {
     return ({
@@ -48,22 +48,22 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
 
     await hubConnected;
 
-    hubService.commLink.addHandler(
-      'inbox', 'FieldBundler:done~step',
-      async () => {
-        await hubService.shutdownSatellites();
-        await hubService.commLink.quit();
-        done();
-      }
-    );
 
-    const getResponse = await got.get('http://localhost:3100/extractor/batch.csv');
+    // hubService.commLink.addHandler(
+    //   'inbox', 'FieldBundler:done~step',
+    //   async () => {
+    //     await hubService.shutdownSatellites();
+    //     await hubService.commLink.quit();
+    //     done();
+    //   }
+    // );
 
-    prettyPrint({ response: getResponse.body });
+    // const getResponse = await got.get('http://localhost:3100/extractor/record.json');
+    // prettyPrint({ response: getResponse.body });
 
     const retval = await got.post(
-      'http://localhost:3100/extractor/fields.json', {
-      json: liveRecs
+      'http://localhost:3100/extractor/record.json', {
+      json: liveRecs[0]
     });
 
     prettyPrint({ retval: retval.body });

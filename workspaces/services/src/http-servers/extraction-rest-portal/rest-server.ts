@@ -4,9 +4,9 @@ import json from 'koa-json';
 import { initPortalRouter } from './portal-routes';
 import { Server } from 'http';
 import { createAppLogger } from './portal-logger';
-import { ServiceComm } from '~/service-graphs/service-comm';
+import { SatelliteServiceComm } from '~/service-graphs/service-hub';
 
-export async function startRestPortal(serviceComm: ServiceComm): Promise<Server> {
+export async function startRestPortal(serviceComm: SatelliteServiceComm<Server>): Promise<Server> {
   const log = createAppLogger();
   const app = new Koa();
   const rootRouter = new Router();

@@ -8,6 +8,7 @@ import { createSpiderService, SpiderService } from '~/spidering/spider-service';
 import { commitMetadata, getNextUrlForSpidering, insertCorpusEntry, insertNewUrlChains } from '~/db/db-api';
 import { putStrLn } from 'commons';
 
+
 type WorkflowServiceName = keyof {
   RestPortal: null,
   UploadIngestor: null,

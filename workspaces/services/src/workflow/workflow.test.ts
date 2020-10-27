@@ -2,7 +2,7 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
-import { prettyPrint, AlphaRecord, } from 'commons';
+import { prettyPrint, AlphaRecord, putStrLn, } from 'commons';
 import got from 'got';
 import { useEmptyDatabase } from '~/db/db-test-utils';
 
@@ -10,9 +10,10 @@ import { useEmptyDatabase } from '~/db/db-test-utils';
 describe('End-to-end Extraction workflows', () => {
   const hubName = 'ServiceHub';
   const orderedServices = WorkflowServiceNames;
-  process.env['service-comm.loglevel'] = 'info';
-  process.env['UploadIngestor.loglevel'] = 'debug';
-  process.env['Spider.loglevel'] = 'debug';
+
+  process.env['service-comm.loglevel'] = 'debug';
+  // process.env['UploadIngestor.loglevel'] = 'debug';
+  // process.env['Spider.loglevel'] = 'debug';
 
   const sampleRecs: AlphaRecord[] = _.map(_.range(4), (n) => {
     return ({
@@ -33,7 +34,6 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
 
   const liveRecs: AlphaRecord[] = _.flatMap(liveAlphaRecs, rec => {
     if (rec.trim().length===0) return [];
-    // const [noteId, dblpConfId, title, authorId, url] = rec.split(',');
     const [noteId, dblpConfId, title, url] = rec.split(',');
     return [{ noteId, dblpConfId, title, url, }];
   });
@@ -51,15 +51,16 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
     );
 
     await hubConnected;
+    putStrLn('hub/services now connectoed')
 
-    hubService.commLink.addHandler(
-      'inbox', 'FieldBundler:done~step',
-      async () => {
-        await hubService.shutdownSatellites();
-        await hubService.commLink.quit();
-        done();
-      }
-    );
+    // hubService.commLink.addHandler(
+    //   'inbox', 'FieldBundler:done~step',
+    //   async () => {
+    //     await hubService.shutdownSatellites();
+    //     await hubService.commLink.quit();
+    //     done();
+    //   }
+    // );
 
     const getResponse = await got('http://localhost:3100/extractor/batch.csv');
 
