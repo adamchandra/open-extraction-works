@@ -8,14 +8,14 @@ import {
   DispatchHandlers,
   Message,
   Thunk,
-  Yield,
   Push,
   MessageHandlerDef,
   MessageBody,
+  Address,
 } from './service-defs';
 
 import { newRedis } from './ioredis-conn';
-import { prettyPrint } from 'commons/dist';
+// import { prettyPrint } from 'commons';
 
 export interface ServiceComm<T> {
   name: string;
@@ -24,7 +24,7 @@ export interface ServiceComm<T> {
   addHandlerDefs(m: MessageHandlerDef<T>[]): void;
   addDispatches(d: DispatchHandlers<T>): void;
   send(message: Message): Promise<void>;
-  push(message: MessageBody): Promise<void>;
+  push(message: Message | MessageBody): Promise<void>;
   connect(serviceT: T): Promise<void>;
   quit(): Promise<void>;
 
@@ -69,15 +69,16 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
     log: getServiceLogger(`${name}/comm`),
     messageHandlers: {},
     dispatchHandlers: {},
-    async push(msg: MessageBody): Promise<void> {
+    async push(msg: Message | MessageBody): Promise<void> {
+      const id = 'id' in msg ? msg.id : 0;
       this.send(
-        Message.address(
-          Push.create(msg), { from: name, to: name }
+        Address(
+          Push(msg), { from: name, to: name, id }
         )
       );
     },
     async send(msg: Message): Promise<void> {
-      const addr = Message.address(
+      const addr = Address(
         msg, { from: name }
       )
       const packedMsg = Message.pack(addr);
@@ -169,7 +170,7 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
   //         const yld = result === undefined ? null : result;
 
   //         await serviceComm.send(
-  //           Message.address(
+  //           Address(
   //             Yield.create(yld), { to: msg.from }
   //           )
   //         );

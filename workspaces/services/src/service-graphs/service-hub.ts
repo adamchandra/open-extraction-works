@@ -75,7 +75,7 @@ export async function createSatelliteService<T>(
         hubName,
         async sendHub(message: MessageBody): Promise<void> {
           return commLink.send(
-            Message.address(message, { from: satelliteName, to: hubName })
+            Address(message, { from: satelliteName, to: hubName })
           );
         },
         log: commLink.log.child({
@@ -90,7 +90,7 @@ export async function createSatelliteService<T>(
       commLink.addHandlers({
         async ping(msg) {
 
-          return this.sendHub(Ack.create(msg));
+          return this.sendHub(Ack(msg));
         },
         async push(msg) {
           if (msg.kind !== 'push') return;
@@ -98,7 +98,7 @@ export async function createSatelliteService<T>(
         },
         async quit(msg) {
           // TODO shutdown cargo?
-          return this.sendHub(Ack.create(msg))
+          return this.sendHub(Ack(msg))
             .then(() => commLink.quit())
         },
         // async received(msg) {
@@ -151,7 +151,7 @@ async function messageAllSatellites(
     hubComm.log.info(`${hubComm.name} sending ${msg.kind} to remaining satellites: ${_.join(remaining, ', ')}`);
     await Async.each(
       remaining,
-      async satelliteName => hubComm.send(Message.address(msg, { to: satelliteName }))
+      async satelliteName => hubComm.send(Address(msg, { to: satelliteName }))
     );
 
     return delay(200).then(async () => {
@@ -195,7 +195,7 @@ export async function createHubService(
         hubService.commLink.addHandlerDefs([
           [`${svc1}>yield`, async function(msg) {
             if (msg.kind !== 'yield') return;
-            this.commLink.send(Message.address(Dispatch.create('run', msg.value), { to: svc2 }));
+            this.commLink.send(Address(Dispatch('run', msg.value), { to: svc2 }));
           }]
         ]);
       });

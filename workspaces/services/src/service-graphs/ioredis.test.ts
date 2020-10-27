@@ -2,7 +2,7 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 import Redis from 'ioredis';
-import { prettyPrint, putStrLn } from 'commons';
+import { putStrLn } from 'commons';
 
 describe('IORedis library tests and examples', () => {
 

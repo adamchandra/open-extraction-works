@@ -1,7 +1,7 @@
 import 'chai/register-should';
 import _ from 'lodash';
 
-import { consoleTransport, newLogger, prettyPrint } from 'commons';
+import { consoleTransport, newLogger } from 'commons';
 import * as ft from './function-defs';
 import * as TE from 'fp-ts/TaskEither';
 import { isRight } from 'fp-ts/Either';
@@ -131,7 +131,7 @@ describe('Extraction Prelude / Primitives', () => {
     ];
 
 
-    await Async.eachOf(examples, async ([example, expectedMessages], n) => {
+    await Async.eachOf(examples, async ([example, expectedMessages]) => {
       const messages = await runTakeWhileSuccess(example)
 
       const haveExpectedMessages = _.every(expectedMessages, em => messages.includes(em));

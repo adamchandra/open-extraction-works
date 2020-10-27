@@ -3,7 +3,7 @@ import { prettyPrint } from 'commons';
 
 import _ from 'lodash';
 import {  Message,  } from './service-defs';
-import { createTestServices, assertAllStringsIncluded } from './service-test-utils';
+import {  assertAllStringsIncluded, createTestServiceHub } from './service-test-utils';
 
 describe('Service Communication Hub lifecycle', () => {
   process.env['service-comm.loglevel'] = 'silly';
@@ -21,7 +21,7 @@ describe('Service Communication Hub lifecycle', () => {
       ];
     })
 
-    const [hub,] = await createTestServices(numServices, logMessages);
+    const [hub,] = await createTestServiceHub(numServices, logMessages);
 
     await hub.shutdownSatellites();
 

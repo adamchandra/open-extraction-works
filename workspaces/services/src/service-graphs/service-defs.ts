@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { putStrLn, newIdGenerator, parseJson } from 'commons';
+import { putStrLn, newIdGenerator, parseJson, prettyPrint } from 'commons';
 
 export type Thunk = () => Promise<void>;
 
@@ -19,53 +19,41 @@ export interface Dispatch {
 }
 
 
-export const Dispatch = {
-  create(func: string, arg: any): Dispatch {
-    return {
-      kind: 'dispatch',
-      func, arg
-    };
-  }
-}
+export const Dispatch = (func: string, arg: any) =>
+  <Dispatch>{
+    kind: 'dispatch',
+    func, arg
+  };
 
 export interface Yield {
   kind: 'yield';
   value: any;
 }
 
-export const Yield = {
-  create(value: any): Yield {
-    return {
-      kind: 'yield', value
-    };
-  }
-}
+export const Yield = (value: any) =>
+  <Yield>{
+    kind: 'yield', value
+  };
 
 export interface Push {
   kind: 'push';
   msg: MessageBody;
 }
 
-export const Push = {
-  create(msg: MessageBody): Push {
-    return {
-      kind: 'push', msg
-    };
-  }
-}
+export const Push = (msg: MessageBody) =>
+  <Push>{
+    kind: 'push', msg
+  };
 
 export interface Ack {
   kind: 'ack';
   acked: string;
 }
 
-export const Ack = {
-  create(msg: MessageBody): Ack {
-    return {
-      kind: 'ack', acked: msg.kind
-    };
-  }
-}
+export const Ack = (msg: MessageBody) =>
+  <Ack>{
+    kind: 'ack', acked: msg.kind
+  };
 
 export type Ping = { kind: 'ping' };
 export const Ping: Ping = { kind: 'ping' };
@@ -92,6 +80,15 @@ export interface AddrFrom {
 }
 
 export type Address = AddrFrom & AddrTo;
+export const Address = (body: Message | MessageBody, headers: Partial<Headers>) => {
+  if ('from' in body && 'to' in body) {
+    return _.merge({}, body, headers);
+  }
+  const defaultHeaders: Headers = {
+    from: '', to: '', id: 0
+  };
+  return _.merge({}, body, defaultHeaders, headers);
+}
 
 export interface Headers extends Address {
   id: number;
@@ -112,6 +109,7 @@ export const Message = {
     return _.merge({}, body, defaultHeaders, headers);
   }
 }
+
 
 export function packMessageBody(message: MessageBody): string {
   switch (message.kind) {

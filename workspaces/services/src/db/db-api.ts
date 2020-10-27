@@ -86,7 +86,7 @@ export interface UrlStatus {
   url: string;
   statusCode: string;
 }
-export async function commitMetadata(metadata: Metadata): Promise<UrlStatus|undefined> {
+export async function commitMetadata(metadata: Metadata): Promise<UrlStatus | undefined> {
   const db = await openDatabase();
 
   const { requestUrl, responseUrl, status } = metadata;
@@ -123,16 +123,16 @@ export async function commitMetadataUrlChain(metadata: Metadata): Promise<void> 
 
   const { requestUrl, fetchChain } = metadata;
 
-  const [queryResults, queryMeta] =
-    await db.run(async (sql) => {
-      const esc = (s: string) => sql.escape(s);
-      const rootUrl = requestUrl;
+  // const [queryResults, queryMeta] =
+  await db.run(async (sql) => {
+    const esc = (s: string) => sql.escape(s);
+    const rootUrl = requestUrl;
 
-      // TODO on conflict ...
-      const insertValues = _.map(_.tail(fetchChain), l => {
-        const resp = l.responseUrl || '';
-        const status = `http:${l.status}`;
-        return stripMargin(`
+    // TODO on conflict ...
+    const insertValues = _.map(_.tail(fetchChain), l => {
+      const resp = l.responseUrl || '';
+      const status = `http:${l.status}`;
+      return stripMargin(`
 |         (
 |           ${esc(rootUrl)},
 |           ${esc(l.requestUrl)},
@@ -140,19 +140,19 @@ export async function commitMetadataUrlChain(metadata: Metadata): Promise<void> 
 |           ${esc(status)},
 |           NOW(), NOW()
 |           )`);
-      });
-      const valuesClause = _.join(insertValues, ', ');
+    });
+    const valuesClause = _.join(insertValues, ', ');
 
-      const query = stripMargin(`
+    const query = stripMargin(`
 |       insert into "UrlChains"
 |         ("rootUrl", "url", "responseUrl", "statusCode", "createdAt", "updatedAt")
 |         values ${valuesClause}
 |     `);
 
-      prettyPrint({ query });
-      const results = await sql.query(query);
-      return results;
-    });
+    prettyPrint({ query });
+    const results = await sql.query(query);
+    return results;
+  });
 
   // prettyPrint({ queryMeta, queryResults });
 

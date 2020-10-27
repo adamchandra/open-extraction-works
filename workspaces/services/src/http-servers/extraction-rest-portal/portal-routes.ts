@@ -66,7 +66,7 @@ async function postRecordJson(
     // TODO validate requestBody as AlphaRecord[]
     const alphaRec: AlphaRecord = requestBody;
     // const extractedFields: string = await serviceComm.yield(alphaRec);
-    serviceComm.push(Yield.create(alphaRec));
+    serviceComm.push(Yield(alphaRec));
 
     responseBody.status = 'ok';
     // responseBody.fields = extractedFields;

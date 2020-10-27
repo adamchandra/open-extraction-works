@@ -1,44 +1,24 @@
 import 'chai/register-should';
-import { prettyPrint, slidingWindow } from 'commons';
+import { prettyPrint } from 'commons';
 
 import _ from 'lodash';
 import { chainServices } from './service-chain';
-import { newServiceComm, ServiceComm } from './service-comm';
 
-import {
-  Dispatch,
-  Message,
-  // MessageHandler,
-  // DispatchHandler,
-  Ping,
-  Quit,
-  Yield
-} from './service-defs';
 import { createTestServices } from './service-test-utils';
 
 
 describe('Redis-based Service Communication ', () => {
-  process.env['service-comm.loglevel'] = 'debug';
-
-  interface Service<S> {
-    serviceComm: ServiceComm<S>;
-  }
-
-  interface MyController extends Service<MyController> {
-  }
-
-  interface MyService extends Service<MyService> {
-  }
+  process.env['service-comm.loglevel'] = 'info';
 
   interface MsgArg {
     callees: string[];
-    logs: string[];
+    which: number;
   }
 
 
-  it.only('should push message and promise response', async (done) => {
+  it('should push message and promise response', async (done) => {
 
-    const testServices = await createTestServices(5);
+    const testServices = await createTestServices(4);
     const commLinks = _.map(testServices, ts => ts.commLink);
 
     const chainFunc = chainServices('run', commLinks);
@@ -53,76 +33,25 @@ describe('Redis-based Service Communication ', () => {
       });
     });
 
-    const initMsg: MsgArg = {
-      callees: [],
-      logs: []
-    };
 
-    const result = await chainFunc(initMsg);
-    prettyPrint({ result });
+    const allChains = _.map(_.range(2), n => {
+      const initMsg: MsgArg = {
+        callees: [],
+        which:n
+      };
+
+      return chainFunc(initMsg);
+    });
+
+    await Promise.all(allChains)
+      .then((results) => {
+        prettyPrint({ results });
+      })
+
 
     const quitting = _.map(testServices, s => s.commLink.quit());
     await Promise.all(quitting);
     done();
   });
-
-  it('should pass messages between several services', async (done) => {
-
-    const myService: MyService = {
-      serviceComm: newServiceComm('service-1'),
-    };
-
-    myService.serviceComm.addDispatches({
-      async callme(msg) {
-        this.serviceComm.log.info('you called me!');
-        prettyPrint({ p: 'callme', msg });
-        return {
-          x: 0,
-          y: 'yes!'
-        };
-      }
-    });
-
-    myService.serviceComm.addHandlers({
-      async ping(msg) {
-        prettyPrint({ p: 'handler', msg });
-      },
-
-      async quit() {
-        await this.serviceComm.quit();
-        done();
-      }
-    });
-
-    await myService.serviceComm.connect(myService);
-
-    const myController: MyController = {
-      serviceComm: newServiceComm('controller'),
-    };
-    await myController.serviceComm.connect(myController);
-
-    await myController.serviceComm.send(
-      Message.address(Ping, { to: 'service-1' })
-    );
-
-    await myController.serviceComm.send(
-      Message.address(
-        Dispatch.create('callme', '{ "key1": 34, "key2": { "key3": "and another!"}}'),
-        { to: 'service-1' }
-      )
-    );
-
-
-    await myController.serviceComm.send(
-      Message.address(
-        Quit,
-        { to: 'service-1' }
-      )
-    );
-
-    await myController.serviceComm.quit();
-
-  });
-
 
 });
