@@ -13,7 +13,6 @@ export type LifecycleName = keyof {
   run: null,
 };
 
-
 export type LifecycleHandlers<CargoT> = Record<LifecycleName, DispatchHandler<SatelliteService<CargoT>>>;
 
 

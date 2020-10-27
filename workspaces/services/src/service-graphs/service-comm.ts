@@ -15,6 +15,7 @@ import {
 } from './service-defs';
 
 import { newRedis } from './ioredis-conn';
+import { prettyPrint } from 'commons/dist';
 
 export interface ServiceComm<T> {
   name: string;
@@ -80,6 +81,8 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
         msg, { from: name }
       )
       const packedMsg = Message.pack(addr);
+
+      // prettyPrint({ msg, addr, packedMsg });
 
       if (this.isShutdown) {
         this.log.warn(`${name}> shutdown; not sending message ${packedMsg}`);
@@ -155,25 +158,25 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
   };
 
 
-  serviceComm.addHandlers({
-    async dispatch(msg) {
-      if (msg.kind === 'dispatch') {
-        const { func, arg } = msg;
-        const f = serviceComm.dispatchHandlers[func];
-        if (f !== undefined) {
-          const bf = _.bind(f, this);
-          const result = await bf(arg);
-          const yld = result === undefined ? null : result;
+  // serviceComm.addHandlers({
+  //   async dispatch(msg) {
+  //     if (msg.kind === 'dispatch') {
+  //       const { func, arg } = msg;
+  //       const f = serviceComm.dispatchHandlers[func];
+  //       if (f !== undefined) {
+  //         const bf = _.bind(f, this);
+  //         const result = await bf(arg);
+  //         const yld = result === undefined ? null : result;
 
-          await serviceComm.send(
-            Message.address(
-              Yield.create(yld), { to: msg.from }
-            )
-          );
-        }
-      }
-    }
-  });
+  //         await serviceComm.send(
+  //           Message.address(
+  //             Yield.create(yld), { to: msg.from }
+  //           )
+  //         );
+  //       }
+  //     }
+  //   }
+  // });
 
   return serviceComm;
 }

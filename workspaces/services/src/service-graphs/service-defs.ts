@@ -83,9 +83,6 @@ export type MessageBody =
   | Ack
   ;
 
-
-
-
 export interface AddrTo {
   to: string;
 }
@@ -105,12 +102,14 @@ export type Message = MessageBody & Headers;
 export const Message = {
   pack: packMessage,
   unpack: unpackMessage,
-  address(body: MessageBody, headers: Partial<Headers>): Message {
+  address(body: Message | MessageBody, headers: Partial<Headers>): Message {
+    if ('from' in body && 'to' in body) {
+      return _.merge({}, body, headers);
+    }
     const defaultHeaders: Headers = {
       from: '', to: '', id: 0
     };
-    const m: Message = _.merge({}, body, defaultHeaders, headers);
-    return m;
+    return _.merge({}, body, defaultHeaders, headers);
   }
 }
 

@@ -1,7 +1,8 @@
 import 'chai/register-should';
-import { prettyPrint } from 'commons';
+import { prettyPrint, slidingWindow } from 'commons';
 
 import _ from 'lodash';
+import { chainServices } from './service-chain';
 import { newServiceComm, ServiceComm } from './service-comm';
 
 import {
@@ -10,12 +11,14 @@ import {
   // MessageHandler,
   // DispatchHandler,
   Ping,
-  Quit
+  Quit,
+  Yield
 } from './service-defs';
+import { createTestServices } from './service-test-utils';
 
 
 describe('Redis-based Service Communication ', () => {
-  process.env['service-comm.loglevel'] = 'silly';
+  process.env['service-comm.loglevel'] = 'debug';
 
   interface Service<S> {
     serviceComm: ServiceComm<S>;
@@ -26,6 +29,42 @@ describe('Redis-based Service Communication ', () => {
 
   interface MyService extends Service<MyService> {
   }
+
+  interface MsgArg {
+    callees: string[];
+    logs: string[];
+  }
+
+
+  it.only('should push message and promise response', async (done) => {
+
+    const testServices = await createTestServices(5);
+    const commLinks = _.map(testServices, ts => ts.commLink);
+
+    const chainFunc = chainServices('run', commLinks);
+
+    _.each(testServices, (service) => {
+      service.commLink.addDispatches({
+        async run(msg: MsgArg) {
+          this.commLink.log.info('run');
+          msg.callees.push(this.commLink.name);
+          return msg;
+        }
+      });
+    });
+
+    const initMsg: MsgArg = {
+      callees: [],
+      logs: []
+    };
+
+    const result = await chainFunc(initMsg);
+    prettyPrint({ result });
+
+    const quitting = _.map(testServices, s => s.commLink.quit());
+    await Promise.all(quitting);
+    done();
+  });
 
   it('should pass messages between several services', async (done) => {
 

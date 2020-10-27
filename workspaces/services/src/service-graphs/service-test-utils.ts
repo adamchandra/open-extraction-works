@@ -1,10 +1,37 @@
 import _ from 'lodash';
 import { defineSatelliteService, createSatelliteService, SatelliteService, ServiceHub, createHubService } from './service-hub';
 import Async from 'async';
+import { newServiceComm, ServiceComm } from './service-comm';
 
 // Create a Hub/Satellite service network with specified # of satellites
+export interface TestService {
+  commLink: ServiceComm<TestService>;
+}
 
-export async function createTestServices(n: number, runLog: string[]): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
+export async function createTestServices(n: number): Promise<Array<TestService>> {
+  const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
+
+  const services = await Async.map<string, TestService, Error>(
+    serviceNames,
+    async (serviceName) => {
+      const service: TestService = {
+        commLink: newServiceComm(serviceName),
+      };
+
+      service.commLink.addHandlers({
+        async quit() {
+          await this.commLink.quit();
+        }
+      });
+
+      await service.commLink.connect(service);
+      return service;
+    });
+
+  return services;
+}
+
+export async function createTestServiceHub(n: number, runLog: string[]): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
   const hubName = 'ServiceHub';
   const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
 
