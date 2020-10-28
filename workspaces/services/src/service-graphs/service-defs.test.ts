@@ -1,8 +1,6 @@
 import 'chai/register-should';
-
 import _ from 'lodash';
 import { Ack, Address, Dispatch, Message, Ping, Quit, Yield } from './service-defs';
-import { prettyPrint } from 'commons';
 
 describe('Service Communication Hub lifecycle', () => {
   process.env['service-comm.loglevel'] = 'warn';
@@ -17,11 +15,12 @@ describe('Service Communication Hub lifecycle', () => {
     ];
 
     _.each(examples, example => {
-      const addressed = Address(example, {})
+      const addressed = Address(example, { from: 'sender', to: 'recipient', id: 23 });
       const packedMsg = Message.pack(addressed);
       const unpackedMsg = Message.unpack(packedMsg);
 
-      prettyPrint({ packedMsg, unpackedMsg });
+      // prettyPrint({ packedMsg, unpackedMsg });
+      expect(unpackedMsg).toStrictEqual(addressed);
     });
 
 

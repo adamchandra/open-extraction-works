@@ -110,7 +110,6 @@ export const Message = {
   }
 }
 
-
 export function packMessageBody(message: MessageBody): string {
   switch (message.kind) {
     case 'dispatch': {

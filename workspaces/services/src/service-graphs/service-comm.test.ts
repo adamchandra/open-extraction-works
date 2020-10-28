@@ -18,7 +18,7 @@ describe('Redis-based Service Communication ', () => {
 
   it('should push message and promise response', async (done) => {
 
-    const testServices = await createTestServices(4);
+    const testServices = await createTestServices(3);
     const commLinks = _.map(testServices, ts => ts.commLink);
 
     const chainFunc = chainServices('run', commLinks);
@@ -26,8 +26,8 @@ describe('Redis-based Service Communication ', () => {
     _.each(testServices, (service) => {
       service.commLink.addDispatches({
         async run(msg: MsgArg) {
-          this.commLink.log.info('run');
           msg.callees.push(this.commLink.name);
+          this.commLink.log.info(`run msg=${msg.which}, callees=${msg.callees}`);
           return msg;
         }
       });
