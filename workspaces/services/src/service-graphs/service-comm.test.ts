@@ -3,6 +3,7 @@ import { prettyPrint } from 'commons';
 
 import _ from 'lodash';
 import { chainServices } from './service-chain';
+import { Address, Yield } from './service-defs';
 
 import { createTestServices } from './service-test-utils';
 
@@ -21,7 +22,9 @@ describe('Redis-based Service Communication ', () => {
     const testServices = await createTestServices(3);
     const commLinks = _.map(testServices, ts => ts.commLink);
 
-    const chainFunc = chainServices('run', commLinks);
+    chainServices('run', commLinks);
+
+    const commLink0 = commLinks[0];
 
     _.each(testServices, (service) => {
       service.commLink.addDispatches({
@@ -40,7 +43,7 @@ describe('Redis-based Service Communication ', () => {
         which:n
       };
 
-      return chainFunc(initMsg);
+      return commLink0.yield(initMsg);
     });
 
     await Promise.all(allChains)

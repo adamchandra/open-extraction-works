@@ -1,16 +1,17 @@
 import _ from 'lodash';
-import { putStrLn, newIdGenerator, parseJson, prettyPrint } from 'commons';
+import { putStrLn, parseJson } from 'commons';
 
 export type Thunk = () => Promise<void>;
 
-export type MessageHandler<This> = (this: This, msg: Message & AddrTo & AddrFrom) => Promise<Message & AddrTo | void>;
-export type MessageHandlers<This> = Record<string, MessageHandler<This>>;
+export type MessageHandler<This> = (this: This, msg: Message) => Promise<Message | void>;
 export type MessageHandlerDef<This> = [string, MessageHandler<This>];
+export type MessageHandlerRec<This> = Record<string, MessageHandler<This>>;
+export type MessageHandlers<This> = MessageHandlerDef<This>[];
 
 export type DispatchHandler<This, A = any, B = any> = (this: This, a: A) => Promise<B>;
+// export type DispatchHandlerDef<This> = [string, MessageHandler<This>];
+// export type DispatchHandlers<This> = Record<string, DispatchHandler<This>>;
 export type DispatchHandlers<This> = Record<string, DispatchHandler<This>>;
-
-const nextId = newIdGenerator(1);
 
 export interface Dispatch {
   kind: 'dispatch';
@@ -23,6 +24,16 @@ export const Dispatch = (func: string, arg: any) =>
   <Dispatch>{
     kind: 'dispatch',
     func, arg
+  };
+
+export interface Yielded {
+  kind: 'yielded';
+  value: any;
+}
+
+export const Yielded = (value: any) =>
+  <Yielded>{
+    kind: 'yielded', value
   };
 
 export interface Yield {
@@ -64,6 +75,7 @@ export const Quit: Quit = { kind: 'quit' };
 
 export type MessageBody =
   Yield
+  | Yielded
   | Dispatch
   | Push
   | Ping
@@ -122,6 +134,11 @@ export function packMessageBody(message: MessageBody): string {
       const vstr = JSON.stringify(value);
       return `yield/${vstr}`;
     }
+    case 'yielded': {
+      const { value } = message;
+      const vstr = JSON.stringify(value);
+      return `yielded/${vstr}`;
+    }
     case 'push': {
       const { msg } = message;
       const vstr = packMessageBody(msg);
@@ -165,7 +182,8 @@ export function unpackMessageBody(packedMessage: string): MessageBody {
       };
       break;
     }
-    case 'yield': {
+    case 'yield':
+    case 'yielded': {
       unpackedMsg = {
         kind: msgKind,
         value: parseJson(body)

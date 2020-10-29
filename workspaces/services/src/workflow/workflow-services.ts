@@ -26,6 +26,11 @@ export const WorkflowServiceNames: WorkflowServiceName[] = [
   'FieldBundler',
 ];
 
+function getWorkingDir(): string {
+  const appSharePath = process.env['APP_SHARE_PATH'];
+  const workingDir = appSharePath ? appSharePath : 'app-share.d';
+  return workingDir;
+}
 
 const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> = {
   'RestPortal': defineSatelliteService<Server>(
@@ -50,7 +55,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   }),
 
   'Spider': defineSatelliteService<SpiderService>(
-    async () => createSpiderService(), {
+    async () => createSpiderService(getWorkingDir()), {
     async step() {
       this.log.info(`${this.serviceName} [step]> `)
       const spider = this.cargo;
@@ -98,7 +103,7 @@ const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> 
   }),
 };
 
-export async function runServiceHub(hubName: string, dockerize: boolean, orderedServices: string[]): Promise<[ServiceHub, Promise<void>]> {
+export async function runServiceHub(hubName: string, dockerize: boolean, orderedServices: string[]): Promise<[ServiceHub, () => Promise<void>]> {
   if (dockerize) {
     process.env['DOCKERIZED'] = 'true';
   }

@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { defineSatelliteService, createSatelliteService, SatelliteService, ServiceHub, createHubService } from './service-hub';
 import Async from 'async';
 import { newServiceComm, ServiceComm } from './service-comm';
+import { Message } from './service-defs';
 
 // Create a Hub/Satellite service network with specified # of satellites
 export interface TestService {
@@ -31,56 +32,54 @@ export async function createTestServices(n: number): Promise<Array<TestService>>
   return services;
 }
 
-export async function createTestServiceHub(n: number, runLog: string[]): Promise<[ServiceHub, Array<SatelliteService<void>>]> {
+
+export async function createTestServiceHub(
+  n: number,
+  runLog: string[]
+): Promise<[ServiceHub, () => Promise<void>, Array<SatelliteService<void>>]> {
   const hubName = 'ServiceHub';
   const serviceNames = _.map(_.range(n), (i) => `service-${i}`);
 
-  const recordLogMsgHandler = (svcName: string, scope: string) => async (msg: string) => {
-    const logmsg = `${scope}: ${svcName}: ${msg}`;
+  const recordLogMsgHandler = (svcName: string) => async (msg: Message) => {
+    const packed = Message.pack(msg);
+    const logmsg = `${svcName}: ${packed}`;
     runLog.push(logmsg);
   }
 
-  // TODO Async.mapXX seem to be buggy; if iterator fn is not declared as async (v) => {}, it doesn't work
   const satelliteServices = await Async.map<string, SatelliteService<void>, Error>(
     serviceNames,
     async (serviceName) => {
       const serviceDef = defineSatelliteService<void>(
         async () => undefined, {
-          async step() {
-            this.log.info(`${this.serviceName} [step]> `)
-          },
-
           async run() {
-            // this.log.info(`${this.serviceName} [run]> payload=${payload} `)
             this.log.info(`${this.serviceName} [run]> payload=??? `)
           },
       });
 
       const satService = await createSatelliteService(hubName, serviceName, serviceDef);
       satService.commLink.addHandlers( {
-        async '.*'() {
-          recordLogMsgHandler(serviceName, 'inbox')
+        async '.*'(msg) {
+          recordLogMsgHandler(serviceName)(msg)
         }
       });
       return satService;
     });
 
-  const [hubPool, hubConnected] = await createHubService(hubName, serviceNames);
+  const [hubPool, connectHub] = await createHubService(hubName, serviceNames);
 
   hubPool.commLink.addHandlers( {
-    async '.*'() {
-      recordLogMsgHandler(hubPool.name, 'inbox')
+    async '.*'(msg) {
+      recordLogMsgHandler(hubPool.name)(msg);
     }
   });
 
-  await hubConnected;
-  return [hubPool, satelliteServices];
+  return [hubPool, connectHub, satelliteServices];
 }
 
-export function assertAllStringsIncluded(includeStrings: string[], entries: string[]): boolean {
-  const atLeastOneMatchPerRegexp = _.every(includeStrings, (str) => {
-    const someMatch = _.some(entries, entry => {
-      return entry.includes(str);
+export function assertAllStringsIncluded(expectedStrings: string[], actualStrings: string[]): boolean {
+  const atLeastOneMatchPerRegexp = _.every(expectedStrings, (str) => {
+    const someMatch = _.some(actualStrings, actual => {
+      return actual.includes(str);
     });
     if (!someMatch) {
       console.log('NO Matching Entry for', str);

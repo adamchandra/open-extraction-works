@@ -9,22 +9,25 @@ import {
   Message,
   Thunk,
   Push,
-  MessageHandlerDef,
   MessageBody,
   Address,
+  MessageHandlerRec,
+  MessageHandler,
+  Yield,
 } from './service-defs';
 
 import { newRedis } from './ioredis-conn';
-// import { prettyPrint } from 'commons';
+import { newIdGenerator } from 'commons';
 
 export interface ServiceComm<T> {
   name: string;
   log: winston.Logger;
-  addHandlers(m: MessageHandlers<T>): void;
-  addHandlerDefs(m: MessageHandlerDef<T>[]): void;
+  addHandlers(m: MessageHandlerRec<T>): void;
+  addHandler(pattern: string, h: MessageHandler<T>): void;
   addDispatches(d: DispatchHandlers<T>): void;
   send(message: Message): Promise<void>;
   push(message: Message | MessageBody): Promise<void>;
+  yield<A>(a: A): Promise<A>;
   connect(serviceT: T): Promise<void>;
   quit(): Promise<void>;
 
@@ -44,21 +47,22 @@ function getMessageHandlers<T>(
 ): Thunk[] {
   const { messageHandlers } = serviceComm;
 
-  // const pmsg = packMessage(message);
   serviceComm.log.silly(`finding message handlers for ${packedMsg}`);
-  const handlers = _.flatMap(
-    _.toPairs(messageHandlers), ([handlerKey, handler]) => {
-      const keyMatches = packedMsg.match(handlerKey);
-      if (keyMatches !== null) {
-        serviceComm.log.silly(`found message handler ${handlerKey} for ${packedMsg}`);
-        const bh = _.bind(handler, serviceT);
-        return [() => bh(message)];
-      }
-      return [];
-    });
+
+  const handlers = _.flatMap(messageHandlers, ([handlerKey, handler]) => {
+    const keyMatches = packedMsg.match(handlerKey);
+    if (keyMatches !== null) {
+      serviceComm.log.silly(`found message handler ${handlerKey} for ${packedMsg}`);
+      const bh = _.bind(handler, serviceT);
+      return [() => bh(message)];
+    }
+    return [];
+  });
 
   return handlers;
 }
+
+const nextId = newIdGenerator(1);
 
 export function newServiceComm<This>(name: string): ServiceComm<This> {
 
@@ -67,7 +71,7 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
     subscriber: newRedis(name),
     isShutdown: false,
     log: getServiceLogger(`${name}/comm`),
-    messageHandlers: {},
+    messageHandlers: [],
     dispatchHandlers: {},
     async push(msg: Message | MessageBody): Promise<void> {
       const id = 'id' in msg ? msg.id : 0;
@@ -77,13 +81,29 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
         )
       );
     },
+    async yield<A>(a: A): Promise<A> {
+      const self = this;
+      const yieldId = nextId();
+      const toYield = Address(Yield(a), { id: yieldId, from: name, to: name });
+
+      const responseP = new Promise<A>((resolve) => {
+        self.addHandler(
+          `${yieldId}:.*:${this.name}>yielded`,
+          async function(msg) {
+            if (msg.kind !== 'yielded') return;
+            resolve(msg.value);
+          });
+      });
+      this.send(toYield);
+
+      return responseP;
+    },
+
     async send(msg: Message): Promise<void> {
       const addr = Address(
         msg, { from: name }
       )
       const packedMsg = Message.pack(addr);
-
-      // prettyPrint({ msg, addr, packedMsg });
 
       if (this.isShutdown) {
         this.log.warn(`${name}> shutdown; not sending message ${packedMsg}`);
@@ -104,18 +124,14 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
       }
       this.dispatchHandlers = all;
     },
-    addHandlers(messageHandlers: MessageHandlers<This>): void {
-      const all = {
-        ...this.messageHandlers,
-        ...messageHandlers,
-      }
-      this.messageHandlers = all;
+
+    addHandlers(messageHandlers: MessageHandlerRec<This>): void {
+      const pairs = _.toPairs(messageHandlers)
+      this.messageHandlers.push(...pairs);
     },
 
-    addHandlerDefs(handlerDefs: MessageHandlerDef<This>[]): void {
-      _.each(handlerDefs, ([handlerKey, handler]) => {
-        this.messageHandlers[handlerKey] = handler;
-      });
+    addHandler(pattern: string, h: MessageHandler<This>): void {
+      this.messageHandlers.push([pattern, h]);
     },
 
     async connect(serviceT: This): Promise<void> {
@@ -138,7 +154,6 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
             });
         });
 
-        // subscriber.on('ready', () => {
         subscriber.subscribe(`${name}`)
           .then(() => log.info(`${name}> connected`))
           .then(() => resolve())
@@ -157,27 +172,6 @@ export function newServiceComm<This>(name: string): ServiceComm<This> {
       });
     }
   };
-
-
-  // serviceComm.addHandlers({
-  //   async dispatch(msg) {
-  //     if (msg.kind === 'dispatch') {
-  //       const { func, arg } = msg;
-  //       const f = serviceComm.dispatchHandlers[func];
-  //       if (f !== undefined) {
-  //         const bf = _.bind(f, this);
-  //         const result = await bf(arg);
-  //         const yld = result === undefined ? null : result;
-
-  //         await serviceComm.send(
-  //           Address(
-  //             Yield.create(yld), { to: msg.from }
-  //           )
-  //         );
-  //       }
-  //     }
-  //   }
-  // });
 
   return serviceComm;
 }

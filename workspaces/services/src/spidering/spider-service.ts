@@ -19,12 +19,12 @@ export interface SpiderService {
   setWorkingDirectory(dir: string): void;
 }
 
-export async function createSpiderService(): Promise<SpiderService> {
-  const appSharePath = process.env['APP_SHARE_PATH'];
-  let workingDir = 'spider-workdir.d';
-  if (appSharePath) {
-    workingDir = path.join(appSharePath, workingDir);
-  }
+export async function createSpiderService(workingDir: string): Promise<SpiderService> {
+  // const appSharePath = process.env['APP_SHARE_PATH'];
+  // let workingDir = 'spider-workdir.d';
+  // if (appSharePath) {
+  //   workingDir = path.join(appSharePath, workingDir);
+  // }
 
   const scraper = await initScraper(workingDir);
   const crawlScheduler = initCrawlScheduler();
@@ -68,8 +68,8 @@ export async function runLocalSpider(
   alphaRecordCsv: string,
   workingDir: string
 ): Promise<void> {
-  const spiderService = await createSpiderService();
-  spiderService.setWorkingDirectory(workingDir);
+  const spiderService = await createSpiderService(workingDir);
+  // spiderService.setWorkingDirectory(workingDir);
   const inputStream = readAlphaRecStream(alphaRecordCsv);
 
   const urlStream = streamPump.createPump()

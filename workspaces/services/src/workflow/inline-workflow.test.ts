@@ -3,11 +3,12 @@ import _ from 'lodash';
 import { runServiceHub, runService, WorkflowServiceNames } from './inline-workflow';
 import { prettyPrint, AlphaRecord, } from 'commons';
 import got from 'got';
+import { chainServices } from '~/service-graphs/service-chain';
 
 describe('End-to-end Extraction workflows', () => {
   const hubName = 'ServiceHub';
   const orderedServices = WorkflowServiceNames;
-  process.env['service-comm.loglevel'] = 'verbose';
+  process.env['service-comm.loglevel'] = 'debug';
   // process.env['UploadIngestor.loglevel'] = 'debug';
   // process.env['Spider.loglevel'] = 'debug';
 
@@ -20,10 +21,12 @@ describe('End-to-end Extraction workflows', () => {
       url: `http://foo.bar/${n}`,
     });
   });
+
   const liveAlphaRecs = (`
-jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with differential privacy,https://doi.org/10.1145/3377555.3377887
+ztPoaj50mvz,dblp.org/journals/CORR/2020,Private Query Release Assisted by Public Data,https://arxiv.org/abs/2004.10941
 `).split('\n')
-  // ztPoaj50mvz,dblp.org/journals/CORR/2020,Private Query Release Assisted by Public Data,https://arxiv.org/abs/2004.10941
+
+  // jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with differential privacy,https://doi.org/10.1145/3377555.3377887
   // nLTHmurMJm6,dblp.org/conf/AISTATS/2019,Linear Queries Estimation with Local Differential Privacy,http://proceedings.mlr.press/v89/bassily19a.html
   // zm9Tm38yTR,dblp.org/conf/SCAM/2019,Introducing Privacy in Screen Event Frequency Analysis for Android Apps,https://doi.org/10.1109/SCAM.2019.00037
   // yx79SuEORwC,dblp.org/journals/CORR/2019,Privately Answering Classification Queries in the Agnostic PAC Model,http://arxiv.org/abs/1907.13553
@@ -41,25 +44,16 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
 
     const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
 
-    _.each(
+    const satellites = await Promise.all(_.map(
       orderedServices,
       (service) => runService(hubName, service, false)
-    );
+    ));
 
-    await hubConnected;
+    await hubConnected();
 
+    const commLinks = _.map(satellites, ts => ts.commLink);
 
-    // hubService.commLink.addHandler(
-    //   'inbox', 'FieldBundler:done~step',
-    //   async () => {
-    //     await hubService.shutdownSatellites();
-    //     await hubService.commLink.quit();
-    //     done();
-    //   }
-    // );
-
-    // const getResponse = await got.get('http://localhost:3100/extractor/record.json');
-    // prettyPrint({ response: getResponse.body });
+    chainServices('run', commLinks);
 
     const retval = await got.post(
       'http://localhost:3100/extractor/record.json', {
@@ -70,7 +64,4 @@ jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with diffe
 
   });
 
-  // it.only('should run end-to-end via blocking function call', async (done) => {
-  //   done();
-  // });
 });

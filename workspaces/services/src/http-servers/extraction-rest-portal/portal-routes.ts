@@ -7,24 +7,14 @@ import {
   csvStream,
   streamPump,
   AlphaRecord,
+  prettyPrint,
 } from 'commons';
+
+import { Server } from 'http';
 
 import { createAppLogger } from './portal-logger';
 import { SatelliteServiceComm } from '~/service-graphs/service-hub';
-
-// REST response types
-export interface FieldsResponse {
-  kind: 'fields';
-}
-export interface ErrorResponse {
-  kind: 'error';
-}
-export interface PendingResponse {
-  kind: 'pending';
-}
-
-export type RestResponse =
-  FieldsResponse;
+import { RecordRequest } from '~/workflow/inline-workflow';
 
 export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
   const inputStream = csvStream(csvfile);
@@ -50,8 +40,6 @@ export function readAlphaRecStream(csvfile: string): Promise<AlphaRecord[]> {
 }
 
 
-import { Server } from 'http';
-import { Yield } from '~/service-graphs/service-defs';
 
 async function postRecordJson(
   serviceComm: SatelliteServiceComm<Server>,
@@ -66,7 +54,8 @@ async function postRecordJson(
     // TODO validate requestBody as AlphaRecord[]
     const alphaRec: AlphaRecord = requestBody;
     // const extractedFields: string = await serviceComm.yield(alphaRec);
-    serviceComm.push(Yield(alphaRec));
+    const restPortalResponse = await serviceComm.yield(RecordRequest(alphaRec));
+    prettyPrint({ restPortalResponse });
 
     responseBody.status = 'ok';
     // responseBody.fields = extractedFields;
