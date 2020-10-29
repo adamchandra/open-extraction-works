@@ -10,8 +10,9 @@ docker build -t adamchandra/spider-works  git@github.com:adamchandra/spider-work
 # lerna run rollup
 
 # for imaged in $IMAGES/*
-imageDirs=('./docker/images/watr-front' './docker/images/spider-app')
-# imageDirs=('./docker/images/watr-front')
+# imageDirs=('./docker/images/watr-front' './docker/images/spider-app')
+
+imageDirs=('./docker/images/service-portal')
 
 for imaged in ${imageDirs[@]};
 do

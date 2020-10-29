@@ -1,18 +1,19 @@
 
-import winston, {
+import {
   createLogger,
   transports,
   format,
   Logger,
+  config,
 } from 'winston';
 
 import path from 'path';
-const cli = winston.config.cli;
+const cli = config.cli;
 
-export function getServiceLogger(label: string): winston.Logger {
+export function getServiceLogger(label: string): Logger {
   const envLogLevel = process.env['service-comm.loglevel'];
   const logLevel = envLogLevel || 'info';
-  const cli = winston.config.cli;
+  const cli = config.cli;
   return createLogger({
     level: logLevel,
     levels: cli.levels,

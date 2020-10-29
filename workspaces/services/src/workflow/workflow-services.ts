@@ -5,7 +5,7 @@ import { SpiderService } from '~/spidering/spider-service';
 import { AlphaRecord } from 'commons';
 import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord } from '~/extract/run-main';
 import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
-import winston from 'winston';
+import * as winston from 'winston';
 
 export interface WorkflowServices {
   log: winston.Logger;
@@ -86,16 +86,3 @@ export async function fetchOneRecord(
   fieldRecs.url = alphaRec.url;
   return fieldRecs;
 }
-
-
-
-// 'RestPortal': defineSatelliteService<Server>(
-//   (serviceComm) => startRestPortal(serviceComm), {
-//     async shutdown() {
-//       const server = this.cargo;
-//       const doClose = promisify(server.close).bind(server);
-//       return doClose().then(() => {
-//         this.log.debug(`${this.serviceName} [server:shutdown]> `)
-//       });
-//     }
-//   }),

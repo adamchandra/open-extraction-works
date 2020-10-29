@@ -3,5 +3,3 @@ version: '3.8'
 volumes:
   app-volume:
   postgres-data:
-  es-data:
-  redis-logs:

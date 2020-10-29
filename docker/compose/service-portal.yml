@@ -1,0 +1,21 @@
+version: '3.8'
+
+x-service-defaults:
+  &service-defaults
+  image: adamchandra/service-portal
+  restart: always
+  networks:
+    - watr-net
+
+x-workflow-service:
+  &workflow-service
+  << : *service-defaults
+
+services:
+  service-portal:
+    << : *workflow-service
+    container_name: service-portal
+    ports:
+      - "3100:3100"
+    command: ["service-portal", "--dockerize"]
+

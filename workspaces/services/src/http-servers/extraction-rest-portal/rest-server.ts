@@ -6,6 +6,8 @@ import { Server } from 'http';
 import { createAppLogger } from './portal-logger';
 import { WorkflowServices } from '~/workflow/workflow-services';
 import { createSpiderService } from '~/spidering/spider-service';
+import { arglib } from 'commons';
+const { opt, config, registerCmd } = arglib;
 
 
 function getWorkingDir(): string {
@@ -55,3 +57,23 @@ export async function startRestPortal(): Promise<Server> {
     });
   });
 }
+
+registerCmd(
+  arglib.YArgs,
+  'service-portal',
+  'start rest server for spidering and extraction',
+  config(
+    opt.cwd,
+    opt.existingDir('working-directory: root directory for logging/tmpfile/downloading'),
+    opt.ion('dockerize', {
+      type: 'boolean',
+      default: false,
+    })
+  )
+)((args: any) => {
+  const { workingDirectory, url } = args;
+  startRestPortal()
+    .then(() => {
+      //
+    });
+});
