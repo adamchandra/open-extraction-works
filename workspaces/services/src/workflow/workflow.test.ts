@@ -1,14 +1,14 @@
 import 'chai/register-should';
 
 import _ from 'lodash';
-import { prettyPrint, AlphaRecord, readAlphaRecStream, streamPump } from 'commons';
+import { prettyPrint,  streamPump } from 'commons';
 import { fetchOneRecord, WorkflowServices } from './workflow-services';
 import fs from 'fs-extra';
 
 
 import { createSpiderService } from '~/spidering/spider-service';
 import { getServiceLogger } from '~/utils/basic-logging';
-// import { getServiceLogger } from '~/service-graphs/service-logger';
+import { AlphaRecord, readAlphaRecStream } from '~/prelude/types';
 
 describe('End-to-end Extraction workflows', () => {
 

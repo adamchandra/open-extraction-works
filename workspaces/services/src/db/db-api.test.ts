@@ -2,10 +2,11 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 
-import { AlphaRecord, prettyPrint } from 'commons';
+import { prettyPrint } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
 import { commitMetadata, getNextUrlForSpidering, insertAlphaRecords, insertCorpusEntry, insertNewUrlChains } from './db-api';
 import { mockAlphaRecord, mockMetadata } from '~/spidering/data-formats';
+import { AlphaRecord } from '~/prelude/types';
 
 
 describe('High-level Database API', () => {

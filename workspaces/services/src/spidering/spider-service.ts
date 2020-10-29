@@ -5,9 +5,10 @@ import { CrawlScheduler, initCrawlScheduler } from './scheduler';
 import isUrl from 'is-url-superb';
 
 import {
-  streamPump, readAlphaRecStream, AlphaRecord, putStrLn, delay,
+  streamPump, putStrLn, delay,
 } from 'commons';
 import { Metadata } from './data-formats';
+import { AlphaRecord, readAlphaRecStream } from '~/prelude/types';
 
 
 export interface SpiderService {

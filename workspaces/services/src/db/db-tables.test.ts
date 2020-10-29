@@ -1,9 +1,10 @@
 import _ from 'lodash';
 
 import 'chai/register-should';
-import { prettyPrint, AlphaRecord, shaEncodeAsHex } from 'commons';
+import { prettyPrint, shaEncodeAsHex } from 'commons';
 import * as T from './database-tables';
 import { useEmptyDatabase } from './db-test-utils';
+import { AlphaRecord } from '~/prelude/types';
 
 describe('Database Tables Basics', () => {
   it.only('Tests disabled!!!',  () => undefined);

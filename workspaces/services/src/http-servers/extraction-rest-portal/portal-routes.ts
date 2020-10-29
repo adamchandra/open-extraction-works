@@ -3,11 +3,9 @@ import { Context } from 'koa';
 import Router from 'koa-router';
 import koaBody from 'koa-body';
 
-import {
-  AlphaRecord,
-} from 'commons';
-
 import { fetchOneRecord, WorkflowServices } from '~/workflow/workflow-services';
+import { AlphaRecord } from '~/prelude/types';
+import { prettyPrint } from 'commons';
 
 async function postRecordJson(
   workflowServices: WorkflowServices,
@@ -18,15 +16,23 @@ async function postRecordJson(
   const responseBody: Record<string, string> = {};
   ctx.response.body = responseBody;
 
-  if (requestBody) {
-    // TODO validate requestBody as AlphaRecord[]
-    const alphaRec: AlphaRecord = requestBody;
+  const { log } = workflowServices;
 
-    const responseRec = await fetchOneRecord(workflowServices, alphaRec);
-    _.merge(responseBody, responseRec)
-    responseBody.status = 'ok';
+  if (requestBody) {
+    log.info(`got request ${requestBody}`);
+    prettyPrint({ requestBody })
+    const decoded = AlphaRecord.decode(requestBody);
+    if (_.isString(decoded)) {
+      responseBody.status = 'error';
+      responseBody.errors = decoded;
+    } else {
+      const responseRec = await fetchOneRecord(workflowServices, decoded);
+      _.merge(responseBody, responseRec);
+    }
+
   } else {
     responseBody.status = 'error';
+    responseBody.errors = 'Empty request body';
   }
 
   return next();

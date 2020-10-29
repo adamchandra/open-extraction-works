@@ -1,9 +1,11 @@
-import winston, {
+import {
   createLogger,
   format,
   transports,
   Logger,
 } from 'winston';
+
+import * as winston from 'winston';
 
 export function createAppLogger(): Logger {
   const envLogLevel = process.env['rest-portal.loglevel'];

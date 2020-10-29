@@ -2,17 +2,16 @@ import _ from 'lodash';
 
 import path from 'path';
 import { SpiderService } from '~/spidering/spider-service';
-import { AlphaRecord } from 'commons';
 import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord } from '~/extract/run-main';
 import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 import * as winston from 'winston';
+import { AlphaRecord } from '~/prelude/types';
 
 export interface WorkflowServices {
   log: winston.Logger;
   workingDir: string;
   spiderService: SpiderService;
 }
-
 
 
 interface ErrorRecord {

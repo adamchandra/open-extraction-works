@@ -1,13 +1,15 @@
 import _ from 'lodash';
 import path from 'path';
 
-import winston, {
+import {
   createLogger,
   format,
   config,
   transports,
   Logger,
 } from 'winston';
+
+import * as winston from 'winston';
 
 const { combine, timestamp, prettyPrint } = format;
 

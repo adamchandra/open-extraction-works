@@ -10,7 +10,6 @@ export * from './util/string-utils';
 export * from './util/to-pairs-deep';
 export * from './util/tree-shapers';
 export * from './util/utils';
-export * from './workflow/index';
 
 export * as radix from './util/radix-tree';
 export * as arglib from './cli/arglib';

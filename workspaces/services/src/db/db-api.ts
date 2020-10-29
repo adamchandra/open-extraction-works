@@ -1,9 +1,10 @@
 import _ from 'lodash';
 import * as DB from './database-tables';
-import { AlphaRecord, prettyPrint, stripMargin } from 'commons';
+import { prettyPrint, stripMargin } from 'commons';
 import ASync from 'async';
 import { openDatabase } from './database';
 import { Metadata } from '~/spidering/data-formats';
+import { AlphaRecord } from '~/prelude/types';
 
 export async function insertAlphaRecords(
   inputRecs: AlphaRecord[],

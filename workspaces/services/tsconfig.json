@@ -4,7 +4,7 @@
     "allowJs": false,
 
     "target": "esnext",
-    "module": "esnext",
+    "module": "commonjs",
     "moduleResolution": "node",
 
     "incremental": true,

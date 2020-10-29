@@ -3,8 +3,8 @@ import _ from 'lodash';
 import {
   Request, Response,
 } from 'puppeteer';
+import { AlphaRecord } from '~/prelude/types';
 
-import { AlphaRecord } from 'commons';
 import { UrlChain, UrlChainLink } from '~/utils/url-fetch-chains';
 
 export function createRequestChain(request: Request): UrlChain {

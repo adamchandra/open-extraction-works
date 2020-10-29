@@ -4,12 +4,14 @@ import _ from 'lodash';
 import path from 'path';
 import fs from 'fs-extra';
 
-import winston, {
+import {
   createLogger,
   transports,
   format,
   Logger,
 } from 'winston';
+
+import * as winston from 'winston';
 
 const cli = winston.config.cli;
 

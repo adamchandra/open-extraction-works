@@ -151,7 +151,7 @@ export function prettyPrint(vsobj: any, options: Partial<InspectOptions> = {}): 
     const insLines = ins.split('\n');
     const ins0 = insLines[0];
 
-    const indented = _.map(insLines.slice(1), (l, li) => {
+    const indented = _.map(insLines.slice(1), (l) => {
       const indentPad = ''.padEnd(maxlen);
       return `    ${indentPad}${l}`;
     }).join('\n');
