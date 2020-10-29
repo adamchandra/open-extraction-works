@@ -1,4 +1,3 @@
-import path from 'path';
 import { Readable } from 'stream';
 
 import { initScraper, Scraper } from './scraper';
@@ -17,6 +16,7 @@ export interface SpiderService {
   run(alphaRecordStream: Readable): Promise<Readable>; // Readable<Metadata|undefined>
   scrape(url: string): Promise<Metadata|undefined>;
   setWorkingDirectory(dir: string): void;
+  quit(): Promise<void>;
 }
 
 export async function createSpiderService(workingDir: string): Promise<SpiderService> {
@@ -58,6 +58,9 @@ export async function createSpiderService(workingDir: string): Promise<SpiderSer
     },
     setWorkingDirectory(dir: string) {
       this.scraper.workingDirectory = dir;
+    },
+    quit() {
+      return this.scraper.quit();
     }
   };
 

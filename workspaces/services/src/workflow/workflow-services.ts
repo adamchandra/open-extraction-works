@@ -1,123 +1,101 @@
 import _ from 'lodash';
-import { createHubService, createSatelliteService, defineSatelliteService, SatelliteService, ServiceHub, SatelliteServiceDef } from '~/service-graphs/service-hub';
 
-import { startRestPortal } from '~/http-servers/extraction-rest-portal/rest-server';
-import { Server } from 'http';
-import { promisify } from 'util';
-import { createSpiderService, SpiderService } from '~/spidering/spider-service';
-import { commitMetadata, getNextUrlForSpidering, insertCorpusEntry, insertNewUrlChains } from '~/db/db-api';
-import { putStrLn } from 'commons';
+import path from 'path';
+import { SpiderService } from '~/spidering/spider-service';
+import { AlphaRecord } from 'commons';
+import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord } from '~/extract/run-main';
+import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
+import winston from 'winston';
 
-
-type WorkflowServiceName = keyof {
-  RestPortal: null,
-  UploadIngestor: null,
-  Spider: null,
-  FieldExtractor: null,
-  FieldBundler: null,
+export interface WorkflowServices {
+  log: winston.Logger;
+  workingDir: string;
+  spiderService: SpiderService;
 }
 
 
-export const WorkflowServiceNames: WorkflowServiceName[] = [
-  'RestPortal',
-  'UploadIngestor',
-  'Spider',
-  'FieldExtractor',
-  'FieldBundler',
-];
 
-function getWorkingDir(): string {
-  const appSharePath = process.env['APP_SHARE_PATH'];
-  const workingDir = appSharePath ? appSharePath : 'app-share.d';
-  return workingDir;
+interface ErrorRecord {
+  error: string;
 }
 
-const registeredServices: Record<WorkflowServiceName, SatelliteServiceDef<any>> = {
-  'RestPortal': defineSatelliteService<Server>(
-    (serviceComm) => startRestPortal(serviceComm), {
-    async shutdown() {
-      this.log.debug(`${this.serviceName} [shutdown]> `)
+const ErrorRecord = (error: string): ErrorRecord =>
+  ({ error });
 
-      const server = this.cargo;
-      const doClose = promisify(server.close).bind(server);
-      return doClose().then(() => {
-        this.log.debug(`${this.serviceName} [server:shutdown]> `)
+export async function fetchOneRecord(
+  services: WorkflowServices,
+  alphaRec: AlphaRecord
+): Promise<CanonicalFieldRecords | ErrorRecord> {
+
+  const { spiderService, log, workingDir } = services;
+
+  const { url } = alphaRec;
+
+  log.info(`Fetching fields for ${url}`);
+
+  // if we have the data on disk, just return it
+  const downloadDir = path.resolve(workingDir, 'downloads.d');
+  const entryEncPath = makeHashEncodedPath(url, 3);
+  const entryPath = path.resolve(downloadDir, entryEncPath.toPath());
+
+  // try:
+  let fieldRecs = getCanonicalFieldRecord(entryPath);
+
+  if (fieldRecs === undefined) {
+    log.info(`No extracted fields found.. spidering ${url}`);
+    const metadata = await spiderService
+      .scrape(url)
+      .catch((error: Error) => {
+        // putStrLn('Error', error.name, error.message);
+        return `${error.name}: ${error.message}`;
       });
+
+    if (_.isString(metadata)) {
+      const msg = `Spidering error ${metadata}`;
+      log.info(msg);
+      return ErrorRecord(msg);
     }
-  }),
-
-  'UploadIngestor': defineSatelliteService<void>(
-    async () => undefined, {
-    async step(): Promise<void> {
-      this.log.info('[step]> ')
-      await insertNewUrlChains()
+    if (metadata === undefined) {
+      const msg = `Spider could not fetch url ${url}`;
+      log.info(msg);
+      return ErrorRecord(msg);
     }
-  }),
-
-  'Spider': defineSatelliteService<SpiderService>(
-    async () => createSpiderService(getWorkingDir()), {
-    async step() {
-      this.log.info(`${this.serviceName} [step]> `)
-      const spider = this.cargo;
-      let nextUrl = await getNextUrlForSpidering();
-      while (nextUrl !== undefined) {
-        const metadata = await spider
-          .scrape(nextUrl)
-          .catch((error: Error) => {
-            putStrLn('Error', error.name, error.message);
-            return undefined;
-          });
-
-        if (metadata !== undefined) {
-          const committedMeta = await commitMetadata(metadata);
-          this.log.info(`committing Metadata ${committedMeta}`)
-          if (committedMeta) {
-            committedMeta.statusCode === 'http:200';
-            const corpusEntryStatus = await insertCorpusEntry(committedMeta.url);
-            this.log.info(`created new corpus entry ${corpusEntryStatus.entryId}: ${corpusEntryStatus.statusCode}`)
-            // await this.commLink.echoBack('step');
-          }
-        } else {
-          putStrLn(`Metadata is undefined for url ${nextUrl}`);
-        }
-        nextUrl = await getNextUrlForSpidering();
-      }
-    },
-    async shutdown() {
-      this.log.debug(`${this.serviceName} [shutdown]> `)
-      const spider = this.cargo;
-      return spider.scraper.quit()
-        .then(() => {
-          this.log.debug(`${this.serviceName} [scraper:shutdown]> `)
-        });
+    const spiderSuccess = metadata.status === '200';
+    if (!spiderSuccess) {
+      const msg = `Spider returned ${metadata.status} for ${metadata.requestUrl}`;
+      log.info(msg);
+      return ErrorRecord(msg);
     }
-  }),
 
-
-  'FieldExtractor': defineSatelliteService<void>(
-    async () => undefined, {
-  }),
-
-  'FieldBundler': defineSatelliteService<void>(
-    async () => undefined, {
-  }),
-};
-
-export async function runServiceHub(hubName: string, dockerize: boolean, orderedServices: string[]): Promise<[ServiceHub, () => Promise<void>]> {
-  if (dockerize) {
-    process.env['DOCKERIZED'] = 'true';
+    log.info(`Extracting Fields in ${entryPath}`);
+    await extractFieldsForEntry(entryPath, log)
   }
-  return createHubService(hubName, orderedServices);
+
+
+  // try again:
+  fieldRecs = getCanonicalFieldRecord(entryPath);
+
+  if (fieldRecs === undefined) {
+    const msg = 'No extracted fields available';
+    log.info(msg);
+    return ErrorRecord(msg);
+  }
+
+  fieldRecs.noteId = alphaRec.noteId;
+  fieldRecs.title = alphaRec.title;
+  fieldRecs.url = alphaRec.url;
+  return fieldRecs;
 }
 
-export async function runService(
-  hubName: string,
-  serviceName: WorkflowServiceName,
-  dockerize: boolean
-): Promise<SatelliteService<any>> {
-  if (dockerize) {
-    process.env['DOCKERIZED'] = 'true';
-  }
-  const serviceDef = registeredServices[serviceName]
-  return createSatelliteService(hubName, serviceName, serviceDef);
-}
+
+
+// 'RestPortal': defineSatelliteService<Server>(
+//   (serviceComm) => startRestPortal(serviceComm), {
+//     async shutdown() {
+//       const server = this.cargo;
+//       const doClose = promisify(server.close).bind(server);
+//       return doClose().then(() => {
+//         this.log.debug(`${this.serviceName} [server:shutdown]> `)
+//       });
+//     }
+//   }),

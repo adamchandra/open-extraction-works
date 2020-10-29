@@ -11,8 +11,6 @@ import {
   setLogLabel,
   expandDir,
   putStrLn,
-  AlphaRecord,
-  prettyPrint,
 } from 'commons';
 
 import parseUrl from 'url-parse';
@@ -36,10 +34,20 @@ import * as E from 'fp-ts/Either';
 import { radix } from 'commons';
 import Async from 'async';
 import { AbstractFieldAttempts } from './app/extraction-rules';
-import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
-import { Field } from './core/extraction-records';
 
 const extractionRecordFileName = 'extraction-records.json';
+
+export interface FieldRecord {
+  name: string;
+  value: string;
+}
+
+export interface CanonicalFieldRecords {
+  noteId?: string;
+  url?: string;
+  title?: string;
+  fields: FieldRecord[];
+}
 
 export async function runMainInitFilters(
   corpusRoot: string,
@@ -233,6 +241,7 @@ export async function extractFieldsForEntry(
     log.info(`no metadata found for ${entryPath}`);
     return;
   }
+
   // setLogLabel(log, entryPath);
 
   const ctx: ExtractContext = {
@@ -257,7 +266,7 @@ export async function extractFieldsForEntry(
 
 
 function writeExtractionRecords(env: ExtractionEnv, messages: string[]) {
-  const { entryPath, fieldRecs, metadata } = env;
+  const { entryPath, fieldRecs } = env;
   const reshaped = _.mapValues(fieldRecs, (value) => {
     return {
       count: value.length,
@@ -290,66 +299,44 @@ function writeExtractionRecords(env: ExtractionEnv, messages: string[]) {
     /* overwrite= */true
   );
 
-  const canonical = _.flatMap(_.toPairs(fieldRecs), ([fieldName, fieldInstances]) => {
+  const fieldRecords: FieldRecord[] = _.flatMap(_.toPairs(fieldRecs), ([fieldName, fieldInstances]) => {
     if (fieldName === 'author') {
       const nameValueRecs = _.flatMap(fieldInstances, fi => {
         const { name, value } = fi;
         if (value === undefined) return [];
-        return [ { name, value } ];
+        return [{ name, value }];
       });
       return nameValueRecs;
     }
     const { name, value } = fieldInstances[0];
     if (value === undefined) return [];
-    return [ { name, value } ];
+    return [{ name, value }];
   });
+
+  const canonicalRecords: CanonicalFieldRecords = {
+    fields: fieldRecords
+  };
 
   writeCorpusJsonFile(
     entryPath,
     'extracted-fields',
     'canonical-fields.json',
-    finalOutput,
+    canonicalRecords,
     /* overwrite= */true
   );
 
 }
 
-export function getExtractedField(
-  corpusRoot: string,
-  alphaRec: AlphaRecord
-): any {
+export function getCanonicalFieldRecord(
+  entryPath: string,
+): CanonicalFieldRecords | undefined {
+  const records = readCorpusJsonFile<CanonicalFieldRecords>(
+    entryPath,
+    'extracted-fields',
+    'canonical-fields.json',
+  );
 
-  console.log('getExtractedField', corpusRoot)
-  const { url, noteId } = alphaRec;
-
-  const entryEncPath = makeHashEncodedPath(url, 3);
-  const entryPath = entryEncPath.toPath();
-  const entryFullpath = path.resolve(corpusRoot, entryPath);
-
-  console.log('getExtractedField: fullPath', entryFullpath)
-
-  const extractionRec = readCorpusJsonFile(entryFullpath, 'extracted-fields', extractionRecordFileName);
-
-  if (extractionRec) {
-    prettyPrint({ msg: 'getExtractedField', entryPath, extractionRec });
-
-    const titleField: Field | undefined = _.get(extractionRec, 'fields.title.instances[0]');
-    const abstractField: Field | undefined = _.get(extractionRec, 'fields.abstract.instances[0]');
-    const pdfLinkField: Field | undefined = _.get(extractionRec, 'fields.pdf-link.instances[0]');
-    const authorFields: Field[] | undefined = _.get(extractionRec, 'fields.author.instances');
-
-
-    if (abstractInstance0 && abstractInstance0.value) {
-      const { name, value } = abstractInstance0;
-      return ({
-        url,
-        noteId,
-        fields: [
-          { name, value }
-        ]
-      });
-    }
-  }
+  return records;
 }
 
 // export async function runMainGatherAbstracts(

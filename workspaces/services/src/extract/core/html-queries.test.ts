@@ -117,7 +117,7 @@ describe('HTML jquery-like css queries', () => {
     ];
 
 
-    await Async.forEachOfSeries(examples, async ([query, regexTests], exampleNum) => {
+    await Async.forEachOfSeries(examples, async ([query, ], exampleNum) => {
       const maybeResult = await _queryAll(browser, tmpHtml, query);
       putStrLn(`Example #${exampleNum}`);
       if (isRight(maybeResult)) {
@@ -157,7 +157,7 @@ describe('HTML jquery-like css queries', () => {
     ];
 
 
-    await Async.eachSeries(examples, async ([query, regexTests]) => {
+    await Async.eachSeries(examples, async ([query, ]) => {
       const maybeResult = await _queryAll(browser, tmpHtml, query);
       if (isRight(maybeResult)) {
         const elems = maybeResult.right;

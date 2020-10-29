@@ -106,12 +106,12 @@ async function runGatherSuccess(fns: Arrow<string, string>[]): Promise<string[]>
   return getEnvMessages(res);
 }
 
-async function runForEachDo(fn: Arrow<number, string>): Promise<string[]> {
-  const inputs = _.range(4);
-  const env0 = initEnv(inputs);
-  const res = await forEachDo(fn)(env0)();
-  return getEnvMessages(res);
-}
+// async function runForEachDo(fn: Arrow<number, string>): Promise<string[]> {
+//   const inputs = _.range(4);
+//   const env0 = initEnv(inputs);
+//   const res = await forEachDo(fn)(env0)();
+//   return getEnvMessages(res);
+// }
 
 describe('Extraction Prelude / Primitives', () => {
 

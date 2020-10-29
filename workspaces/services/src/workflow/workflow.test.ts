@@ -1,78 +1,56 @@
 import 'chai/register-should';
 
 import _ from 'lodash';
-import { runServiceHub, runService, WorkflowServiceNames } from './workflow-services';
-import { prettyPrint, AlphaRecord, putStrLn, } from 'commons';
-import got from 'got';
-import { useEmptyDatabase } from '~/db/db-test-utils';
+import { prettyPrint, AlphaRecord, readAlphaRecStream, streamPump } from 'commons';
+import { fetchOneRecord, WorkflowServices } from './workflow-services';
+import fs from 'fs-extra';
 
+
+import { createSpiderService } from '~/spidering/spider-service';
+import { getServiceLogger } from '~/utils/basic-logging';
+// import { getServiceLogger } from '~/service-graphs/service-logger';
 
 describe('End-to-end Extraction workflows', () => {
-  const hubName = 'ServiceHub';
-  const orderedServices = WorkflowServiceNames;
 
-  process.env['service-comm.loglevel'] = 'debug';
-  // process.env['UploadIngestor.loglevel'] = 'debug';
-  // process.env['Spider.loglevel'] = 'debug';
+  const csvFile = './test/resources/dblp_urls-10.csv';
+  const inputStream = readAlphaRecStream(csvFile);
 
-  const sampleRecs: AlphaRecord[] = _.map(_.range(4), (n) => {
-    return ({
-      noteId: `note-${n}`,
-      dblpConfId: `dblp.org/conf/c-${n}/199${n}`,
-      title: `title-${n}`,
-      authorId: `auth-${n}`,
-      url: `http://foo.bar/${n}`,
-    });
-  });
-  const liveAlphaRecs = (`
-jvTLiOGJOg,dblp.org/conf/CC/2020,A study of event frequency profiling with differential privacy,https://doi.org/10.1145/3377555.3377887
-`).split('\n')
-  // ztPoaj50mvz,dblp.org/journals/CORR/2020,Private Query Release Assisted by Public Data,https://arxiv.org/abs/2004.10941
-  // nLTHmurMJm6,dblp.org/conf/AISTATS/2019,Linear Queries Estimation with Local Differential Privacy,http://proceedings.mlr.press/v89/bassily19a.html
-  // zm9Tm38yTR,dblp.org/conf/SCAM/2019,Introducing Privacy in Screen Event Frequency Analysis for Android Apps,https://doi.org/10.1109/SCAM.2019.00037
-  // yx79SuEORwC,dblp.org/journals/CORR/2019,Privately Answering Classification Queries in the Agnostic PAC Model,http://arxiv.org/abs/1907.13553
+  const alphaRecsP = streamPump.createPump()
+    .viaStream<AlphaRecord>(inputStream)
+    .gather()
+    .toPromise()
 
-  const liveRecs: AlphaRecord[] = _.flatMap(liveAlphaRecs, rec => {
-    if (rec.trim().length===0) return [];
-    const [noteId, dblpConfId, title, url] = rec.split(',');
-    return [{ noteId, dblpConfId, title, url, }];
+
+  const workingDir = './workflow-test.d';
+
+  beforeEach(() => {
+    fs.emptyDirSync(workingDir);
+    // fs.mkdirSync(workingDir);
   });
 
+  it('should fetch a single record', async (done) => {
+    const alphaRecs = await alphaRecsP;
 
+    const spiderService = await createSpiderService(workingDir);
 
-  it('should run end-to-end via async service graph', async (done) => {
-    await useEmptyDatabase(async () => undefined);
+    const log = getServiceLogger('jest');
 
-    const [hubService, hubConnected] = await runServiceHub(hubName, false, orderedServices);
+    const workflowServices: WorkflowServices = {
+      workingDir,
+      spiderService,
+      log
+    };
+    if (alphaRecs === undefined || alphaRecs.length === 0) {
+      return done('could not read alpha rec csv')
+    }
+    const alphaRec = alphaRecs[1];
+    const fetchedRecord = await fetchOneRecord(workflowServices, alphaRec);
 
-    _.each(
-      orderedServices,
-      (service) => runService(hubName, service, false)
-    );
+    prettyPrint({ fetchedRecord });
 
-    await hubConnected;
-    putStrLn('hub/services now connectoed')
+    await spiderService.quit();
 
-    // hubService.commLink.addHandler(
-    //   'inbox', 'FieldBundler:done~step',
-    //   async () => {
-    //     await hubService.shutdownSatellites();
-    //     await hubService.commLink.quit();
-    //     done();
-    //   }
-    // );
-
-    const getResponse = await got('http://localhost:3100/extractor/batch.csv');
-
-    prettyPrint({ response: getResponse.body });
-
-    const retval = await got.post(
-      'http://localhost:3100/extractor/fields.json', {
-      json: liveRecs
-    });
+    done();
   });
 
-  // it.only('should run end-to-end via blocking function call', async (done) => {
-  //   done();
-  // });
 });
