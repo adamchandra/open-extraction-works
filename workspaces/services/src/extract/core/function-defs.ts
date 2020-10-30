@@ -21,8 +21,6 @@ export interface FPackage<Env extends BaseEnv> {
   tap<A>(f: ClientFunc<A, unknown, Env>, name?: string): Arrow<A, A, Env>;
   filter<A>(f: ClientFunc<A, boolean, Env>, name?: string, postHook?: PostHook<A, boolean, Env>,): FilterArrow<A, Env>;
 
-  // map(as: A[], f: A => B) => Either<E, B>[], then filter(isRight(bs))
-  // takeAllSuccess
   forEachDo: <A, B> (arrow: Arrow<A, B, Env>) => Arrow<A[], B[], Env>;
 
   // map(fs: (A=>B)[], a: A) => Either<E, B>[], then filter(isRight(bs))
@@ -448,7 +446,6 @@ const __takeFirstSuccess: <A, B, Env extends BaseEnv> (arrows: Arrow<A, B, Env>[
         return TE.left(asWCI('continue', env));
       })
     );
-
 
     // Recursive Step:
     const headArrow = arrows[0];

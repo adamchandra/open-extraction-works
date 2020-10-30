@@ -8,14 +8,13 @@ RUN npm i -g lerna
 RUN npm i -g rollup
 
 WORKDIR /usr/src/app/service-portal
-RUN pwd  
+RUN pwd
 
 COPY package*.json ./
 COPY lerna.json ./lerna.json
 
 # copy shell init files for convenience when attaching to containers
 COPY docker/shared/root.profile /root/.bashrc
-
 
 COPY workspaces/commons ./workspaces/commons
 COPY docker/shared/dot.envrc ./workspaces/commons/.envrc
@@ -25,15 +24,15 @@ COPY workspaces/services ./workspaces/services
 COPY docker/shared/dot.envrc ./workspaces/services/.envrc
 RUN direnv allow ./workspaces/services
 
-RUN lerna bootstrap 
+RUN lerna bootstrap
 
 WORKDIR /usr/src/app/service-portal/workspaces/commons
 
-RUN rollup -c  
+RUN rollup -c
 
 WORKDIR /usr/src/app/service-portal/workspaces/services
 
-RUN rollup -c  
+RUN rollup -c
 
 
 # RUN ls -thaFl --color .
@@ -45,4 +44,3 @@ RUN rollup -c
 WORKDIR /usr/src/app/service-portal/workspaces/services
 
 ENTRYPOINT ["node", "./dist/bundle.js"]
-
