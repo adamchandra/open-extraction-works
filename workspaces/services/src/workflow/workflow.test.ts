@@ -9,6 +9,7 @@ import fs from 'fs-extra';
 import { createSpiderService } from '~/spidering/spider-service';
 import { getServiceLogger } from '~/utils/basic-logging';
 import { AlphaRecord, readAlphaRecStream } from '~/prelude/types';
+import { Env, setEnv } from '~/prelude/config';
 
 describe('End-to-end Extraction workflows', () => {
 
@@ -22,21 +23,22 @@ describe('End-to-end Extraction workflows', () => {
 
 
   const workingDir = './workflow-test.d';
+  setEnv(Env.AppSharePath, workingDir);
 
   beforeEach(() => {
     fs.emptyDirSync(workingDir);
-    // fs.mkdirSync(workingDir);
+    fs.removeSync(workingDir);
+    fs.mkdirSync(workingDir);
   });
 
   it('should fetch a single record', async (done) => {
     const alphaRecs = await alphaRecsP;
 
-    const spiderService = await createSpiderService(workingDir);
+    const spiderService = await createSpiderService();
 
     const log = getServiceLogger('jest');
 
     const workflowServices: WorkflowServices = {
-      workingDir,
       spiderService,
       log
     };

@@ -26,25 +26,25 @@ puppeteer.use(AnonPlugin())
 
 import { logPageEvents } from './page-event';
 import { createMetadata, Metadata } from './data-formats';
-import { getResolvedEntryDownloadPath } from './persist';
+// import { getResolvedEntryDownloadPath } from './persist';
 import { createScrapingContext } from './scraping-context';
 
 export interface Scraper {
   browser: Browser;
-  workingDirectory: string;
+  // workingDirectory: string;
   scrapeUrl(url: string): Promise<Metadata | undefined>;
   quit(): Promise<void>;
 }
 
 export async function initScraper(
-  workingDirectory: string,
+  // workingDirectory: string,
 ): Promise<Scraper> {
   const browser: Browser = await puppeteer.launch({});
   return {
-    workingDirectory,
+    // workingDirectory,
     browser,
     async scrapeUrl(url: string) {
-      return scrapeUrl(browser, workingDirectory, url);
+      return scrapeUrl(browser, url);
     },
     async quit() {
       await browser.close();
@@ -54,14 +54,14 @@ export async function initScraper(
 
 async function scrapeUrl(
   browser: Browser,
-  workingDirectory: string,
   url: string
 ): Promise<Metadata | undefined> {
 
-  const scrapingContext = createScrapingContext(workingDirectory, url);
+  const scrapingContext = createScrapingContext(url);
 
   const { rootLogger } = scrapingContext;
-  const entryRootPath = getResolvedEntryDownloadPath(scrapingContext);
+  const entryRootPath = scrapingContext.entryPath();
+
   rootLogger.info(`downloading ${url} to ${scrapingContext.entryEncPath.toPath()}`);
 
   const hasMetadata = hasCorpusFile(entryRootPath, '.', 'metadata.json');
@@ -135,13 +135,12 @@ async function scrapeUrl(
 }
 
 export async function scrapeUrlAndQuit(
-  workingDirectory: string,
   url: string
 ): Promise<void> {
   const browser: Browser = await puppeteer.launch({
     // devtools: true,
     // headless: false
   });
-  await scrapeUrl(browser, workingDirectory, url);
+  await scrapeUrl(browser, url);
   await browser.close();
 }

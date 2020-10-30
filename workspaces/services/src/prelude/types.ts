@@ -4,7 +4,6 @@ import { pipe } from 'fp-ts/function'
 import { fold } from 'fp-ts/Either'
 import { isRight } from 'fp-ts/lib/Either'
 import * as io from 'io-ts';
-import { PathReporter } from 'io-ts/PathReporter'
 
 //// The Initial Record supplied by the OpenReview team
 // interface AlphaRecord {

@@ -6,7 +6,7 @@ const { opt, config, registerCmd } = arglib;
 registerCmd(
   arglib.YArgs,
   'scrape-url',
-  'spider via puppeteer testing...',
+  'spider via puppeteer ...',
   config(
     opt.cwd,
     opt.existingDir('working-directory: root directory for logging/tmpfile/downloading'),
@@ -17,7 +17,7 @@ registerCmd(
 )((args: any) => {
   const { workingDirectory, url } = args;
 
-  scrapeUrlAndQuit(workingDirectory, url)
+  scrapeUrlAndQuit(url)
     .then(() => undefined)
 });
 
@@ -32,9 +32,9 @@ registerCmd(
   )
 )((args: any) => {
   const { workingDirectory, alphaRecs } = args;
+
   runLocalSpider(
     alphaRecs,
-    workingDirectory
   ).then(() => undefined);
 
 });

@@ -16,18 +16,12 @@ export interface SpiderService {
   scraper: Scraper;
   run(alphaRecordStream: Readable): Promise<Readable>; // Readable<Metadata|undefined>
   scrape(url: string): Promise<Metadata|undefined>;
-  setWorkingDirectory(dir: string): void;
   quit(): Promise<void>;
 }
 
-export async function createSpiderService(workingDir: string): Promise<SpiderService> {
-  // const appSharePath = process.env['APP_SHARE_PATH'];
-  // let workingDir = 'spider-workdir.d';
-  // if (appSharePath) {
-  //   workingDir = path.join(appSharePath, workingDir);
-  // }
+export async function createSpiderService(): Promise<SpiderService> {
 
-  const scraper = await initScraper(workingDir);
+  const scraper = await initScraper();
   const crawlScheduler = initCrawlScheduler();
 
   const service: SpiderService = {
@@ -57,9 +51,6 @@ export async function createSpiderService(workingDir: string): Promise<SpiderSer
         })
         .toReadableStream();
     },
-    setWorkingDirectory(dir: string) {
-      this.scraper.workingDirectory = dir;
-    },
     quit() {
       return this.scraper.quit();
     }
@@ -70,10 +61,8 @@ export async function createSpiderService(workingDir: string): Promise<SpiderSer
 
 export async function runLocalSpider(
   alphaRecordCsv: string,
-  workingDir: string
 ): Promise<void> {
-  const spiderService = await createSpiderService(workingDir);
-  // spiderService.setWorkingDirectory(workingDir);
+  const spiderService = await createSpiderService();
   const inputStream = readAlphaRecStream(alphaRecordCsv);
 
   const urlStream = streamPump.createPump()

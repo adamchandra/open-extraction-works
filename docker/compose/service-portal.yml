@@ -17,5 +17,5 @@ services:
     container_name: service-portal
     ports:
       - "3100:3100"
-    command: ["service-portal", "--dockerize", "--working-directory", "/usr/src/app/corpus-root.d"]
+    command: ["service-portal", "--app-share-dir", "/usr/src/app/app-share.d"]
 

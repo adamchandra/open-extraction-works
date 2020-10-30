@@ -7,25 +7,17 @@ import { createAppLogger } from './portal-logger';
 import { WorkflowServices } from '~/workflow/workflow-services';
 import { createSpiderService } from '~/spidering/spider-service';
 import { arglib } from 'commons';
+import { Env, setEnv } from '~/prelude/config';
 const { opt, config, registerCmd } = arglib;
 
-
-function getWorkingDir(): string {
-  const appSharePath = process.env['APP_SHARE_PATH'];
-  const workingDir = appSharePath ? appSharePath : 'app-share.d';
-  return workingDir;
-}
 
 export async function startRestPortal(): Promise<Server> {
   const log = createAppLogger();
   const app = new Koa();
   const rootRouter = new Router();
 
-
-  const workingDir = getWorkingDir();
-  const spiderService = await createSpiderService(workingDir);
+  const spiderService = await createSpiderService();
   const workflowServices: WorkflowServices = {
-    workingDir,
     spiderService,
     log
   };
@@ -63,17 +55,11 @@ registerCmd(
   'service-portal',
   'start rest server for spidering and extraction',
   config(
-    opt.cwd,
-    opt.existingDir('working-directory: root directory for logging/tmpfile/downloading'),
-    opt.ion('dockerize', {
-      type: 'boolean',
-      default: false,
-    })
+    opt.existingDir('app-share-dir: root directory for shared logging/spidering/extraction data'),
   )
 )((args: any) => {
-  const { workingDirectory, url } = args;
-  startRestPortal()
-    .then(() => {
-      //
-    });
+  const { appShareDir } = args;
+  setEnv(Env.AppSharePath, appShareDir);
+
+  startRestPortal();
 });

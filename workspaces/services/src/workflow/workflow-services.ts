@@ -1,15 +1,14 @@
 import _ from 'lodash';
 
-import path from 'path';
 import { SpiderService } from '~/spidering/spider-service';
 import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord } from '~/extract/run-main';
-import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 import * as winston from 'winston';
 import { AlphaRecord } from '~/prelude/types';
+import { getCorpusEntryDirForUrl } from '~/prelude/config';
 
 export interface WorkflowServices {
   log: winston.Logger;
-  workingDir: string;
+  // workingDir: string;
   spiderService: SpiderService;
 }
 
@@ -26,16 +25,14 @@ export async function fetchOneRecord(
   alphaRec: AlphaRecord
 ): Promise<CanonicalFieldRecords | ErrorRecord> {
 
-  const { spiderService, log, workingDir } = services;
+  const { spiderService, log } = services;
 
   const { url } = alphaRec;
 
   log.info(`Fetching fields for ${url}`);
 
   // if we have the data on disk, just return it
-  const downloadDir = path.resolve(workingDir, 'downloads.d');
-  const entryEncPath = makeHashEncodedPath(url, 3);
-  const entryPath = path.resolve(downloadDir, entryEncPath.toPath());
+  const entryPath = getCorpusEntryDirForUrl(url);
 
   // try:
   let fieldRecs = getCanonicalFieldRecord(entryPath);
