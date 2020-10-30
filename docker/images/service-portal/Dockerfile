@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:14-slim
 
 RUN apt-get update
 
@@ -33,10 +33,6 @@ RUN rollup -c
 WORKDIR /usr/src/app/service-portal/workspaces/services
 
 RUN rollup -c
-
-
-# RUN ls -thaFl --color .
-# RUN /usr/bin/tree -Ca -I 'target|.git' -L 3 workspaces
 
 # If you are building your code for production
 # RUN npm ci --only=production

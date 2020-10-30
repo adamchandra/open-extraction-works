@@ -8,5 +8,4 @@ docker-compose \
     -f $COMPOSE/network.yml \
     -f $COMPOSE/volumes.yml \
     -f $COMPOSE/redis.yml \
-    up -d
-
+    down

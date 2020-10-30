@@ -4,15 +4,9 @@ SCRIPT=$(readlink -f "$0")
 BIN=$(dirname "$SCRIPT")
 . $BIN/paths.sh
 
-# DOCKER_BUILDKIT=1
-docker build -t adamchandra/spider-works  git@github.com:adamchandra/spider-works.git
-
-# lerna run rollup
-
 # for imaged in $IMAGES/*
-# imageDirs=('./docker/images/watr-front' './docker/images/spider-app')
+imageDirs=("$IMAGES/service-portal")
 
-imageDirs=('./docker/images/service-portal')
 
 for imaged in ${imageDirs[@]};
 do

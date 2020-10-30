@@ -5,65 +5,31 @@
    > npm run deps:check
    > npm run deps:update
 
-  it("should run end-to-end, from db init to spider to bundled abstracts/pdf-links/etc", () => {
+
+** TODO building/running/deploying Docker
+   Volume setup (corpus files, database files)
+   TODO change docker images from adamchandra/* to iesl or openreview or something else
+
+*** Build docker image
+    > docker/bin/build-images.sh
 
 
-#+BEGIN_SRC javascript
-  // <a href="/doi/pdf/10.1145/3306346.3323011"
+*** Docker up/down/restart    
+    > docker/bin/docker-up.sh
+    > docker/bin/docker-down.sh
 
-  // pipeline functions: 
-  [selectElemAttr('meta[name=citation_pdf_url]', 'content')],
+    Restart is docker-down + build-images + docker-up
+    > docker/bin/docker-restart.sh
 
-  $('a[href^="/doi/pdf"]').attr('href')
+    
 
-  select('meta[name=citation_pdf_url]')
-     .attr('content'),
+*** Running docker on production host
 
+    IMAGE=adamchandra/service-portal
+    APP_SHARE_PATH=~/app-share.d/
+    APP_SHARE_MOUNT=/usr/src/app/
 
-  /**
-   ,*
-   ,*  - [ ] populate database with input csv records
-   ,*  [noteId, paperUrl, venueUrl] (pdf? pdfUrl?)
-   ,*  artifactType: field/abstract, field/title html/pdf-link
-   ,*  ArtifactRequest: [noteTuple, artifactType, requestTransactionId]
-   ,*  RequestTransaction: [requestId, parentRequestId, status(open, success, failure)]
-   ,*  TransactionLog: [requestId, messageKey, message]
-   ,*
-   ,*  - [ ] query database/logs to see the state of un/spidered/extracted records
-   ,*  - [ ] Scrape/crawl any unspidered records
-   ,*  - [ ] Extract
-   ,**/
+    docker run --name=$IMAGE -d -v $APP_SHARE_PATH:$APP_SHARE_MOUNT nginx $IMAGE
 
-
-  // it("should run end-to-end, from spider to bundled abstracts/pdf-links/etc", async (done) => {
-  //   const serverFiles = "./test/resources";
-  // const scratchDir = path.join(".", "scratch.d");
-
-  //   const { corpusRoot, corpusPath } = initTestCorpusDirs(scratchDir);
-
-  //   const app = await startTestHTTPServer(serverFiles);
-
-  //   const logpath = scratchDir;
-
-  //   /**
-  //    * └── scratch.d
-  //    *     ├── corpus-root.d
-  //    *     │  └── d
-  //    *     │      └── 4
-  //    *     │          └── Y15.d
-  //    *     │              ├── download.html-08.23.43.html                <- produced by spider
-  //    *     │              ├── download.html-08.23.43.html.ex.abs.json    <- produced by runAbstractFinderOnCorpus
-  //    *     │              └── download.html-08.23.43.html.norm.txt       <- produced by runAbstractFinderOnCorpus
-  //    *     ├── input-recs.csv                                            <- initial input records
-  //    *     ├── qa-review-abstract-finder-log.json                        <- log produced by runAbstractFinderOnCorpus
-  //    *     ├── qa-review-abstract-finder-log.json.pretty.txt             <- prettified log produced by runAbstractFinderOnCorpus
-  //    *     └── spider-log.json                                           <- log produced by spider
-  //    */
-  //   // await runAbstractFinderOnCorpus({
-  //   //   corpusRoot: corpusPath,
-  //   //   logpath
-  //   // });
-
-  });
-
-  #+END_SRC
+    docker run --name=adamchandra/service-portal -d -v ~/nginxlogs:/var/log/nginx -p 5000:80 nginx
+    
