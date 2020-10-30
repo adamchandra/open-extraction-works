@@ -1,5 +1,5 @@
 version: '3.8'
 
 volumes:
-  app-volume:
+  app-share:
   postgres-data:
