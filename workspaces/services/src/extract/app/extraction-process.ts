@@ -829,10 +829,9 @@ export async function initExtractionEnv(
   const pathPrefix = path.basename(entryPath).slice(0, 6);
   const logPrefix = [pathPrefix];
 
-
-
   const browser = await puppeteer
     .launch({
+      executablePath: 'google-chrome-stable',
       headless: true
     });
 

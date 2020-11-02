@@ -14,14 +14,14 @@
     > docker/bin/build-images.sh
 
 
-*** Docker up/down/restart    
+*** Docker up/down/restart
     > docker/bin/docker-up.sh
     > docker/bin/docker-down.sh
 
     Restart is docker-down + build-images + docker-up
     > docker/bin/docker-restart.sh
 
-    
+
 
 *** Running docker on production host
 
@@ -32,4 +32,12 @@
     docker run --name=$IMAGE -d -v $APP_SHARE_PATH:$APP_SHARE_MOUNT nginx $IMAGE
 
     docker run --name=adamchandra/service-portal -d -v ~/nginxlogs:/var/log/nginx -p 5000:80 nginx
-    
+
+
+*** Mapping users on production host to user running services inside docker
+    Given that our system generates many files (spider downloads, extraction results), it is convenient
+    to have those files owned by the user that is running the docker container, rather than a  user that
+    exists only within Docker, or by root.
+
+    The technique to do this is outlined here:
+    https://jtreminio.com/blog/running-docker-containers-as-current-host-user/#ok-so-what-actually-works

@@ -15,5 +15,9 @@ do
     dockerfile="$imaged/Dockerfile"
 
     echo "docker build -t $tag -f $dockerfile ."
-    docker builder build -t $tag -f $dockerfile .
+    docker builder build \
+           -t $tag -f $dockerfile \
+           --build-arg USER_ID=$(id -u ${USER}) \
+           --build-arg GROUP_ID=$(id -g ${USER}) \
+           .
 done

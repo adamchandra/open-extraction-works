@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import puppeteer from 'puppeteer-extra'
 import * as E from 'fp-ts/Either';
 import { pipe } from 'fp-ts/function'
 import { isRight } from 'fp-ts/Either'
@@ -11,6 +10,7 @@ import {
   ElementHandle,
   errors as puppeteerErrors
 } from 'puppeteer';
+import { launchBrowser } from '~/prelude/puppet';
 
 export type AttrSelection = E.Either<string, string>;
 
@@ -109,7 +109,8 @@ export async function queryOne(
   sourceHtml: string,
   elementSelector: string,
 ): Promise<ElemSelectOne> {
-  const browser: Browser = await puppeteer.launch({});
+  const browser = await launchBrowser();
+
 
   const result = await _queryOne(browser, sourceHtml, elementSelector);
 
@@ -121,7 +122,7 @@ export async function queryAll(
   sourceHtml: string,
   elementSelector: string,
 ): Promise<ElemSelectAll> {
-  const browser: Browser = await puppeteer.launch({});
+  const browser = await launchBrowser();
 
   const result = await _queryAll(browser, sourceHtml, elementSelector);
 
@@ -134,9 +135,7 @@ export async function selectElementAttr(
   elementSelector: string,
   attributeName: string
 ): Promise<AttrSelection> {
-  const browser: Browser = await puppeteer.launch({
-    headless: true
-  });
+  const browser = await launchBrowser();
 
   const result: AttrSelection = await _selectElementAttr(
     browser,

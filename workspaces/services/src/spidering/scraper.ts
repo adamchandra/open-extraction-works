@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile } from 'commons';
 
-
 import {
   Response,
   Page,
@@ -11,37 +10,30 @@ import {
 
 import puppeteer from 'puppeteer-extra'
 
-// import blockResources from 'puppeteer-extra-plugin-block-resources';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-
 // @ts-ignore
 import AnonPlugin from 'puppeteer-extra-plugin-anonymize-ua';
 
 puppeteer.use(StealthPlugin())
 puppeteer.use(AnonPlugin())
-// puppeteer.use(blockResources({
-//   blockedTypes: new Set(['image', 'stylesheet'])
-// });
-
 
 import { logPageEvents } from './page-event';
 import { createMetadata, Metadata } from './data-formats';
 // import { getResolvedEntryDownloadPath } from './persist';
 import { createScrapingContext } from './scraping-context';
+import { launchBrowser } from '~/prelude/puppet';
 
 export interface Scraper {
   browser: Browser;
-  // workingDirectory: string;
   scrapeUrl(url: string): Promise<Metadata | undefined>;
   quit(): Promise<void>;
 }
 
 export async function initScraper(
-  // workingDirectory: string,
 ): Promise<Scraper> {
-  const browser: Browser = await puppeteer.launch({});
+  const browser =  await launchBrowser();
+
   return {
-    // workingDirectory,
     browser,
     async scrapeUrl(url: string) {
       return scrapeUrl(browser, url);
@@ -137,10 +129,7 @@ async function scrapeUrl(
 export async function scrapeUrlAndQuit(
   url: string
 ): Promise<void> {
-  const browser: Browser = await puppeteer.launch({
-    // devtools: true,
-    // headless: false
-  });
+  const browser = await launchBrowser();
   await scrapeUrl(browser, url);
   await browser.close();
 }

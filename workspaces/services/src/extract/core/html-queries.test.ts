@@ -6,10 +6,8 @@ import { isLeft, isRight } from 'fp-ts/Either'
 import { prettyPrint, putStrLn, stripMargin } from 'commons';
 import { selectElementAttr, _queryOne, _queryAll,  expandCaseVariations } from './html-queries';
 
-import puppeteer from 'puppeteer-extra'
-import { Browser } from 'puppeteer';
-
 import Async from 'async';
+import { launchBrowser } from '~/prelude/puppet';
 
 
 const tmpHtml = stripMargin(`
@@ -71,9 +69,7 @@ describe('HTML jquery-like css queries', () => {
 
 
   it('should run assorted css queries', async (done) => {
-    const browser: Browser = await puppeteer.launch({
-      headless: true
-    });
+    const browser = await launchBrowser();
 
     const examples: [string, RegExp][] = [
       ['div#abstracts > div.abstract > div', /success1/],
@@ -105,9 +101,8 @@ describe('HTML jquery-like css queries', () => {
   });
 
   it('should run assorted css multi-queries', async (done) => {
-    const browser: Browser = await puppeteer.launch({
-      headless: true
-    });
+
+    const browser = await launchBrowser();
 
     const examples: [string, RegExp[]][] = [
       // ['meta[name=citation_author]', [/Holte/, /Burch/]],
@@ -145,9 +140,7 @@ describe('HTML jquery-like css queries', () => {
   });
 
   it('should downcase attributes', async (done) => {
-    const browser: Browser = await puppeteer.launch({
-      headless: true
-    });
+    const browser = await launchBrowser();
 
     const examples: [string, RegExp[]][] = [
       // ['meta[name=citation_author]', [/Holte/, /Burch/]],
