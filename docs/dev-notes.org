@@ -1,3 +1,43 @@
+
+** Feature Agenda 
+
+
+   - [ ] Bulk-add AlphaRecords to system (REST/CLI)
+     * put recs in AlphaRecs.Inbox
+
+   - [ ] Run Spider/Extractor in background
+
+     AlphaRecs.Inbox -> Lock.Spider
+     Lock.Spider -> Spider.
+   - [ ] Update code and re-run everything
+   - [ ] Overview webpage detailing:
+     - All Extracted Fields/Urls/Domains
+     - State of Spider, extractor
+     - Means to input single Url/AlphaRecord
+     - [ ] Means to mark extracted field as correct/incorrect
+       - [ ] Create GroundTruth files/db table(s)
+
+
+
+
+   
+*** Path structure
+    * Group records into sets according to conference
+    AlphaRec.Group.G23
+    * Ground-truth labeling, per field/url
+      ground-truth.(in)correct
+      ground-truth.
+
+** Database Structure
+
+   AlphaRecord      [id, noteId, url, dblpKey, authorId, title] 
+   UrlChain         [requestUrl, responseUrl, statusCode]
+   ExtractedField   [alphaRecordId, name, value]
+
+   AlphaRecord -1-1-> UrlChain
+   AlphaRecord -1-*-> ExtractedField 
+
+   
 ** Building
    > lerna bootstrap
 
@@ -22,7 +62,6 @@
     > docker/bin/docker-restart.sh
 
 
-
 *** Running docker on production host
 
     IMAGE=adamchandra/service-portal
@@ -41,3 +80,15 @@
 
     The technique to do this is outlined here:
     https://jtreminio.com/blog/running-docker-containers-as-current-host-user/#ok-so-what-actually-works
+
+
+
+*** Usage Scenarios:
+**** Seeing a faulty extracted abstract and needing to report/correct it
+**** Viewing overview/stats:
+*****  # of abstracts available for a reviewer candidate
+**** Downloading the json with all extracted fields
+
+
+
+     

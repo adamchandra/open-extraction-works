@@ -13,8 +13,8 @@ docker-compose \
     -f $COMPOSE/service-portal.yml \
     $@
 
-# -f $COMPOSE/postgres.yml \
-# -f $COMPOSE/watr-front.yml \
-# -f $COMPOSE/filebeat.yml \
-
-
+# docker-compose \
+#     -f $COMPOSE/network.yml \
+#     -f $COMPOSE/volumes.yml \
+#     -f $COMPOSE/postgres.yml \
+#     $@

@@ -1,5 +1,3 @@
-//
-
 import {
   Browser,
 } from 'puppeteer';
@@ -11,7 +9,6 @@ import AnonPlugin from 'puppeteer-extra-plugin-anonymize-ua';
 // @ts-ignore
 import blockResources from 'puppeteer-extra-plugin-block-resources';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-
 
 
 export  function useStealthPlugin(): void {
@@ -30,7 +27,6 @@ export function useResourceBlockPlugin(): void {
 
 export async function launchBrowser(): Promise<Browser> {
   const browser: Browser = await puppeteer.launch({
-    "", "--no-sandbox"
     // executablePath: 'google-chrome-stable'
     // devtools: true,
     // headless: false

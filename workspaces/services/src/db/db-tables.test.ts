@@ -1,24 +1,25 @@
 import _ from 'lodash';
 
 import 'chai/register-should';
-import { prettyPrint, shaEncodeAsHex } from 'commons';
-import * as T from './database-tables';
+import { prettyPrint } from 'commons';
+import * as T from './db-tables';
 import { useEmptyDatabase } from './db-test-utils';
 import { AlphaRecord } from '~/prelude/types';
+import Async from 'async';
 
 describe('Database Tables Basics', () => {
-  it.only('Tests disabled!!!',  () => undefined);
 
   it('UrlChain', async (done) => {
 
-    const url = 'http://blah.blah/?q=1';
-    const urlChainId = shaEncodeAsHex(url);
+    const request_url = 'http://blah.blah/?q=1';
+    const response_url = 'http://blah.blah/?q=1';
+    const status_code = 'http:200';
 
     await useEmptyDatabase(async db => {
 
       await db.runTransaction(async (_sql, transaction) => {
         const newEntry = await T.UrlChain.create({
-          url, urlChainId
+          request_url, response_url, status_code
         }, { transaction });
         const theUrl = newEntry.get({ plain: true });
 
@@ -51,20 +52,29 @@ describe('Database Tables Basics', () => {
     });
 
     await useEmptyDatabase(async db => {
-      const alphaRec0 = inputRecs[0];
+      // const alphaRec0 = inputRecs[0];
 
       await db.runTransaction(async (_sql, transaction) => {
-        const newEntry = await T.AlphaRecord.create({
-          noteId: alphaRec0.noteId,
-          url: alphaRec0.url,
-          dblpKey: alphaRec0.dblpConfId,
-          authorId: alphaRec0.authorId,
-          title: alphaRec0.title,
 
-        }, { transaction });
-        const plainNewEntry = newEntry.get({ plain: true });
+        await Async.eachSeries(inputRecs, async alphaRec => {
+          const [newEntry, isNew] = await T.AlphaRecord.findOrCreate({
+            where: {
+              note_id: alphaRec.noteId,
+              url: alphaRec.url,
+            },
+            defaults: {
+              note_id: alphaRec.noteId,
+              url: alphaRec.url,
+              dblp_key: alphaRec.dblpConfId,
+              author_id: alphaRec.authorId,
+              title: alphaRec.title,
+            },
+            transaction,
+          });
 
-        prettyPrint({ plainNewEntry });
+          const plainNewEntry = newEntry.get({ plain: true });
+          prettyPrint({ isNew, plainNewEntry });
+        });
       });
 
       await db.run(async () => {

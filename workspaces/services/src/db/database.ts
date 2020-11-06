@@ -11,7 +11,7 @@ import {
   // HasManyCreateAssociationMixin
 } from 'sequelize';
 
-import { defineTables } from './database-tables';
+import { defineTables } from './db-tables';
 
 export async function initSequelize(): Promise<Sequelize> {
   const sequelize = new Sequelize({
@@ -73,7 +73,7 @@ export async function openDatabase(): Promise<Database> {
   return initSequelize()
     .then(async sql => {
       defineTables(sql);
-      await sql.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+      // await sql.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
 
       // Create tables if they don't exist, else no-op
       await sql.sync();

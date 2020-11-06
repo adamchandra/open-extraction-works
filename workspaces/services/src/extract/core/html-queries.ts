@@ -8,7 +8,7 @@ import {
   Page,
   Browser,
   ElementHandle,
-  errors as puppeteerErrors
+  // errors as puppeteerErrors
 } from 'puppeteer';
 import { launchBrowser } from '~/prelude/puppet';
 
@@ -169,9 +169,9 @@ export async function _selectElementAttrP(
     return E.right(attrValue);
   } catch (error) {
 
-    if (error instanceof puppeteerErrors.TimeoutError) {
-      // TODO Do something if this is a timeout.
-    }
+    // if (error instanceof puppeteerErrors.TimeoutError) {
+    //   // TODO Do something if this is a timeout.
+    // }
     if (error instanceof Error) {
       return E.left(`${error.name}: ${error.message}`);
     }
@@ -195,9 +195,9 @@ export async function _selectElementAttr(
     return _selectElementAttrP(page, elementSelector, attributeName);
   } catch (error) {
 
-    if (error instanceof puppeteerErrors.TimeoutError) {
-      // TODO Do something if this is a timeout.
-    }
+    // if (error instanceof puppeteerErrors.TimeoutError) {
+    //   // TODO Do something if this is a timeout.
+    // }
     if (error instanceof Error) {
       return E.left(`${error.name}: ${error.message}`);
     }

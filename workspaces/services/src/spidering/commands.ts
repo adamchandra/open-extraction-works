@@ -1,6 +1,6 @@
 import { arglib } from 'commons';
 import { scrapeUrlAndQuit } from './scraper';
-import { runLocalSpider } from './spider-service';
+import { insertNewAlphaRecords, runLocalSpider } from './spider-service';
 const { opt, config, registerCmd } = arglib;
 
 registerCmd(
@@ -37,4 +37,16 @@ registerCmd(
     alphaRecs,
   ).then(() => undefined);
 
+});
+
+registerCmd(
+  arglib.YArgs,
+  'insert-alpha-records',
+  'update the database with new alpha records',
+  config(
+    opt.existingFile('alpha-recs: csv file with alpha records')
+  )
+)((args: any) => {
+  const { alphaRecs } = args;
+  insertNewAlphaRecords(alphaRecs);
 });

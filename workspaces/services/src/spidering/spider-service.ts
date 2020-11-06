@@ -9,6 +9,7 @@ import {
 } from 'commons';
 import { Metadata } from './data-formats';
 import { AlphaRecord, readAlphaRecStream } from '~/prelude/types';
+import { insertAlphaRecords } from '~/db/db-api';
 
 
 export interface SpiderService {
@@ -77,4 +78,22 @@ export async function runLocalSpider(
     .filter((url) => isUrl(url))
     .toReadableStream();
   await spiderService.run(urlStream)
+}
+
+export async function insertNewAlphaRecords(
+  alphaRecordCsv: string,
+): Promise<void> {
+  const inputStream = readAlphaRecStream(alphaRecordCsv);
+
+  const alphaRecords = await streamPump.createPump()
+    .viaStream<AlphaRecord>(inputStream)
+    .gather()
+    .toPromise();
+  if (alphaRecords===undefined) {
+    putStrLn(`No records found in CSV ${alphaRecordCsv}`);
+    return
+  }
+  const newRecs = await insertAlphaRecords(alphaRecords)
+  const len = newRecs.length;
+  putStrLn(`Inserted ${len} new records`);
 }

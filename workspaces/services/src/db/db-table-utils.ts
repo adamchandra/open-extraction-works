@@ -30,6 +30,12 @@ export const requiredString = () => _.clone({
   unique: false
 });
 
+export const requiredNumber = () => _.clone({
+  type: DataTypes.NUMBER,
+  allowNull: false,
+  unique: false
+});
+
 export const optionalString = () => _.clone({
   type: DataTypes.STRING,
   allowNull: true,

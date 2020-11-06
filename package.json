@@ -6,6 +6,10 @@
     "clean": "lerna clean -y",
     "reset": "npm run clean && lerna bootstrap",
     "cyclic-check": "lerna --concurrency 1 exec --stream -- madge --circular dist",
+    "build": "lerna run build",
+    "rollup": "lerna run rollup",
+    "lint": "lerna run lint",
+    "test": "lerna run test",
     "deps:check": "lerna --concurrency 1 exec --stream -- ncu",
     "deps:update": "lerna --concurrency 1 exec --stream -- ncu -u && lerna bootstrap"
   },

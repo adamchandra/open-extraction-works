@@ -5,10 +5,10 @@ import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord }
 import * as winston from 'winston';
 import { AlphaRecord } from '~/prelude/types';
 import { getCorpusEntryDirForUrl } from '~/prelude/config';
+import { getNextUrlForSpidering } from '~/db/db-api';
 
 export interface WorkflowServices {
   log: winston.Logger;
-  // workingDir: string;
   spiderService: SpiderService;
 }
 
@@ -67,7 +67,6 @@ export async function fetchOneRecord(
     await extractFieldsForEntry(entryPath, log)
   }
 
-
   // try again:
   fieldRecs = getCanonicalFieldRecord(entryPath);
 
@@ -81,4 +80,13 @@ export async function fetchOneRecord(
   fieldRecs.title = alphaRec.title;
   fieldRecs.url = alphaRec.url;
   return fieldRecs;
+}
+
+export async function processUrlsInDB(
+  services: WorkflowServices,
+): Promise<void> {
+
+  //
+
+
 }
