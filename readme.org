@@ -2,6 +2,8 @@
   A set of services to spider and extract metadata (abstracts, titles, pdf links) from URLs.
 
 
-  
+** Adding/Modifying Field Extraction Rules
 
+** Production machine setup and [[file:docs/dev-notes.org::*Deployment][Deployment]]
 
+** Notes on [[file:docs/dev-notes.org::*Development][Development]] setup

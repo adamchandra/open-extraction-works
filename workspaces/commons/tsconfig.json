@@ -1,4 +1,5 @@
 {
+  "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
 
@@ -6,8 +7,11 @@
     "module": "esnext",
     "moduleResolution": "node",
 
-    "incremental": true,
+    "lib": [
+      "dom"
+    ],
 
+    "incremental": true,
     "esModuleInterop": true,
     "importHelpers": true,
     "allowSyntheticDefaultImports": true,
@@ -23,6 +27,7 @@
 
     "inlineSourceMap": true,
     "preserveConstEnums": true,
+
     "declaration": true,
     "declarationMap": true,
 
@@ -33,10 +38,7 @@
     ],
 
     "paths": {
-      "~/*":  ["./src/*"],
-      "@/*":  ["./src/*"],
-      "~~/*": ["./src/*"],
-      "@@/*": ["./src/*"]
+      "~/*":  ["./src/*"]
     }
 
   },

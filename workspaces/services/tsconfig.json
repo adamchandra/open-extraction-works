@@ -1,14 +1,17 @@
 {
+  "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "allowJs": false,
 
     "target": "esnext",
     "module": "commonjs",
     "moduleResolution": "node",
 
-    "incremental": true,
+    "lib": [
+      "dom"
+    ],
 
+    "incremental": true,
     "esModuleInterop": true,
     "importHelpers": true,
     "allowSyntheticDefaultImports": true,
