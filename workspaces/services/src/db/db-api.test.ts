@@ -5,8 +5,8 @@ import _ from 'lodash';
 import { prettyPrint } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
 import { commitMetadata, getNextUrlForSpidering, insertAlphaRecords, insertNewUrlChains } from './db-api';
-import { mockAlphaRecord, mockMetadata } from '~/spidering/data-formats';
-import { AlphaRecord } from '~/prelude/types';
+import { mockAlphaRecord, mockMetadata } from 'spider';
+import { AlphaRecord } from 'commons';
 
 
 describe('High-level Database API', () => {

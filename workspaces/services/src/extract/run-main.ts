@@ -27,13 +27,15 @@ import {
 
 import fs from 'fs-extra';
 import { ExtractContext, initExtractionEnv } from './app/extraction-process';
-import { Metadata } from '~/spidering/data-formats';
+// import { Metadata } from 'spider/dist';
+
 
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 import { radix } from 'commons';
 import Async from 'async';
 import { AbstractFieldAttempts } from './app/extraction-rules';
+import { Metadata } from 'spider';
 
 const extractionRecordFileName = 'extraction-records.json';
 

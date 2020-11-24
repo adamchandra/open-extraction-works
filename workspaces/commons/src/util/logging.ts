@@ -12,6 +12,9 @@ import {
 import * as winston from 'winston';
 
 const { combine, timestamp, prettyPrint } = format;
+const cli = config.cli;
+
+export type TransportType = 'file' | 'console';
 
 export function createConsoleLogger(): Logger {
   return createLogger({
@@ -28,8 +31,6 @@ export function setLogLabel(log: Logger, label: string) {
     format.label({ label, message: true })
   );
 }
-
-export type TransportType = 'file' | 'console';
 
 export function setLogLevel(log: Logger, transportType: TransportType, level: string) {
   _.each(
@@ -57,6 +58,7 @@ export function consoleTransport(level: string): transports.ConsoleTransportInst
 
 export function newLogger(...transports: winston.transport[]): Logger {
   return createLogger({
+    levels: cli.levels,
     transports,
   });
 }

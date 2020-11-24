@@ -4,7 +4,7 @@ import 'chai/register-should';
 import { prettyPrint } from 'commons';
 import * as T from './db-tables';
 import { useEmptyDatabase } from './db-test-utils';
-import { AlphaRecord } from '~/prelude/types';
+import { AlphaRecord } from 'commons';
 import Async from 'async';
 
 describe('Database Tables Basics', () => {

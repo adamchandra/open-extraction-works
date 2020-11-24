@@ -7,7 +7,7 @@ import { prettyPrint, putStrLn, stripMargin } from 'commons';
 import { selectElementAttr, _queryOne, _queryAll,  expandCaseVariations } from './html-queries';
 
 import Async from 'async';
-import { launchBrowser } from '~/prelude/puppet';
+import { launchBrowser } from 'commons';
 
 
 const tmpHtml = stripMargin(`

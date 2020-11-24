@@ -1,8 +1,7 @@
 import 'chai';
-import 'chai/register-should';
+import { makeHashEncodedPath } from 'commons';
 
 import _ from 'lodash';
-import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
 
 describe('spider persistence', () => {
 

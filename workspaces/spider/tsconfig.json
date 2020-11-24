@@ -4,7 +4,7 @@
     "baseUrl": ".",
 
     "target": "esnext",
-    "module": "commonjs",
+    "module": "esnext",
     "moduleResolution": "node",
 
     "lib": [
@@ -28,6 +28,9 @@
     "inlineSourceMap": true,
     "preserveConstEnums": true,
 
+    "declaration": true,
+    "declarationMap": true,
+
     "types": [
       "jest",
       "chai"
@@ -39,8 +42,11 @@
   },
 
   "include": [
-    "./src",
-    "./@localtypes"
+    "src"
   ],
+
+  "exclude": [
+    "node_modules"
+  ]
 
 }

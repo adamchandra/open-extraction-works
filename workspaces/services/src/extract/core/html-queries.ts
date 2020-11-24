@@ -10,7 +10,7 @@ import {
   ElementHandle,
   // errors as puppeteerErrors
 } from 'puppeteer';
-import { launchBrowser } from '~/prelude/puppet';
+import { launchBrowser } from 'commons';
 
 export type AttrSelection = E.Either<string, string>;
 

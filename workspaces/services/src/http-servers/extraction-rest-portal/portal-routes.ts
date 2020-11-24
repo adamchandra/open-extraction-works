@@ -4,7 +4,7 @@ import Router from 'koa-router';
 import koaBody from 'koa-body';
 
 import { fetchOneRecord, WorkflowServices } from '~/workflow/workflow-services';
-import { AlphaRecord } from '~/prelude/types';
+import { AlphaRecord } from 'commons';
 import { prettyPrint } from 'commons';
 
 async function postRecordJson(

@@ -1,7 +1,7 @@
-import { getAppSharedDir, getCorpusRootDir } from '~/prelude/config';
-import { HashEncodedPath, makeHashEncodedPath } from '~/utils/hash-encoded-paths';
-import { getSpiderLoggers, SpiderLoggers } from './spider-logging';
 import path from 'path';
+
+import { getSpiderLoggers, SpiderLoggers } from './spider-logging';
+import { getAppSharedDir, getCorpusRootDir, HashEncodedPath, makeHashEncodedPath } from 'commons';
 
 export interface ScrapingContext extends SpiderLoggers {
   sharedDataDir: string;

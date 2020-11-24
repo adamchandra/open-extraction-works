@@ -8,7 +8,7 @@ import Async from 'async';
 
 
 import { AbstractFieldAttempts } from './extraction-rules';
-import { Metadata } from '~/spidering/data-formats';
+import { Metadata } from 'spider';
 import { runFieldExtractor } from '../run-main';
 
 describe('Field Extraction Pipeline', () => {

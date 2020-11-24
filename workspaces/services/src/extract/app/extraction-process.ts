@@ -4,7 +4,7 @@ import { flow as compose, pipe } from 'fp-ts/function'
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 
-import { Metadata } from '~/spidering/data-formats';
+import { Metadata } from 'spider';
 import { ArtifactSubdir, expandDir, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
 import { Logger } from 'winston';
 
@@ -13,8 +13,7 @@ import { Page } from 'puppeteer'
 // @ts-ignore
 import blockResources from 'puppeteer-extra-plugin-block-resources';
 
-import { shaEncodeAsHex } from 'commons';
-import { diffByChars } from 'commons';
+import { shaEncodeAsHex, diffByChars } from 'commons';
 
 
 import {

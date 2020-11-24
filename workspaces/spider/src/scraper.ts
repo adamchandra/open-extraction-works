@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile } from 'commons';
+import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile, launchBrowser } from 'commons';
 
 import {
   Response,
@@ -19,9 +19,7 @@ puppeteer.use(AnonPlugin())
 
 import { logPageEvents } from './page-event';
 import { createMetadata, Metadata } from './data-formats';
-// import { getResolvedEntryDownloadPath } from './persist';
 import { createScrapingContext } from './scraping-context';
-import { launchBrowser } from '~/prelude/puppet';
 
 export interface Scraper {
   browser: Browser;

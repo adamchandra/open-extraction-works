@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { Metadata } from '~/spidering/data-formats';
+import { Metadata } from 'spider';
 import { Logger } from 'winston';
 import * as ft from '../core/function-defs';
 

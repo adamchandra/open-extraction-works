@@ -50,6 +50,7 @@
     "puppeteer-extra-plugin-stealth": "^2.6.5",
     "sequelize": "^6.3.5",
     "slice-ansi": "^4.0.0",
+    "spider": "0.1.0",
     "split": "^1.0.1",
     "through2": "^4.0.2",
     "tsconfig-paths": "^3.9.0",

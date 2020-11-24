@@ -6,10 +6,11 @@ import { fetchOneRecord, WorkflowServices } from './workflow-services';
 import fs from 'fs-extra';
 
 
-import { createSpiderService } from '~/spidering/spider-service';
+// import { createSpiderService } from '~/spidering/spider-service';
 import { getServiceLogger } from '~/utils/basic-logging';
-import { AlphaRecord, readAlphaRecStream } from '~/prelude/types';
-import { Env, setEnv } from '~/prelude/config';
+import { AlphaRecord, readAlphaRecStream } from 'commons';
+import { Env, setEnv } from 'commons';
+import { createSpiderService } from './spider-service';
 
 describe('End-to-end Extraction workflows', () => {
 

@@ -1,8 +1,6 @@
 import { Logger } from 'winston';
 import path from 'path';
-import { getBasicLogger } from '~/utils/basic-logging';
-// import { HashEncodedPath } from '~/utils/hash-encoded-paths';
-import { getAppSharedDir, getCorpusRootDir } from '~/prelude/config';
+import { consoleTransport, fileTransport, getAppSharedDir, getCorpusRootDir, HashEncodedPath, newLogger } from 'commons';
 
 
 export interface SpiderLoggers {
@@ -16,8 +14,17 @@ export function getSpiderLoggers(
   const appShareDir = getAppSharedDir();
   const corpusRoot = getCorpusRootDir();
   const entryLoggingPath = path.resolve(corpusRoot, entryEncPath.toPath());
-  const rootLogger = getBasicLogger(appShareDir, 'spidering-log.json');
-  const entryLogger = getBasicLogger(entryLoggingPath, 'entry-log.json');
+
+  const loglevel = 'info';
+  const rootLogger = newLogger(
+    consoleTransport(loglevel),
+    fileTransport(appShareDir, 'spidering-log.json', loglevel)
+  );
+
+  const entryLogger = newLogger(
+    consoleTransport(loglevel),
+    fileTransport(entryLoggingPath, 'entry-log.json', loglevel)
+  );
 
   return {
     rootLogger,

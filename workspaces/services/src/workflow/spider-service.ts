@@ -1,14 +1,20 @@
 import { Readable } from 'stream';
 
-import { initScraper, Scraper } from './scraper';
-import { CrawlScheduler, initCrawlScheduler } from './scheduler';
+import {
+  initScraper,
+  Scraper,
+  Metadata,
+  CrawlScheduler,
+  initCrawlScheduler
+} from 'spider';
+
 import isUrl from 'is-url-superb';
 
 import {
   streamPump, putStrLn, delay,
+  AlphaRecord, readAlphaRecStream
 } from 'commons';
-import { Metadata } from './data-formats';
-import { AlphaRecord, readAlphaRecStream } from '~/prelude/types';
+
 import { insertAlphaRecords } from '~/db/db-api';
 
 
@@ -16,7 +22,7 @@ export interface SpiderService {
   crawlScheduler: CrawlScheduler;
   scraper: Scraper;
   run(alphaRecordStream: Readable): Promise<Readable>; // Readable<Metadata|undefined>
-  scrape(url: string): Promise<Metadata|undefined>;
+  scrape(url: string): Promise<Metadata | undefined>;
   quit(): Promise<void>;
 }
 
@@ -28,7 +34,7 @@ export async function createSpiderService(): Promise<SpiderService> {
   const service: SpiderService = {
     scraper,
     crawlScheduler,
-    async scrape(url: string): Promise<Metadata|undefined> {
+    async scrape(url: string): Promise<Metadata | undefined> {
       return this.scraper.scrapeUrl(url)
     },
     async run(alphaRecordStream: Readable): Promise<Readable> {
@@ -48,7 +54,7 @@ export async function createSpiderService(): Promise<SpiderService> {
               return;
             })
             .catch((error) => putStrLn('Error', error))
-          ;
+            ;
         })
         .toReadableStream();
     },
@@ -89,7 +95,7 @@ export async function insertNewAlphaRecords(
     .viaStream<AlphaRecord>(inputStream)
     .gather()
     .toPromise();
-  if (alphaRecords===undefined) {
+  if (alphaRecords === undefined) {
     putStrLn(`No records found in CSV ${alphaRecordCsv}`);
     return
   }

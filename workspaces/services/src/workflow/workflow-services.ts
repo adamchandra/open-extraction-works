@@ -1,11 +1,9 @@
 import _ from 'lodash';
 
-import { SpiderService } from '~/spidering/spider-service';
 import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord } from '~/extract/run-main';
 import * as winston from 'winston';
-import { AlphaRecord } from '~/prelude/types';
-import { getCorpusEntryDirForUrl } from '~/prelude/config';
-import { getNextUrlForSpidering } from '~/db/db-api';
+import { AlphaRecord, getCorpusEntryDirForUrl } from 'commons';
+import { SpiderService } from './spider-service';
 
 export interface WorkflowServices {
   log: winston.Logger;
@@ -80,13 +78,4 @@ export async function fetchOneRecord(
   fieldRecs.title = alphaRec.title;
   fieldRecs.url = alphaRec.url;
   return fieldRecs;
-}
-
-export async function processUrlsInDB(
-  services: WorkflowServices,
-): Promise<void> {
-
-  //
-
-
 }

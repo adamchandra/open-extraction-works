@@ -1,10 +1,10 @@
+import { AlphaRecord } from 'commons';
 import _ from 'lodash';
 
 import {
   Request, Response,
 } from 'puppeteer';
-// import { AlphaRecord } from '~/prelude/types';
-// import { UrlChain, UrlChainLink } from '~/utils/url-fetch-chains';
+import { UrlChain, UrlChainLink } from './url-fetch-chains';
 
 export function createRequestChain(request: Request): UrlChain {
   const reqRedirectChain = request.redirectChain();
@@ -86,6 +86,7 @@ export function mockMetadata(n: number): Metadata {
 
   return metadata;
 }
+
 
 export function mockAlphaRecord(n: number): AlphaRecord {
   return ({
