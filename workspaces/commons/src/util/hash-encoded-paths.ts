@@ -1,5 +1,5 @@
 import path from 'path';
-import { shaEncodeAsHex } from 'commons';
+import { shaEncodeAsHex } from './string-utils';
 
 export interface HashEncodedPath {
   source: string;

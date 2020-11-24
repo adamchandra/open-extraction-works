@@ -1,5 +1,5 @@
 import path from 'path';
-import { makeHashEncodedPath } from '~/utils/hash-encoded-paths';
+import { makeHashEncodedPath } from '~/util/hash-encoded-paths';
 
 
 export const Env = {

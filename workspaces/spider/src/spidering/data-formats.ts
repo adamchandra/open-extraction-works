@@ -3,9 +3,8 @@ import _ from 'lodash';
 import {
   Request, Response,
 } from 'puppeteer';
-import { AlphaRecord } from '~/prelude/types';
-
-import { UrlChain, UrlChainLink } from '~/utils/url-fetch-chains';
+// import { AlphaRecord } from '~/prelude/types';
+// import { UrlChain, UrlChainLink } from '~/utils/url-fetch-chains';
 
 export function createRequestChain(request: Request): UrlChain {
   const reqRedirectChain = request.redirectChain();

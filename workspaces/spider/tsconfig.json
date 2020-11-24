@@ -1,0 +1,46 @@
+{
+  "extends": "@tsconfig/node14/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+
+    "target": "esnext",
+    "module": "commonjs",
+    "moduleResolution": "node",
+
+    "lib": [
+      "dom"
+    ],
+
+    "incremental": true,
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "allowSyntheticDefaultImports": true,
+
+    "experimentalDecorators": true,
+    "strict": true,
+    "noEmit": false,
+    "outDir": "./dist",
+
+    "noImplicitReturns": true,
+    "noUnusedParameters": false,
+    "noUnusedLocals": false,
+
+    "inlineSourceMap": true,
+    "preserveConstEnums": true,
+
+    "types": [
+      "jest",
+      "chai"
+    ],
+
+    "paths": {
+      "~/*":  ["./src/*"]
+    }
+  },
+
+  "include": [
+    "./src",
+    "./@localtypes"
+  ],
+
+}

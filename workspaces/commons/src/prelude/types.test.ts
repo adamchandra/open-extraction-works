@@ -1,8 +1,6 @@
-//
-import 'chai/register-should';
-import { prettyPrint } from 'commons';
 
 import _ from 'lodash';
+import { prettyPrint } from '~/util/pretty-print';
 import { AlphaRecord } from './types';
 
 describe('Shared types', () => {
