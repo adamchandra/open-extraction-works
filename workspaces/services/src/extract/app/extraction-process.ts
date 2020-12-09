@@ -5,7 +5,7 @@ import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
 
 import { Metadata } from 'spider';
-import { ArtifactSubdir, expandDir, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
+import { ArtifactSubdir, expandDir, launchBrowser, readCorpusTextFile, setLogLabel, writeCorpusTextFile } from 'commons';
 import { Logger } from 'winston';
 
 import puppeteer from 'puppeteer-extra'
@@ -590,7 +590,7 @@ export const tryEvidenceMapping: (mapping: Record<string, string>) => Arrow<unkn
                 });
                 field.evidence.push(...ruleNames);
               }
-              if (field.value !== undefined && field.value.length>0) {
+              if (field.value !== undefined && field.value.length > 0) {
                 env.fields.push(field);
               }
 
@@ -828,11 +828,7 @@ export async function initExtractionEnv(
   const pathPrefix = path.basename(entryPath).slice(0, 6);
   const logPrefix = [pathPrefix];
 
-  const browser = await puppeteer
-    .launch({
-      executablePath: 'google-chrome-stable',
-      headless: true
-    });
+  const browser = await launchBrowser();
 
   const env: ExtractionEnv = {
     log,

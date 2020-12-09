@@ -172,4 +172,9 @@ export async function fetchAllDBRecords(maxToFetch: number): Promise<void> {
       fetchNext = false;
     }
   }
+
+  log.info('Shutting down Spider')
+  await spiderService.quit();
+
+  log.info('Done')
 }
