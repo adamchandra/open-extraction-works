@@ -57,6 +57,7 @@ export async function insertNewUrlChains(): Promise<number> {
 |    ar.url AS request_url,
 |    null as response_url,
 |    'status:new' as status_code,
+|    null as status_message,
 |    NOW() as "createdAt",
 |    NOW() as "updatedAt"
 |  FROM "AlphaRecords" ar
