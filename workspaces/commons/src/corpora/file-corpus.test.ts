@@ -3,7 +3,7 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 import through from 'through2';
-import { getDirWalkerStream } from './dirstream';
+import { expandDirRecursive, getDirWalkerStream } from './dirstream';
 import { prettyPrint } from '~/util/pretty-print';
 
 describe('File corpus operations',  () => {
@@ -26,6 +26,12 @@ describe('File corpus operations',  () => {
         done();
       }
     ));
+  });
+
+  it.only('should full expand a directory of files', async (done) => {
+    const expanded = await expandDirRecursive(testDirPath, true, false);
+    prettyPrint({ expanded })
+    done();
   });
 
 

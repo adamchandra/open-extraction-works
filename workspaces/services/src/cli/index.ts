@@ -1,7 +1,8 @@
-import './extraction-cli';
+import {} from './extraction-cli';
 import { arglib } from 'commons';
-import '~/http-servers/extraction-rest-portal/rest-server';
-import '~/spidering/commands';
+import {} from '~/http-servers/extraction-rest-portal/rest-server';
+
+import '~/workflow/workflow-cli';
 
 arglib.YArgs
   .demandCommand(1, 'You need at least one command before moving on')

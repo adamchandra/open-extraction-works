@@ -1,5 +1,4 @@
 {
-  "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
 
@@ -14,8 +13,6 @@
     "incremental": true,
     "esModuleInterop": true,
     "importHelpers": true,
-    "allowSyntheticDefaultImports": true,
-    "skipDefaultLibCheck": true,
 
     "experimentalDecorators": true,
     "strict": true,
@@ -42,6 +39,6 @@
   "include": [
     "./src",
     "./@localtypes"
-  ],
+  ]
 
 }

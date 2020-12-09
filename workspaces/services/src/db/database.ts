@@ -3,12 +3,6 @@ import _ from 'lodash';
 import {
   Sequelize,
   Transaction,
-  // BuildOptions,
-  // HasManyGetAssociationsMixin,
-  // HasManyAddAssociationMixin,
-  // HasManyHasAssociationMixin,
-  // HasManyCountAssociationsMixin,
-  // HasManyCreateAssociationMixin
 } from 'sequelize';
 
 import { defineTables } from './db-tables';
@@ -71,12 +65,12 @@ export async function runTransaction<R>(
 
 export async function openDatabase(): Promise<Database> {
   return initSequelize()
-    .then(async sql => {
-      defineTables(sql);
+    .then(async _sql => {
+      defineTables(_sql);
       // await sql.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
 
       // Create tables if they don't exist, else no-op
-      await sql.sync();
+      const sql = await _sql.sync({ alter: true});
 
       const run = _.curry(runQuery)(sql);
       const runT = _.curry(runTransaction)(sql);

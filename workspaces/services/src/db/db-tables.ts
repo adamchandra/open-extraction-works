@@ -5,7 +5,14 @@ import {
   Sequelize,
 } from 'sequelize';
 
-import { optionalString, primaryKey, primaryKeyString, requiredNumber, requiredString } from './db-table-utils';
+import {
+  optionalString,
+  optionalText,
+  primaryKey,
+  primaryKeyString,
+  requiredNumber,
+  requiredString
+} from './db-table-utils';
 
 export class AlphaRecord extends Model {
   public id!: number;
@@ -25,7 +32,7 @@ export class AlphaRecord extends Model {
       url: requiredString(),    // uniqKey 2
       dblp_key: requiredString(),
       author_id: optionalString(),
-      title: optionalString(),
+      title: optionalText(),
     }, {
       sequelize,
       timestamps: true,
@@ -43,12 +50,14 @@ export class UrlChain extends Model {
   public request_url!: string; // Primary Key
   public response_url?: string; // Nullable
   public status_code!: string; // http:2/4/5xx, spider:new, etc.
+  public status_message?: string; // any error/info messages
 
   public static setup(sequelize: Sequelize) {
     UrlChain.init({
       request_url: primaryKeyString(),
       response_url: optionalString(),
       status_code: requiredString(),
+      status_message: optionalText(),
     }, {
       sequelize,
       timestamps: true

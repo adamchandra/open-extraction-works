@@ -20,6 +20,7 @@ export const primaryKeyString = () => _.clone({
 // defaultValue = ''
 export const uniqString = () => _.clone({
   type: DataTypes.STRING,
+  length: 512,
   allowNull: false,
   unique: true
 });
@@ -27,6 +28,7 @@ export const uniqString = () => _.clone({
 export const requiredString = () => _.clone({
   type: DataTypes.STRING,
   allowNull: false,
+  length: 512,
   unique: false
 });
 
@@ -38,6 +40,13 @@ export const requiredNumber = () => _.clone({
 
 export const optionalString = () => _.clone({
   type: DataTypes.STRING,
+  length: 512,
+  allowNull: true,
+  unique: false
+});
+
+export const optionalText = () => _.clone({
+  type: DataTypes.TEXT,
   allowNull: true,
   unique: false
 });

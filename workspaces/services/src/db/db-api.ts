@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import * as DB from './db-tables';
-import { stripMargin } from 'commons';
+import { stripMargin, putStrLn } from 'commons';
 import ASync from 'async';
 import { openDatabase } from './database';
 import { Metadata } from 'spider';
@@ -10,10 +10,15 @@ export async function insertAlphaRecords(
   inputRecs: AlphaRecord[],
 ): Promise<DB.AlphaRecord[]> {
   const db = await openDatabase();
-  const ins = await db.runTransaction(async (_sql, transaction) => {
+  const ins = await db.run(async (_sql) => {
+    let inserted = 0;
+    let processed = 0;
     return await ASync.mapSeries<AlphaRecord, DB.AlphaRecord, Error>(
       inputRecs,
       async (rec: AlphaRecord) => {
+        if (processed % 100 === 0) {
+          putStrLn(`processed ${processed}: new = ${inserted} total = ${inputRecs.length}...`);
+        }
 
         const [newEntry, isNew] = await DB.AlphaRecord.findOrCreate({
           where: {
@@ -27,8 +32,10 @@ export async function insertAlphaRecords(
             author_id: rec.authorId,
             title: rec.title,
           },
-          transaction,
         });
+
+        processed += 1;
+        inserted += isNew ? 1 : 0;
 
         return newEntry;
       }
@@ -37,6 +44,7 @@ export async function insertAlphaRecords(
   await db.close();
   return ins;
 }
+
 
 export async function insertNewUrlChains(): Promise<number> {
   const db = await openDatabase();
@@ -99,6 +107,35 @@ export interface UrlStatus {
   status_code: string;
 }
 
+export async function commitUrlStatus(
+  requestUrl: string,
+  statusCode: string,
+  statusMessage: string
+): Promise<void> {
+  const db = await openDatabase();
+
+  await db.run(async (sql) => {
+    const esc = (s: string) => sql.escape(s);
+
+    const query = stripMargin(`
+|       UPDATE "UrlChains"
+|         SET
+|           "status_code" = ${esc(statusCode)},
+|           "status_message" = ${esc(statusMessage)},
+|           "updatedAt" = NOW()
+|         WHERE
+|           request_url = ${esc(requestUrl)}
+`);
+
+    const results = await sql.query(query);
+    return results;
+  });
+
+  // const response: UrlStatus[] = queryResults as any[];
+
+  await db.close();
+}
+
 export async function commitMetadata(metadata: Metadata): Promise<UrlStatus | undefined> {
   const db = await openDatabase();
 
@@ -117,7 +154,6 @@ export async function commitMetadata(metadata: Metadata): Promise<UrlStatus | un
 |           "updatedAt" = NOW()
 |         WHERE
 |           request_url = ${esc(requestUrl)}
-|           AND status_code = 'spider:in-progress'
 |         RETURNING "request_url", "response_url", "status_code"
 `);
 

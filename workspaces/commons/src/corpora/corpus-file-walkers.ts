@@ -47,6 +47,7 @@ export function expandDir(path: string): ExpandedDir {
 }
 
 export const expandDirTrans = throughFunc(expandDir);
+
 export function walkScrapyCacheCorpus(corpusRoot: string): Readable {
   const corpusDirStream = getDirWalkerStream(corpusRoot);
 

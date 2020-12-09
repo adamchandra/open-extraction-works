@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "clean": "lerna clean -y",
+    "clean": "lerna clean -y && lerna exec --stream -- rm -rf dist",
     "reset": "npm run clean && lerna bootstrap",
     "cyclic-check": "lerna --concurrency 1 exec --stream -- madge --circular dist",
-    "build": "lerna run build",
+    "build": "lerna run --stream build",
     "rollup": "lerna run rollup",
     "lint": "lerna run lint",
     "test": "lerna run test",

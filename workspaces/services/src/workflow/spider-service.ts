@@ -17,7 +17,6 @@ import {
 
 import { insertAlphaRecords } from '~/db/db-api';
 
-
 export interface SpiderService {
   crawlScheduler: CrawlScheduler;
   scraper: Scraper;
@@ -91,6 +90,7 @@ export async function insertNewAlphaRecords(
 ): Promise<void> {
   const inputStream = readAlphaRecStream(alphaRecordCsv);
 
+  putStrLn('Reading CSV Records...');
   const alphaRecords = await streamPump.createPump()
     .viaStream<AlphaRecord>(inputStream)
     .gather()
@@ -99,6 +99,7 @@ export async function insertNewAlphaRecords(
     putStrLn(`No records found in CSV ${alphaRecordCsv}`);
     return
   }
+  putStrLn(`Inserting ${alphaRecords.length} Records`);
   const newRecs = await insertAlphaRecords(alphaRecords)
   const len = newRecs.length;
   putStrLn(`Inserted ${len} new records`);
