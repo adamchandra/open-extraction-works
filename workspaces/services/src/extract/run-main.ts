@@ -11,6 +11,9 @@ import {
   setLogLabel,
   expandDir,
   putStrLn,
+  readAlphaRecStream,
+  AlphaRecord,
+  makeHashEncodedPath,
 } from 'commons';
 
 import parseUrl from 'url-parse';
@@ -27,8 +30,6 @@ import {
 
 import fs from 'fs-extra';
 import { ExtractContext, initExtractionEnv } from './app/extraction-process';
-// import { Metadata } from 'spider/dist';
-
 
 import * as TE from 'fp-ts/TaskEither';
 import * as E from 'fp-ts/Either';
@@ -341,52 +342,48 @@ export function getCanonicalFieldRecord(
   return records;
 }
 
-// export async function runMainGatherAbstracts(
-//   corpusRoot: string,
-//   alphaRecordCsv: string,
-// ): Promise<void> {
-//   const inputStream = readAlphaRecStream(alphaRecordCsv);
+export async function runMainBundleExtractedFields(
+  corpusRoot: string,
+  alphaRecordCsv: string,
+): Promise<void> {
+  const inputStream = readAlphaRecStream(alphaRecordCsv);
 
-//   const urlStream = streamPump.createPump()
-//     .viaStream<AlphaRecord>(inputStream)
-//     .throughF((inputRec: AlphaRecord) => {
-//       const { url, noteId } = inputRec;
 
-//       const entryEncPath = makeHashEncodedPath(url, 3);
-//       const entryPath = entryEncPath.toPath();
-//       const entryFullpath = path.resolve(corpusRoot, entryPath);
-//       const extractionRec = readExtractionRecord(entryFullpath);
+  const urlStream = streamPump.createPump()
+    .viaStream<AlphaRecord>(inputStream)
+    .throughF((inputRec: AlphaRecord) => {
+      const { url, noteId } = inputRec;
 
-//       if (extractionRec) {
-//         const abstractInstance0: Field | undefined = _.get(extractionRec, 'fields.abstract.instances[0]');
-//         if (abstractInstance0 && abstractInstance0.value) {
-//           prettyPrint({ entryPath, abstractInstance0 });
-//           const { name, value } = abstractInstance0;
-//           return ({
-//             url,
-//             noteId,
-//             fields: [
-//               { name, value }
-//             ]
-//           });
-//         }
-//       }
-//       return ({
-//         url,
-//         id: noteId,
-//         fields: undefined
-//       });
-//     }).gather()
-//     ;
+      const entryEncPath = makeHashEncodedPath(url, 3);
+      const entryPath = entryEncPath.toPath();
+      const entryFullpath = path.resolve(corpusRoot, entryPath);
+      const canonicalFields = getCanonicalFieldRecord(entryFullpath);
 
-//   const result = await urlStream.toPromise();
+      if (canonicalFields) {
+        return ({
+          url,
+          noteId,
+          fields: canonicalFields.fields
+        });
+      }
 
-//   if (!result) {
-//     putStrLn(`no records found using ${alphaRecordCsv} in ${corpusRoot}`);
-//     return;
-//   }
-//   fs.writeJsonSync('gather-abstracts.json', result);
-// }
+      return ({
+        url,
+        noteId,
+        fields: undefined
+      });
+    }).gather();
+
+  const result = await urlStream.toPromise();
+
+  if (!result) {
+    putStrLn(`no records found using ${alphaRecordCsv} in ${corpusRoot}`);
+    return;
+  }
+  const inputCSVBasename = path.basename(alphaRecordCsv, '.csv');
+  const outputFilename = `${inputCSVBasename}.extracted-fields.json`
+  fs.writeJsonSync(outputFilename, result);
+}
 
 // const groundTruthFilename = 'ground-truth-labels.json';
 

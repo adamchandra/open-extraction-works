@@ -1,5 +1,6 @@
 import { arglib, putStrLn } from 'commons';
 import { insertNewUrlChains } from '~/db/db-api';
+import { runMainBundleExtractedFields } from '~/extract/run-main';
 import { insertNewAlphaRecords } from './spider-service';
 import { fetchAllDBRecords } from './workflow-services';
 const { opt, config, registerCmd } = arglib;
@@ -41,4 +42,21 @@ registerCmd(
 
   const isDone = await fetchAllDBRecords(maxToTake);
   putStrLn(`Done=${isDone}`);
+});
+
+registerCmd(
+  arglib.YArgs,
+  'bundle-alpha-records',
+  'Collect extracted fields for entries in CSV',
+  config(
+    opt.existingDir('corpus-root: root directory for corpus files'),
+    opt.existingFile('alpha-recs: csv file with alpha records')
+  )
+)(async (args: any) => {
+  const { alphaRecs, corpusRoot } = args;
+  putStrLn(`Bundling extracted fields from ${alphaRecs}`);
+  putStrLn(`Corpus Root is ${corpusRoot}`);
+
+  await runMainBundleExtractedFields(corpusRoot, alphaRecs);
+
 });

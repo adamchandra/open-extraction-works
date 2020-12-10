@@ -5,9 +5,7 @@ import * as winston from 'winston';
 import { AlphaRecord, getCorpusEntryDirForUrl } from 'commons';
 import { createSpiderService, SpiderService } from './spider-service';
 import { commitMetadata, commitUrlStatus, getNextUrlForSpidering } from '~/db/db-api';
-import { Metadata } from 'spider';
 import { getServiceLogger } from '~/utils/basic-logging';
-import { INTEGER } from 'sequelize/types';
 
 export interface WorkflowServices {
   log: winston.Logger;

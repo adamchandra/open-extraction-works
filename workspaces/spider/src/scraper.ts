@@ -63,22 +63,15 @@ async function scrapeUrl(
     rootLogger.warn(`skipping ${url}: metadata file exists`);
     return;
   }
-
-  rootLogger.info('creating new page');
   const page: Page = await browser.newPage();
-  rootLogger.info('created new page');
   try {
-    rootLogger.info('logging page events');
     logPageEvents(scrapingContext, page);
 
     page.setDefaultNavigationTimeout(11000);
     page.setDefaultTimeout(11000);
     page.setJavaScriptEnabled(true);
 
-    rootLogger.info('navigating to page');
     let response: Response | null = await page.goto(url, {});
-
-    // const response: Response | null = await page.goto(url);
 
     if (!response) {
       rootLogger.info('retrying navigation to page');
@@ -102,9 +95,6 @@ async function scrapeUrl(
     }
 
     rootLogger.info('successful navigation to page');
-
-
-    rootLogger.info('scraped frame content');
     const request = response.request();
     const requestHeaders = request.headers();
     writeCorpusJsonFile(entryRootPath, '.', 'request-headers.json', requestHeaders);
@@ -136,27 +126,21 @@ async function scrapeUrl(
           rootLogger.info(`error retrieving frame content ${frameNum} of ${frameCount}`);
           rootLogger.info(`   ${error}`);
         }
-        rootLogger.info(`retrieved frame content ${frameNum} of ${frameCount}`);
         frameNum += 1;
         return content;
       }
     );
-
-
 
     _.each(allFrameContent, (frameContent, i) => {
       if (frameContent.length > 0) {
         writeCorpusTextFile(entryRootPath, '.', `response-frame-${i}`, frameContent);
       }
     });
-    rootLogger.info('wrote response body');
 
     const metadata = createMetadata(url, response);
     writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
     const status = response.status();
-    rootLogger.info('closing page');
     await page.close();
-    rootLogger.info('closed page');
     rootLogger.info(`Scraped ${url}: status: ${status}`);
     return metadata;
 
