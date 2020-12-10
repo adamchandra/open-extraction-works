@@ -21,6 +21,9 @@ import { logPageEvents } from './page-event';
 import { createMetadata, Metadata } from './data-formats';
 import { createScrapingContext } from './scraping-context';
 
+import Async from 'async';
+
+
 export interface Scraper {
   browser: Browser;
   scrapeUrl(url: string): Promise<Metadata | undefined>;
@@ -29,7 +32,7 @@ export interface Scraper {
 
 export async function initScraper(
 ): Promise<Scraper> {
-  const browser =  await launchBrowser();
+  const browser = await launchBrowser();
 
   return {
     browser,
@@ -61,20 +64,24 @@ async function scrapeUrl(
     return;
   }
 
+  rootLogger.info('creating new page');
   const page: Page = await browser.newPage();
+  rootLogger.info('created new page');
   try {
+    rootLogger.info('logging page events');
     logPageEvents(scrapingContext, page);
 
     page.setDefaultNavigationTimeout(11000);
     page.setDefaultTimeout(11000);
     page.setJavaScriptEnabled(true);
 
-    let response: Response | null = await page.goto(url, {
-    });
+    rootLogger.info('navigating to page');
+    let response: Response | null = await page.goto(url, {});
 
     // const response: Response | null = await page.goto(url);
 
     if (!response) {
+      rootLogger.info('retrying navigation to page');
       const response2 = await page
         .waitForNavigation({
           // waitUntil: [ ]
@@ -84,6 +91,7 @@ async function scrapeUrl(
 
         });
       if (response2) {
+        rootLogger.info('successful retry navigation to page');
         response = response2;
       }
     }
@@ -93,27 +101,62 @@ async function scrapeUrl(
       return;
     }
 
-    const allFrameContent = await Promise.all(
-      _.map(page.frames(), (frame: Frame) => frame.content())
-    );
+    rootLogger.info('successful navigation to page');
 
+
+    rootLogger.info('scraped frame content');
     const request = response.request();
     const requestHeaders = request.headers();
     writeCorpusJsonFile(entryRootPath, '.', 'request-headers.json', requestHeaders);
+    rootLogger.info('wrote request headers');
 
     const respHeaders = response.headers();
     writeCorpusJsonFile(entryRootPath, '.', 'response-headers.json', respHeaders);
+    rootLogger.info('wrote response headers');
 
     const respBuffer = await response.buffer();
     writeCorpusTextFile(entryRootPath, '.', 'response-body', respBuffer.toString())
+
+    const frames = page.frames();
+    const frameCount = frames.length;
+    let frameNum = 0;
+
+    const allFrameContent = await Async.mapSeries<Frame, string>(
+      page.frames(),
+      async (frame: Frame) => {
+        rootLogger.info(`retrieving frame content ${frameNum} of ${frameCount}`);
+        let content = '';
+        try {
+          const sdf = await Async.mapSeries<Frame, string>(
+            [frame],
+            Async.timeout(async (f: Frame) => await f.content(), 5000)
+          );
+          content = sdf[0] || '';
+        } catch (error) {
+          rootLogger.info(`error retrieving frame content ${frameNum} of ${frameCount}`);
+          rootLogger.info(`   ${error}`);
+        }
+        rootLogger.info(`retrieved frame content ${frameNum} of ${frameCount}`);
+        frameNum += 1;
+        return content;
+      }
+    );
+
+
+
     _.each(allFrameContent, (frameContent, i) => {
-      writeCorpusTextFile(entryRootPath, '.', `response-frame-${i}`, frameContent);
+      if (frameContent.length > 0) {
+        writeCorpusTextFile(entryRootPath, '.', `response-frame-${i}`, frameContent);
+      }
     });
+    rootLogger.info('wrote response body');
 
     const metadata = createMetadata(url, response);
     writeCorpusJsonFile(entryRootPath, '.', 'metadata.json', metadata);
     const status = response.status();
+    rootLogger.info('closing page');
     await page.close();
+    rootLogger.info('closed page');
     rootLogger.info(`Scraped ${url}: status: ${status}`);
     return metadata;
 

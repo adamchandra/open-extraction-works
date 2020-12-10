@@ -14,13 +14,13 @@ import { createSpiderService } from './spider-service';
 
 describe('End-to-end Extraction workflows', () => {
 
-  const csvFile = './test/resources/dblp_urls-10.csv';
-  const inputStream = readAlphaRecStream(csvFile);
+  // const csvFile = './test/resources/dblp_urls-10.csv';
+  // const inputStream = readAlphaRecStream(csvFile);
 
-  const alphaRecsP = streamPump.createPump()
-    .viaStream<AlphaRecord>(inputStream)
-    .gather()
-    .toPromise()
+  // const alphaRecsP = streamPump.createPump()
+  //   .viaStream<AlphaRecord>(inputStream)
+  //   .gather()
+  //   .toPromise()
 
 
   const workingDir = './workflow-test.d';
@@ -33,7 +33,10 @@ describe('End-to-end Extraction workflows', () => {
   });
 
   it('should fetch a single record', async (done) => {
-    const alphaRecs = await alphaRecsP;
+    // const alphaRecs = await alphaRecsP;
+    // if (alphaRecs === undefined || alphaRecs.length === 0) {
+    //   return done('could not read alpha rec csv')
+    // }
 
     const spiderService = await createSpiderService();
 
@@ -43,10 +46,14 @@ describe('End-to-end Extraction workflows', () => {
       spiderService,
       log
     };
-    if (alphaRecs === undefined || alphaRecs.length === 0) {
-      return done('could not read alpha rec csv')
-    }
-    const alphaRec = alphaRecs[1];
+    // const alphaRec = alphaRecs[1];
+    const alphaRec: AlphaRecord = {
+      url: 'https://doi.org/10.1109/ICMLA.2009.66',
+      noteId: '',
+      dblpConfId: '',
+      title: '',
+    };
+
     const fetchedRecord = await fetchOneRecord(workflowServices, alphaRec);
 
     prettyPrint({ fetchedRecord });

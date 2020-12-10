@@ -225,7 +225,7 @@ export const selectGlobalDocumentMetaEvidence: () => Arrow<CacheFileKey, unknown
   );
 
 export const readGlobalDocumentMetadata: Arrow<CacheFileKey, GlobalDocumentMetadata> = compose(
-  grepLines(/^[ ]*global\.document\.metadata/),
+  grepLines(/global\.document\.metadata/i),
   through((lines) => {
     if (lines.length === 0) {
       return ClientFunc.continue('global.document.metadata not found');
