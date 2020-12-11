@@ -200,8 +200,11 @@ async function scrapeUrl(
     log.info(msg);
     return ErrorRecord(msg);
   }
+
+  await commitMetadata(metadata);
+
   const spiderSuccess = metadata.status === '200';
-  // await commitMetadata(metadata);
+
   if (!spiderSuccess) {
     const msg = `Spider returned ${metadata.status} for ${metadata.requestUrl}`;
     log.info(msg);

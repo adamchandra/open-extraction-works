@@ -20,12 +20,12 @@ import { throughFunc } from '~/util/stream-utils';
 
 const AlphaRecordReq = io.type({
   noteId: io.string,
-  dblpConfId: io.string,
   url: io.string,
-  title: io.string,
 });
 
 const AlphaRecordOpt = io.partial({
+  dblpConfId: io.string,
+  title: io.string,
   authorId: io.string
 });
 

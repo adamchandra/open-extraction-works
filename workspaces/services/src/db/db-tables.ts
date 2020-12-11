@@ -30,7 +30,7 @@ export class AlphaRecord extends Model {
       id: primaryKey(),
       note_id: requiredString(),// uniqKey 1
       url: requiredString(),    // uniqKey 2
-      dblp_key: requiredString(),
+      dblp_key: optionalString(),
       author_id: optionalString(),
       title: optionalText(),
     }, {
