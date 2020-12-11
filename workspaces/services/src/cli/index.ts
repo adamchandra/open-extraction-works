@@ -1,7 +1,6 @@
-import {} from './extraction-cli';
+import './extraction-cli';
 import { arglib } from 'commons';
-import {} from '~/http-servers/extraction-rest-portal/rest-server';
-
+import '~/http-servers/extraction-rest-portal/rest-server';
 import '~/workflow/workflow-cli';
 
 arglib.YArgs

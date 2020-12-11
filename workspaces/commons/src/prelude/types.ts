@@ -39,9 +39,6 @@ export const AlphaRecord = {
     if (isRight(decoded)) return decoded.right;
 
     const paths = getPaths(decoded);
-    // console.log('errors', paths);
-    // const errors = PathReporter.report(decoded);
-    // const err = _.join(errors, '\n');
     const err = _.join(paths, '; ');
     return `Error parsing record at paths: ${err}`;
   }

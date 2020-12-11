@@ -106,6 +106,7 @@ export interface UrlStatus {
   request_url: string;
   response_url: string;
   status_code: string;
+  status_message?: string;
 }
 
 export async function commitUrlStatus(
@@ -132,9 +133,30 @@ export async function commitUrlStatus(
     return results;
   });
 
-  // const response: UrlStatus[] = queryResults as any[];
+  await db.close();
+}
+
+export async function getUrlStatus(url: string): Promise<UrlStatus | undefined> {
+  const db = await openDatabase();
+
+  const [queryResults] =
+    await db.run(async (sql) => {
+      const esc = (s: string) => sql.escape(s);
+
+      const query = stripMargin(`
+|       SELECT  "request_url", "response_url", "status_code", "status_message"
+|         FROM "UrlChains"
+|         WHERE request_url = ${esc(url)}
+`);
+
+      const results = await sql.query(query);
+      return results;
+    });
+
+  const response: UrlStatus[] = queryResults as any[];
 
   await db.close();
+  return response[0];
 }
 
 export async function commitMetadata(metadata: Metadata): Promise<UrlStatus | undefined> {
