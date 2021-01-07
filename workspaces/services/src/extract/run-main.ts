@@ -220,7 +220,7 @@ export async function runMainExtractFields(
         writeExtractionRecords(env, ['Extraction Success']);
       } else {
         const [ci, env] = res.left;
-        ctx.log.error(`error extracting records: ${ci}`);
+        ctx.log.error('error extracting records');
         writeExtractionRecords(env, ['Extraction Failure', `${ci}`]);
       }
     });
@@ -262,7 +262,7 @@ export async function extractFieldsForEntry(
     writeExtractionRecords(env, ['Extraction Success']);
   } else {
     const [ci, env] = res.left;
-    ctx.log.error(`error extracting records: ${ci}`);
+    ctx.log.error(`error extracting records`);
     writeExtractionRecords(env, ['Extraction Failure', `${ci}`]);
   }
 }

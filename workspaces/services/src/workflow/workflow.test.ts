@@ -1,18 +1,16 @@
 import 'chai/register-should';
 
 import _ from 'lodash';
-import { prettyPrint, streamPump } from 'commons';
+import { prettyPrint } from 'commons';
 import { fetchOneRecord, WorkflowServices } from './workflow-services';
 import fs from 'fs-extra';
-import path from 'path';
-
+import Async from 'async';
 
 // import { createSpiderService } from '~/spidering/spider-service';
 import { getServiceLogger } from '~/utils/basic-logging';
-import { AlphaRecord, readAlphaRecStream } from 'commons';
-import { Env, setEnv } from 'commons';
+import { AlphaRecord } from 'commons';
+import { setEnv } from 'commons';
 import { createSpiderService } from './spider-service';
-import { runMainBundleExtractedFields } from '~/extract/run-main';
 import { startSpiderableTestServer } from '~/http-servers/extraction-rest-portal/mock-server';
 import got from 'got';
 import { getDBConfig } from '~/db/database';
@@ -24,7 +22,7 @@ describe('End-to-end Extraction workflows', () => {
   setEnv('AppSharePath', workingDir);
   setEnv('DBPassword', 'watrpasswd');
   const dbConfig = getDBConfig('test');
-  const dbCtx: DatabaseContext | undefined = dbConfig? { dbConfig } : undefined;
+  const dbCtx: DatabaseContext | undefined = dbConfig ? { dbConfig } : undefined;
   expect(dbCtx).toBeDefined;
   if (dbConfig === undefined || dbCtx === undefined) return;
 
@@ -52,7 +50,7 @@ describe('End-to-end Extraction workflows', () => {
       dblpConfId: `dblp/conf/conf-${n}`, // TODO rename to dblpKey
       title: `The Title Paper #${n}`,
       authorId: `auth-${n}`,
-      url: `http://localhost:9100/${urlPath}`
+      url: `http://localhost:9100${urlPath}`
     });
   }
 
@@ -65,18 +63,22 @@ describe('End-to-end Extraction workflows', () => {
       return done('db config error');
     }
 
-
-
     const workflowServices: WorkflowServices = {
       spiderService,
       log,
       dbCtx
     };
+    const exampleUrls = [
+      '/200~withFields',
+      '/200~withoutFields',
+      '/404~custom404',
+    ];
 
-    const alphaRec = mockAlphaRecord(1, '200/');
-    const fetchedRecord = await fetchOneRecord(dbCtx, workflowServices, alphaRec);
-
-    prettyPrint({ fetchedRecord });
+    await Async.eachOfSeries(exampleUrls, async (url, exampleNumber) => {
+      const alphaRec = mockAlphaRecord(1, url);
+      const fetchedRecord = await fetchOneRecord(dbCtx, workflowServices, alphaRec);
+      prettyPrint({ exampleNumber, fetchedRecord });
+    });
 
     await spiderService.quit();
     server.close(() => done());

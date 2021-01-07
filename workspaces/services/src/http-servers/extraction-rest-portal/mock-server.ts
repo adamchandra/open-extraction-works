@@ -3,9 +3,9 @@ import Koa, { Context } from 'koa';
 import Router from 'koa-router';
 import { Server } from 'http';
 import { createAppLogger } from './portal-logger';
-import { stripMargin } from 'commons';
+import { prettyPrint, stripMargin } from 'commons';
 
-const mockHtml = stripMargin(`
+const withFields = stripMargin(`
 |<html>
 |  <head>
 |    <meta name="citation_author" content="Holte, Robert C." />
@@ -47,6 +47,16 @@ const mockHtml = stripMargin(`
 |</html>
 `);
 
+const withoutFields = `
+<html> <head> </head> <body> </body> </html>
+`;
+
+const htmlSamples: Record<string, string> = {
+  withFields,
+  withoutFields,
+  custom404: '<html><body>404 Not Found</body></html>'
+};
+
 
 export async function startSpiderableTestServer(): Promise<Server> {
   const log = createAppLogger();
@@ -59,18 +69,20 @@ export async function startSpiderableTestServer(): Promise<Server> {
     .use('/', ((ctx: Context, next) => {
       ctx.set('Access-Control-Allow-Origin', '*');
       return next();
-    }));
+    }))
+    .get(
+      /\/.+/,
+      (ctx: Context, next: () => Promise<any>) => {
+        const { response, path } = ctx;
+        prettyPrint({ path });
+        const [status, respKey] = path.substr(1).split(/~/);
+        prettyPrint({ status, respKey });
 
-
-  rootRouter.get(':status/:content', (ctx: Context, next: () => Promise<any>) => {
-    const { params, response } = ctx;
-    const { status, content } = params;
-
-    response.type = 'html';
-    response.status = status;
-    response.body = mockHtml;
-    return next();
-  });
+        response.type = 'html';
+        response.status = parseInt(status, 10);
+        response.body = htmlSamples[respKey] || 'Unknown';
+        return next();
+      });
 
   app
     .use(rootRouter.routes())

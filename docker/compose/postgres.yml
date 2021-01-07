@@ -8,7 +8,7 @@ services:
     container_name: postgres 
     volumes:
       - postgres-data:/var/lib/postgres/data
-      - ${PWD}/docker/config/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ${PWD}/docker/config/docker-entrypoint-initdb:/docker-entrypoint-initdb.d
     restart: always
     ports:
        - "5432:5432"

@@ -10,7 +10,7 @@ import { getDBConfig } from './database';
 import { DatabaseContext } from './db-api';
 
 describe('Database Tables Basics', () => {
-  setEnv('DBPassword', 'watrpasswd');
+
   const dbConfig = getDBConfig('test');
   const dbCtx: DatabaseContext | undefined = dbConfig? { dbConfig } : undefined;
   expect(dbCtx).toBeDefined;

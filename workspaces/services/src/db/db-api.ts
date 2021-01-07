@@ -46,7 +46,7 @@ export async function insertAlphaRecords(
       }
     );
   });
-  // await db.close();
+  await db.close();
   return ins;
 }
 

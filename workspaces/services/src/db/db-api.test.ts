@@ -2,7 +2,7 @@ import 'chai/register-should';
 
 import _ from 'lodash';
 
-import { prettyPrint } from 'commons';
+import { prettyPrint, setEnv } from 'commons';
 import { useEmptyDatabase } from './db-test-utils';
 import { commitMetadata, DatabaseContext, getNextUrlForSpidering, insertAlphaRecords, insertNewUrlChains } from './db-api';
 import { mockAlphaRecord, mockMetadata } from 'spider';

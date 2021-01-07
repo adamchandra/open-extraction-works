@@ -17,7 +17,7 @@ export interface DBConfig {
 export function getDBConfig(configType: 'test' | 'production'): DBConfig | undefined {
   const database = getEnv('DBName') || configType === 'test' ? 'open_extraction_testdb' : 'open_extraction';
   const username = getEnv('DBUser') || 'watrworker';
-  const password = getEnv('DBPassword');
+  const password = getEnv('DBPassword') || configType === 'test' ? 'watrpasswd' : undefined;
   if (password === undefined) {
     return;
   }
@@ -27,16 +27,10 @@ export function getDBConfig(configType: 'test' | 'production'): DBConfig | undef
 }
 
 export async function initSequelize(dbConfig: DBConfig): Promise<Sequelize> {
-  // const db = getEnv('DBName');
-  // const dbUser = getEnv('DBUser');
-  // const dbPass = getEnv('DBPassword');
 
   const sequelize = new Sequelize({
     dialect: 'postgres',
     ...dbConfig,
-    // username: dbUser, // 'watrworker',
-    // password: dbPass, // 'watrpasswd',
-    // database: db, // 'open_extraction',
     logging: false, // logging: console.log,
   });
 
@@ -91,7 +85,6 @@ export async function openDatabase(dbConfig: DBConfig): Promise<Database> {
   return initSequelize(dbConfig)
     .then(async _sql => {
       defineTables(_sql);
-      // await sql.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
 
       // Create tables if they don't exist, else no-op
       const sql = await _sql.sync({ alter: true });
