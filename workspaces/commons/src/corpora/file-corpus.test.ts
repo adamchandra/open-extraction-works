@@ -1,15 +1,22 @@
-
-import 'chai/register-should';
-
 import _ from 'lodash';
 import through from 'through2';
-import { expandDirRecursive, getDirWalkerStream } from './dirstream';
-import { prettyPrint } from '~/util/pretty-print';
+import { getDirWalkerStream } from './dirstream';
 
-describe('File corpus operations',  () => {
+describe('File corpus operations', () => {
   const testDirPath = './test/resources/test-dirs';
 
   it('should traverse all files/directories using readable stream', async (done) => {
+    const expectedDirs = [
+      'test/resources/test-dirs/a/b/c',
+      'test/resources/test-dirs/a/b/d',
+      'test/resources/test-dirs/a/b',
+      'test/resources/test-dirs/a/e/f',
+      'test/resources/test-dirs/a/e',
+      'test/resources/test-dirs/a/g',
+      'test/resources/test-dirs/a',
+      './test/resources/test-dirs'
+    ];
+
 
     const filesRead: string[] = [];
 
@@ -21,18 +28,19 @@ describe('File corpus operations',  () => {
         next(null, chunk);
       },
       (end) => {
-        prettyPrint({ filesRead });
+        // prettyPrint({ filesRead, expectedDirs });
+        expect(filesRead).toStrictEqual(expectedDirs);
         end();
         done();
       }
     ));
   });
 
-  it.only('should full expand a directory of files', async (done) => {
-    const expanded = await expandDirRecursive(testDirPath, true, false);
-    prettyPrint({ expanded })
-    done();
-  });
+  // it.only('should full expand a directory of files', async (done) => {
+  //   const expanded = await expandDirRecursive(testDirPath, true, false);
+  //   prettyPrint({ expanded })
+  //   done();
+  // });
 
 
 });

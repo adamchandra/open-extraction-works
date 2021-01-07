@@ -3,9 +3,15 @@ import { Context } from 'koa';
 import Router from 'koa-router';
 import koaBody from 'koa-body';
 
-import { fetchOneRecord, WorkflowServices } from '~/workflow/workflow-services';
-import { AlphaRecord } from 'commons';
-import { prettyPrint } from 'commons';
+import {
+  fetchOneRecord,
+  WorkflowServices
+} from '~/workflow/workflow-services';
+
+import {
+  AlphaRecord,
+  prettyPrint
+} from 'commons';
 
 async function postRecordJson(
   workflowServices: WorkflowServices,
@@ -16,7 +22,7 @@ async function postRecordJson(
   const responseBody: Record<string, string> = {};
   ctx.response.body = responseBody;
 
-  const { log } = workflowServices;
+  const { log, dbCtx } = workflowServices;
 
   if (requestBody) {
     log.info(`got request ${requestBody}`);
@@ -26,7 +32,7 @@ async function postRecordJson(
       responseBody.status = 'error';
       responseBody.errors = decoded;
     } else {
-      const responseRec = await fetchOneRecord(workflowServices, decoded);
+      const responseRec = await fetchOneRecord(dbCtx, workflowServices, decoded);
       _.merge(responseBody, responseRec);
     }
 

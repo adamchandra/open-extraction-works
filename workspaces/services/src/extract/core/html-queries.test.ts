@@ -1,5 +1,3 @@
-import 'chai/register-should';
-
 import _ from 'lodash';
 
 import { isLeft, isRight } from 'fp-ts/Either'
@@ -8,7 +6,6 @@ import { selectElementAttr, _queryOne, _queryAll,  expandCaseVariations } from '
 
 import Async from 'async';
 import { launchBrowser } from 'commons';
-
 
 const tmpHtml = stripMargin(`
 |<html>
@@ -20,7 +17,7 @@ const tmpHtml = stripMargin(`
 |    <meta name="dc.creator" content="adam" />
 |    <meta property="og:description" content="success: We consider a new learning model in which a joint distributi" />
 |  </head>
-
+|
 |  <body>
 |    <section class="Abstract" id="Abs1" tabindex="-1" lang="en" xml:lang="en">
 |      <h2 class="Heading">

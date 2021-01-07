@@ -11,8 +11,8 @@ export type QualifiedPath = QualifiedKey | QualifiedKeyValue;
 // Indexed Qualified Paths
 export interface IndexedPathPart {
   key: PathPart;
-  i: number;
-  n: number;
+  index: number;
+  siblingCount: number;
   container: 'arr' | 'obj';
 }
 
@@ -80,8 +80,9 @@ export function toIQualifiedPaths(obj: ArgType): IQualifiedPath[] {
     if (_.isArray(subobj)) {
       const subPaths = _.flatMap(subobj, (entry, i) => {
         const pathPart: IndexedPathPart = {
-          key: i.toString(), i,
-          n: subobj.length,
+          key: i.toString(),
+          index: i,
+          siblingCount: subobj.length,
           container: 'arr'
         };
         const subPath = _.concat(parentPath, pathPart);
@@ -95,8 +96,9 @@ export function toIQualifiedPaths(obj: ArgType): IQualifiedPath[] {
       const kvs = _.toPairs(subobj);
       const subPaths = _.flatMap(kvs, ([k, v], i) => {
         const pathPart: IndexedPathPart = {
-          key: k, i,
-          n: kvs.length,
+          key: k,
+          index: i,
+          siblingCount: kvs.length,
           container: 'obj'
         };
         const subPath = _.concat(parentPath, pathPart);

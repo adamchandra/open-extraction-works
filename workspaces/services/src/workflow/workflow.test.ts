@@ -13,21 +13,20 @@ import { AlphaRecord, readAlphaRecStream } from 'commons';
 import { Env, setEnv } from 'commons';
 import { createSpiderService } from './spider-service';
 import { runMainBundleExtractedFields } from '~/extract/run-main';
+import { startSpiderableTestServer } from '~/http-servers/extraction-rest-portal/mock-server';
+import got from 'got';
+import { getDBConfig } from '~/db/database';
+import { DatabaseContext } from '~/db/db-api';
 
 describe('End-to-end Extraction workflows', () => {
 
-  const csvFile = './test/resources/dblp_urls-10.csv';
-  const inputStream = readAlphaRecStream(csvFile);
-
-  const alphaRecsP = streamPump.createPump()
-    .viaStream<AlphaRecord>(inputStream)
-    .gather()
-    .toPromise()
-
-
   const workingDir = './workflow-test.d';
-  const corpusRoot = path.join(workingDir, 'corpus-root.d');
-  setEnv(Env.AppSharePath, workingDir);
+  setEnv('AppSharePath', workingDir);
+  setEnv('DBPassword', 'watrpasswd');
+  const dbConfig = getDBConfig('test');
+  const dbCtx: DatabaseContext | undefined = dbConfig? { dbConfig } : undefined;
+  expect(dbCtx).toBeDefined;
+  if (dbConfig === undefined || dbCtx === undefined) return;
 
   beforeEach(() => {
     fs.emptyDirSync(workingDir);
@@ -35,59 +34,79 @@ describe('End-to-end Extraction workflows', () => {
     fs.mkdirSync(workingDir);
   });
 
-  it.only('tests disabled as they scrape live URLs', () => undefined);
 
-  it('should fetch all records in CSV', async (done) => {
-    const alphaRecs = await alphaRecsP;
-    if (alphaRecs === undefined || alphaRecs.length === 0) {
-      return done('could not read alpha rec csv')
+  it('should test fake spiderable internet', async (done) => {
+    const server = await startSpiderableTestServer();
+
+    const sdf = await got('http://localhost:9000/');
+    const { body, headers } = sdf;
+
+    prettyPrint({ body, headers });
+
+    server.close(() => done());
+  });
+
+  function mockAlphaRecord(n: number, urlPath: string): AlphaRecord {
+    return ({
+      noteId: `note-id-${n}`,
+      dblpConfId: `dblp/conf/conf-${n}`, // TODO rename to dblpKey
+      title: `The Title Paper #${n}`,
+      authorId: `auth-${n}`,
+      url: `http://localhost:9100/${urlPath}`
+    });
+  }
+
+  it.only('should fetch alpha records', async (done) => {
+    const log = getServiceLogger('test-run');
+    const server = await startSpiderableTestServer();
+
+    const spiderService = await createSpiderService();
+    if (dbCtx === undefined) {
+      return done('db config error');
     }
 
-    const spiderService = await createSpiderService();
 
-    const log = getServiceLogger('jest');
 
     const workflowServices: WorkflowServices = {
       spiderService,
-      log
+      log,
+      dbCtx
     };
-    const alphaRec = alphaRecs[1];
 
-    const fetchedRecord = await fetchOneRecord(workflowServices, alphaRec);
+    const alphaRec = mockAlphaRecord(1, '200/');
+    const fetchedRecord = await fetchOneRecord(dbCtx, workflowServices, alphaRec);
 
     prettyPrint({ fetchedRecord });
 
     await spiderService.quit();
-
-    await runMainBundleExtractedFields(corpusRoot, csvFile);
-    done();
+    server.close(() => done());
   });
 
-  it('should fetch a single record', async (done) => {
+  // it('should fetch a single record', async (done) => {
 
-    const spiderService = await createSpiderService();
+  //   const spiderService = await createSpiderService();
 
-    const log = getServiceLogger('jest');
+  //   const log = getServiceLogger('jest');
 
-    const workflowServices: WorkflowServices = {
-      spiderService,
-      log
-    };
-    // const alphaRec = alphaRecs[1];
-    const alphaRec: AlphaRecord = {
-      url: 'https://doi.org/10.1109/ICMLA.2009.66',
-      noteId: '',
-      dblpConfId: '',
-      title: '',
-    };
+  //   const workflowServices: WorkflowServices = {
+  //     spiderService,
+  //     log
+  //   };
+  //   // const alphaRec = alphaRecs[1];
+  //   const alphaRec: AlphaRecord = {
+  //     url: 'https://doi.org/10.1109/ICMLA.2009.66',
+  //     noteId: '',
+  //     dblpConfId: '',
+  //     title: '',
+  //   };
 
-    const fetchedRecord = await fetchOneRecord(workflowServices, alphaRec);
+  //   const fetchedRecord = await fetchOneRecord(workflowServices, alphaRec);
 
-    prettyPrint({ fetchedRecord });
+  //   prettyPrint({ fetchedRecord });
 
-    await spiderService.quit();
+  //   await spiderService.quit();
 
-    done();
-  });
+  //   done();
+  // });
 
 });

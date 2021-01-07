@@ -3,20 +3,25 @@ import { makeHashEncodedPath } from '~/util/hash-encoded-paths';
 
 
 export const Env = {
-  AppSharePath: 'APP_SHARE_PATH',
-}
+  AppSharePath: null,
+  DBName: null,
+  DBUser: null,
+  DBPassword: null,
+};
 
-export function getEnv(key: string): string | undefined {
+type EnvKey = keyof typeof Env;
+
+export function getEnv(key: EnvKey): string | undefined {
   return process.env[key];
 }
 
-export function setEnv(key: string, value: string): void {
+export function setEnv(key: EnvKey, value: string): void {
   process.env[key] = value;
 }
 
 // Root directory for storing application data
 export function getAppSharedDir(): string {
-  const appSharePath = getEnv(Env.AppSharePath);
+  const appSharePath = getEnv('AppSharePath');
   const workingDir = appSharePath ? appSharePath : 'app-share.d';
   return workingDir;
 }

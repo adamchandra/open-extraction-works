@@ -2,14 +2,19 @@ import _ from 'lodash';
 import * as DB from './db-tables';
 import { stripMargin, putStrLn } from 'commons';
 import ASync from 'async';
-import { openDatabase } from './database';
+import { DBConfig, openDatabase } from './database';
 import { Metadata } from 'spider';
 import { AlphaRecord } from 'commons';
 
+export interface DatabaseContext {
+  dbConfig: DBConfig;
+}
+
 export async function insertAlphaRecords(
+  dbCtx: DatabaseContext,
   inputRecs: AlphaRecord[],
 ): Promise<DB.AlphaRecord[]> {
-  const db = await openDatabase();
+  const db = await openDatabase(dbCtx.dbConfig);
   const ins = await db.run(async (_sql) => {
     let inserted = 0;
     let processed = 0;
@@ -41,13 +46,15 @@ export async function insertAlphaRecords(
       }
     );
   });
-  await db.close();
+  // await db.close();
   return ins;
 }
 
 
-export async function insertNewUrlChains(): Promise<number> {
-  const db = await openDatabase();
+export async function insertNewUrlChains(
+  dbCtx: DatabaseContext,
+): Promise<number> {
+  const db = await openDatabase(dbCtx.dbConfig);
 
   const [queryResults,] =
     await db.run(async (sql) => {
@@ -76,8 +83,10 @@ export async function insertNewUrlChains(): Promise<number> {
   return updated;
 }
 
-export async function getNextUrlForSpidering(): Promise<string | undefined> {
-  const db = await openDatabase();
+export async function getNextUrlForSpidering(
+  dbCtx: DatabaseContext,
+): Promise<string | undefined> {
+  const db = await openDatabase(dbCtx.dbConfig);
   const [queryResults] =
     await db.run(async (sql) => {
       const results = await sql.query(stripMargin(`
@@ -110,11 +119,12 @@ export interface UrlStatus {
 }
 
 export async function commitUrlStatus(
+  dbCtx: DatabaseContext,
   requestUrl: string,
   statusCode: string,
   statusMessage: string
 ): Promise<void> {
-  const db = await openDatabase();
+  const db = await openDatabase(dbCtx.dbConfig);
 
   await db.run(async (sql) => {
     const esc = (s: string) => sql.escape(s);
@@ -136,8 +146,11 @@ export async function commitUrlStatus(
   await db.close();
 }
 
-export async function getUrlStatus(url: string): Promise<UrlStatus | undefined> {
-  const db = await openDatabase();
+export async function getUrlStatus(
+  dbCtx: DatabaseContext,
+  url: string
+): Promise<UrlStatus | undefined> {
+  const db = await openDatabase(dbCtx.dbConfig);
 
   const [queryResults] =
     await db.run(async (sql) => {
@@ -159,8 +172,11 @@ export async function getUrlStatus(url: string): Promise<UrlStatus | undefined> 
   return response[0];
 }
 
-export async function commitMetadata(metadata: Metadata): Promise<UrlStatus | undefined> {
-  const db = await openDatabase();
+export async function commitMetadata(
+  dbCtx: DatabaseContext,
+  metadata: Metadata
+): Promise<UrlStatus | undefined> {
+  const db = await openDatabase(dbCtx.dbConfig);
 
   const { requestUrl, responseUrl, status } = metadata;
 

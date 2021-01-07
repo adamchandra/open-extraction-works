@@ -5,13 +5,16 @@ import { initPortalRouter } from './portal-routes';
 import { Server } from 'http';
 import { createAppLogger } from './portal-logger';
 import { WorkflowServices } from '~/workflow/workflow-services';
-import { arglib } from 'commons';
-import { Env, setEnv } from 'commons';
+import { arglib, setEnv } from 'commons';
 import { createSpiderService } from '~/workflow/spider-service';
+import { getDBConfig } from '~/db/database';
+import { DatabaseContext } from '~/db/db-api';
 const { opt, config, registerCmd } = arglib;
 
 
-export async function startRestPortal(): Promise<Server> {
+export async function startRestPortal(
+  dbCtx: DatabaseContext
+): Promise<Server> {
   const log = createAppLogger();
   const app = new Koa();
   const rootRouter = new Router();
@@ -19,7 +22,8 @@ export async function startRestPortal(): Promise<Server> {
   const spiderService = await createSpiderService();
   const workflowServices: WorkflowServices = {
     spiderService,
-    log
+    log,
+    dbCtx
   };
 
   const portalRouter = initPortalRouter(workflowServices);
@@ -59,7 +63,13 @@ registerCmd(
   )
 )((args: any) => {
   const { appShareDir } = args;
-  setEnv(Env.AppSharePath, appShareDir);
+  setEnv('AppSharePath', appShareDir);
+  const dbConfig = getDBConfig('production');
+  if (dbConfig === undefined) {
+    return;
+  }
 
-  startRestPortal();
+  const dbCtx: DatabaseContext = { dbConfig };
+
+  startRestPortal(dbCtx);
 });

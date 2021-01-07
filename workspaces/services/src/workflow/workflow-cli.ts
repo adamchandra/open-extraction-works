@@ -1,5 +1,6 @@
 import { arglib, putStrLn } from 'commons';
-import { insertNewUrlChains } from '~/db/db-api';
+import { getDBConfig } from '~/db/database';
+import { DatabaseContext, insertNewUrlChains } from '~/db/db-api';
 import { runMainBundleExtractedFields } from '~/extract/run-main';
 import { insertNewAlphaRecords } from './spider-service';
 import { fetchAllDBRecords } from './workflow-services';
@@ -15,12 +16,20 @@ registerCmd(
   )
 )(async (args: any) => {
   const { alphaRecs } = args;
+  const dbConfig = getDBConfig('production');
+  if (dbConfig === undefined) {
+    putStrLn('invalid database config; use env.{database,username,password}');
+    return;
+  }
+
+  const dbCtx: DatabaseContext = { dbConfig };
+
   putStrLn(`importing alphaRecs from ${alphaRecs}`);
 
-  await insertNewAlphaRecords(alphaRecs);
+  await insertNewAlphaRecords(dbCtx, alphaRecs);
 
   putStrLn('Updated UrlChains for Spidering');
-  await insertNewUrlChains()
+  await insertNewUrlChains(dbCtx);
 
   putStrLn('Done');
 });
@@ -39,8 +48,15 @@ registerCmd(
 )(async (args: any) => {
   const { take } = args;
   const maxToTake: number = take;
+  const dbConfig = getDBConfig('production');
+  if (dbConfig === undefined) {
+    putStrLn('invalid database config; use env.{database,username,password}');
+    return;
+  }
 
-  const isDone = await fetchAllDBRecords(maxToTake);
+  const dbCtx: DatabaseContext = { dbConfig };
+
+  const isDone = await fetchAllDBRecords(dbCtx, maxToTake);
   putStrLn(`Done=${isDone}`);
 });
 

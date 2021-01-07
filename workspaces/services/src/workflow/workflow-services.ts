@@ -2,15 +2,18 @@ import _ from 'lodash';
 
 import { CanonicalFieldRecords, extractFieldsForEntry, getCanonicalFieldRecord } from '~/extract/run-main';
 import * as winston from 'winston';
+
 import { AlphaRecord, getCorpusEntryDirForUrl } from 'commons';
+
 import { createSpiderService, SpiderService } from './spider-service';
-import { commitMetadata, commitUrlStatus, getNextUrlForSpidering, getUrlStatus, insertAlphaRecords, insertNewUrlChains } from '~/db/db-api';
+import { commitMetadata, commitUrlStatus, DatabaseContext, getNextUrlForSpidering, getUrlStatus, insertAlphaRecords, insertNewUrlChains } from '~/db/db-api';
 import { getServiceLogger } from '~/utils/basic-logging';
 import { Metadata } from 'spider';
 
 export interface WorkflowServices {
   log: winston.Logger;
   spiderService: SpiderService;
+  dbCtx: DatabaseContext;
 }
 
 interface ErrorRecord {
@@ -34,6 +37,7 @@ export function getCanonicalFieldRecs(alphaRec: AlphaRecord): CanonicalFieldReco
 }
 
 export async function fetchOneRecord(
+  dbCtx: DatabaseContext,
   services: WorkflowServices,
   alphaRec: AlphaRecord,
 ): Promise<CanonicalFieldRecords | ErrorRecord> {
@@ -49,7 +53,7 @@ export async function fetchOneRecord(
     return fieldRecs;
   }
 
-  let urlStatus = await getUrlStatus(url);
+  let urlStatus = await getUrlStatus(dbCtx, url);
   const currentUrlStatus = urlStatus === undefined ? `New url: ${url}` :
     `${urlStatus.status_code}: ${urlStatus.status_message}`;
 
@@ -61,9 +65,9 @@ export async function fetchOneRecord(
 
   if (urlStatus === undefined) {
     log.info('Inserting record into database');
-    await insertAlphaRecords([alphaRec]);
-    await insertNewUrlChains();
-    urlStatus = await getUrlStatus(url);
+    await insertAlphaRecords(dbCtx, [alphaRec]);
+    await insertNewUrlChains(dbCtx);
+    urlStatus = await getUrlStatus(dbCtx, url);
     const currentUrlStatus = urlStatus === undefined ? `New url: ${url}` :
       `${urlStatus.status_code}: ${urlStatus.status_message}`;
 
@@ -72,10 +76,10 @@ export async function fetchOneRecord(
 
   // Try to spider/extract
   log.info(`No extracted fields found.. spidering ${url}`);
-  const metadataOrError = await scrapeUrl(services, url);
+  const metadataOrError = await scrapeUrl(dbCtx, services, url);
   if ('error' in metadataOrError) {
     const { error } = metadataOrError;
-    await commitUrlStatus(url, 'spider:error', error);
+    await commitUrlStatus(dbCtx, url, 'spider:error', error);
     return metadataOrError;
   }
 
@@ -99,12 +103,13 @@ export async function fetchOneRecord(
 
 
 export async function fetchNextDBRecord(
+  dbCtx: DatabaseContext,
   services: WorkflowServices,
 ): Promise<boolean | ErrorRecord> {
 
   const { log } = services;
 
-  const url = await getNextUrlForSpidering();
+  const url = await getNextUrlForSpidering(dbCtx);
   if (url === undefined) {
     log.info('No More Records to Process');
     return false;
@@ -120,14 +125,14 @@ export async function fetchNextDBRecord(
 
   if (fieldRecs === undefined) {
     log.info(`No extracted fields found.. spidering ${url}`);
-    const metadataOrError = await scrapeUrl(services, url);
+    const metadataOrError = await scrapeUrl(dbCtx, services, url);
     if ('error' in metadataOrError) {
       const { error } = metadataOrError;
-      await commitUrlStatus(url, 'spider:error', error);
+      await commitUrlStatus(dbCtx, url, 'spider:error', error);
       return metadataOrError;
     }
 
-    await commitMetadata(metadataOrError);
+    await commitMetadata(dbCtx, metadataOrError);
 
     log.info(`Extracting Fields in ${entryPath}`);
     await extractFieldsForEntry(entryPath, log)
@@ -145,20 +150,24 @@ export async function fetchNextDBRecord(
   return true;
 }
 
-export async function fetchAllDBRecords(maxToFetch: number): Promise<void> {
+export async function fetchAllDBRecords(
+  dbCtx: DatabaseContext,
+  maxToFetch: number
+): Promise<void> {
   const spiderService = await createSpiderService();
 
   const log = getServiceLogger('workflow');
 
   const workflowServices: WorkflowServices = {
     spiderService,
-    log
+    log,
+    dbCtx
   };
 
   let fetchCount = 0;
   let fetchNext = true;
   while (fetchNext) {
-    const fetchResult = await fetchNextDBRecord(workflowServices);
+    const fetchResult = await fetchNextDBRecord(dbCtx, workflowServices);
     if (_.isBoolean(fetchResult)) {
       fetchNext = fetchResult;
     } else {
@@ -177,6 +186,7 @@ export async function fetchAllDBRecords(maxToFetch: number): Promise<void> {
 }
 
 async function scrapeUrl(
+  dbCtx: DatabaseContext,
   services: WorkflowServices,
   url: string,
 ): Promise<Metadata | ErrorRecord> {
@@ -190,18 +200,18 @@ async function scrapeUrl(
   if (_.isString(metadata)) {
     const msg = `Spidering error ${metadata}`;
     log.info(msg);
-    await commitUrlStatus(url, 'spider:error', msg);
+    await commitUrlStatus(dbCtx, url, 'spider:error', msg);
 
     return ErrorRecord(msg);
   }
   if (metadata === undefined) {
     const msg = `Spider could not fetch url ${url}`;
-    await commitUrlStatus(url, 'spider:error', msg);
+    await commitUrlStatus(dbCtx, url, 'spider:error', msg);
     log.info(msg);
     return ErrorRecord(msg);
   }
 
-  await commitMetadata(metadata);
+  await commitMetadata(dbCtx, metadata);
 
   const spiderSuccess = metadata.status === '200';
 

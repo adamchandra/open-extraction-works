@@ -56,16 +56,28 @@ describe('Radix Tree Tests', () => {
       ['a.b', { s: 'one', i: 1 }],
       ['a.00.$', { s: 'two', i: 2 }],
       ['a.00.d', { s: 'three', i: 3 }],
-      // ['a.i.j.3', {s: 'four', i: 4}],
     ];
+    const expectedTree = {
+      '_$': { s: 'zero', i: 0 },
+      a: {
+        '_$': { s: 'a-str', i: 99 },
+        b: { '_$': { s: 'one', i: 1 } },
+        _00: {
+          '$': { '_$': { s: 'two', i: 2 } },
+          d: { '_$': { s: 'three', i: 3 } }
+        }
+      }
+    };
+
     const o = {};
 
     _.each(nodes, ([p, d]) => radInsert(o, p, d));
 
-    prettyPrint({ o });
+    expect(o).toStrictEqual(expectedTree);
 
     radTraverseValues(o, (path, tval) => {
-      prettyPrint({ path, tval });
+      const pathVal = _.get(o, _.concat(path, ['_$']));
+      expect(pathVal).toStrictEqual(tval);
     });
   });
 });

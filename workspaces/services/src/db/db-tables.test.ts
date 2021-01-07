@@ -1,13 +1,21 @@
 import _ from 'lodash';
 
 import 'chai/register-should';
-import { prettyPrint } from 'commons';
+import { prettyPrint, setEnv } from 'commons';
 import * as T from './db-tables';
 import { useEmptyDatabase } from './db-test-utils';
 import { AlphaRecord } from 'commons';
 import Async from 'async';
+import { getDBConfig } from './database';
+import { DatabaseContext } from './db-api';
 
 describe('Database Tables Basics', () => {
+  setEnv('DBPassword', 'watrpasswd');
+  const dbConfig = getDBConfig('test');
+  const dbCtx: DatabaseContext | undefined = dbConfig? { dbConfig } : undefined;
+  expect(dbCtx).toBeDefined;
+
+  if (dbConfig === undefined || dbCtx === undefined) return;
 
   it('UrlChain', async (done) => {
 
@@ -15,7 +23,7 @@ describe('Database Tables Basics', () => {
     const response_url = 'http://blah.blah/?q=1';
     const status_code = 'http:200';
 
-    await useEmptyDatabase(async db => {
+    await useEmptyDatabase(dbConfig, async db => {
 
       await db.runTransaction(async (_sql, transaction) => {
         const newEntry = await T.UrlChain.create({
@@ -51,7 +59,7 @@ describe('Database Tables Basics', () => {
       });
     });
 
-    await useEmptyDatabase(async db => {
+    await useEmptyDatabase(dbConfig, async db => {
       // const alphaRec0 = inputRecs[0];
 
       await db.runTransaction(async (_sql, transaction) => {

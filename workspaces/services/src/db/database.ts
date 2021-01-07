@@ -1,3 +1,4 @@
+import { getEnv } from 'commons';
 import _ from 'lodash';
 
 import {
@@ -7,12 +8,35 @@ import {
 
 import { defineTables } from './db-tables';
 
-export async function initSequelize(): Promise<Sequelize> {
+export interface DBConfig {
+  username: string;
+  password: string;
+  database: string;
+}
+
+export function getDBConfig(configType: 'test' | 'production'): DBConfig | undefined {
+  const database = getEnv('DBName') || configType === 'test' ? 'open_extraction_testdb' : 'open_extraction';
+  const username = getEnv('DBUser') || 'watrworker';
+  const password = getEnv('DBPassword');
+  if (password === undefined) {
+    return;
+  }
+  return {
+    database, username, password
+  };
+}
+
+export async function initSequelize(dbConfig: DBConfig): Promise<Sequelize> {
+  // const db = getEnv('DBName');
+  // const dbUser = getEnv('DBUser');
+  // const dbPass = getEnv('DBPassword');
+
   const sequelize = new Sequelize({
     dialect: 'postgres',
-    username: 'watrworker',
-    password: 'watrpasswd',
-    database: 'open_extraction',
+    ...dbConfig,
+    // username: dbUser, // 'watrworker',
+    // password: dbPass, // 'watrpasswd',
+    // database: db, // 'open_extraction',
     logging: false, // logging: console.log,
   });
 
@@ -63,14 +87,14 @@ export async function runTransaction<R>(
   })
 }
 
-export async function openDatabase(): Promise<Database> {
-  return initSequelize()
+export async function openDatabase(dbConfig: DBConfig): Promise<Database> {
+  return initSequelize(dbConfig)
     .then(async _sql => {
       defineTables(_sql);
       // await sql.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
 
       // Create tables if they don't exist, else no-op
-      const sql = await _sql.sync({ alter: true});
+      const sql = await _sql.sync({ alter: true });
 
       const run = _.curry(runQuery)(sql);
       const runT = _.curry(runTransaction)(sql);
@@ -82,7 +106,7 @@ export async function openDatabase(): Promise<Database> {
           .sync({ force: true })
           .then(async () => {
             await sql.close();
-            return openDatabase();
+            return openDatabase(dbConfig);
           });
       };
       const close = async () => {

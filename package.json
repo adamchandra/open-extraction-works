@@ -7,9 +7,9 @@
     "reset": "npm run clean && lerna bootstrap",
     "cyclic-check": "lerna --concurrency 1 exec --stream -- madge --circular dist",
     "build": "lerna run --stream build",
-    "rollup": "lerna run rollup",
-    "lint": "lerna run lint",
-    "test": "lerna run test",
+    "rollup": "lerna run --stream rollup",
+    "lint": "lerna run --stream lint",
+    "test": "lerna run -stream test",
     "deps:check": "lerna --concurrency 1 exec --stream -- ncu",
     "deps:update": "lerna --concurrency 1 exec --stream -- ncu -u && lerna bootstrap"
   },
@@ -17,8 +17,5 @@
     "packages": [
       "workspaces/*"
     ]
-  },
-  "devDependencies": {
-    "@tsconfig/node14": "^1.0.0"
   }
 }
