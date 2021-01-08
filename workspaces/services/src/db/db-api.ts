@@ -78,7 +78,6 @@ export async function insertNewUrlChains(
     });
 
   const updated = queryResults.length;
-  // prettyPrint({ queryMeta, queryResults });
   await db.close();
   return updated;
 }
@@ -205,40 +204,3 @@ export async function commitMetadata(
   await db.close();
   return response[0];
 }
-
-// export interface CorpusEntryStatus {
-//   entryId: string;
-//   statusCode: string;
-//   fields?: string;
-// }
-
-// export async function insertCorpusEntry(url: string): Promise<CorpusEntryStatus> {
-//   const db = await openDatabase();
-
-//   const [queryResults, queryMeta] =
-//     await db.run(async (sql) => {
-//       const esc = (s: string) => sql.escape(s);
-//       const query = stripMargin(`
-// |       insert into "CorpusEntries" (id, "statusCode")
-// |         values (
-// |           encode(digest(${esc(url)} :: bytea, 'sha1'), 'hex'),
-// |           'new'
-// |         )
-// |        on conflict do nothing
-// |        returning id, "statusCode";
-// |
-// |       select * from "CorpusEntries"
-// |         where id = encode(digest(${esc(url)} :: bytea, 'sha1'), 'hex');
-// |     `);
-
-//       // prettyPrint({ query });
-//       const results = await sql.query(query);
-//       return results;
-//     });
-
-//   prettyPrint({ queryMeta, queryResults });
-//   const response: CorpusEntryStatus[] = queryResults as any[];
-
-//   await db.close();
-//   return response[0];
-// }

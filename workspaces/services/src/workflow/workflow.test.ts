@@ -1,7 +1,7 @@
 import 'chai/register-should';
 
 import _ from 'lodash';
-import { prettyPrint } from 'commons';
+import { getCorpusEntryDirForUrl, prettyPrint, putStrLn } from 'commons';
 import { fetchOneRecord, WorkflowServices } from './workflow-services';
 import fs from 'fs-extra';
 import Async from 'async';
@@ -15,34 +15,11 @@ import { startSpiderableTestServer } from '~/http-servers/extraction-rest-portal
 import got from 'got';
 import { getDBConfig } from '~/db/database';
 import { DatabaseContext } from '~/db/db-api';
+import { createEmptyDB } from '~/db/db-test-utils';
+import { Server } from 'http';
+import { extractFieldsForEntry } from '~/extract/run-main';
 
 describe('End-to-end Extraction workflows', () => {
-
-  const workingDir = './workflow-test.d';
-  setEnv('AppSharePath', workingDir);
-  setEnv('DBPassword', 'watrpasswd');
-  const dbConfig = getDBConfig('test');
-  const dbCtx: DatabaseContext | undefined = dbConfig ? { dbConfig } : undefined;
-  expect(dbCtx).toBeDefined;
-  if (dbConfig === undefined || dbCtx === undefined) return;
-
-  beforeEach(() => {
-    fs.emptyDirSync(workingDir);
-    fs.removeSync(workingDir);
-    fs.mkdirSync(workingDir);
-  });
-
-
-  it('should test fake spiderable internet', async (done) => {
-    const server = await startSpiderableTestServer();
-
-    const sdf = await got('http://localhost:9000/');
-    const { body, headers } = sdf;
-
-    prettyPrint({ body, headers });
-
-    server.close(() => done());
-  });
 
   function mockAlphaRecord(n: number, urlPath: string): AlphaRecord {
     return ({
@@ -54,14 +31,42 @@ describe('End-to-end Extraction workflows', () => {
     });
   }
 
-  it.only('should fetch alpha records', async (done) => {
+  const workingDir = './workflow-test.d';
+  setEnv('AppSharePath', workingDir);
+  setEnv('DBPassword', 'watrpasswd');
+  const dbConfig = getDBConfig('test');
+  const dbCtx: DatabaseContext | undefined = dbConfig ? { dbConfig } : undefined;
+  expect(dbCtx).toBeDefined;
+  if (dbConfig === undefined || dbCtx === undefined) return;
+
+  let server: Server | undefined = undefined;
+
+  beforeEach(() => {
+    fs.emptyDirSync(workingDir);
+    fs.removeSync(workingDir);
+    fs.mkdirSync(workingDir);
+    return startSpiderableTestServer()
+      .then(s => {
+        server = s
+      })
+      .then(() => createEmptyDB(dbConfig))
+      .then((db) => db.close());
+  });
+
+
+  afterEach(() => {
+    return new Promise<void>((resolve) => {
+      if (server !== undefined) {
+        server.close(() => resolve());
+      }
+    })
+  });
+
+
+  it('should fetch alpha records', async () => {
     const log = getServiceLogger('test-run');
-    const server = await startSpiderableTestServer();
 
     const spiderService = await createSpiderService();
-    if (dbCtx === undefined) {
-      return done('db config error');
-    }
 
     const workflowServices: WorkflowServices = {
       spiderService,
@@ -81,34 +86,40 @@ describe('End-to-end Extraction workflows', () => {
     });
 
     await spiderService.quit();
-    server.close(() => done());
   });
 
-  // it('should fetch a single record', async (done) => {
+  it('should update database if fields are extracted but no db entry exists', async () => {
 
-  //   const spiderService = await createSpiderService();
+    const log = getServiceLogger('test-run');
 
-  //   const log = getServiceLogger('jest');
+    const spiderService = await createSpiderService();
 
-  //   const workflowServices: WorkflowServices = {
-  //     spiderService,
-  //     log
-  //   };
-  //   // const alphaRec = alphaRecs[1];
-  //   const alphaRec: AlphaRecord = {
-  //     url: 'https://doi.org/10.1109/ICMLA.2009.66',
-  //     noteId: '',
-  //     dblpConfId: '',
-  //     title: '',
-  //   };
+    const workflowServices: WorkflowServices = {
+      spiderService,
+      log,
+      dbCtx
+    };
+    const exampleUrls = [
+      '/200~withFields',
+    ];
 
-  //   const fetchedRecord = await fetchOneRecord(workflowServices, alphaRec);
+    await Async.eachOfSeries(exampleUrls, async (_url, exampleNumber) => {
+      const alphaRec = mockAlphaRecord(1, _url);
+      const { url } = alphaRec;
+      await spiderService
+        .scrape(url)
+        .catch((error: Error) => {
+          return `${error.name}: ${error.message}`;
+        });
 
-  //   prettyPrint({ fetchedRecord });
+      const entryPath = getCorpusEntryDirForUrl(url);
+      await extractFieldsForEntry(entryPath, log)
 
-  //   await spiderService.quit();
+      const fetchedRecord = await fetchOneRecord(dbCtx, workflowServices, alphaRec);
+      prettyPrint({ exampleNumber, fetchedRecord });
+    });
 
-  //   done();
-  // });
+    await spiderService.quit();
+  });
 
 });

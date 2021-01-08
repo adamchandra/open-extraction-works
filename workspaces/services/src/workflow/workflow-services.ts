@@ -46,56 +46,52 @@ export async function fetchOneRecord(
   const { url } = alphaRec;
 
   log.info(`Fetching fields for ${url}`);
+  const insertedAlphaRecs = await insertAlphaRecords(dbCtx, [alphaRec]);
+  log.info(`inserted ${insertedAlphaRecs.length} new alpha records`);
+
+  const newUrlCount = await insertNewUrlChains(dbCtx);
+  log.info(`inserted ${newUrlCount} new URL records`);
+
+  const urlStatus = await getUrlStatus(dbCtx, url);
+  if (urlStatus === undefined) {
+    return ErrorRecord('Error inserting records into database');
+  }
+
+  log.info(`URL Status: ${urlStatus.status_code}: ${urlStatus.status_message}`);
 
   // First attempt: if we have the data on disk, just return it
   let fieldRecs = getCanonicalFieldRecs(alphaRec);
-  if (fieldRecs !== undefined) {
-    return fieldRecs;
+
+  if (fieldRecs === undefined) {
+    // Try to spider/extract
+    log.info(`No extracted fields found.. spidering ${url}`);
+    const metadataOrError = await scrapeUrl(dbCtx, services, url);
+    if ('error' in metadataOrError) {
+      const { error } = metadataOrError;
+      await commitUrlStatus(dbCtx, url, 'spider:error', error);
+      return metadataOrError;
+    }
+
+    const entryPath = getCorpusEntryDirForUrl(url);
+
+    log.info(`Extracting Fields in ${entryPath}`);
+
+    await extractFieldsForEntry(entryPath, log)
+
+    // try again:
+    fieldRecs = getCanonicalFieldRecs(alphaRec);
   }
-
-  let urlStatus = await getUrlStatus(dbCtx, url);
-  const currentUrlStatus = urlStatus === undefined ? `New url: ${url}` :
-    `${urlStatus.status_code}: ${urlStatus.status_message}`;
-
-  if (urlStatus !== undefined && urlStatus.status_code.includes('error')) {
-    return ErrorRecord(currentUrlStatus);
-  }
-
-  log.info(currentUrlStatus);
-
-  if (urlStatus === undefined) {
-    log.info('Inserting record into database');
-    await insertAlphaRecords(dbCtx, [alphaRec]);
-    await insertNewUrlChains(dbCtx);
-    urlStatus = await getUrlStatus(dbCtx, url);
-    const currentUrlStatus = urlStatus === undefined ? `New url: ${url}` :
-      `${urlStatus.status_code}: ${urlStatus.status_message}`;
-
-    log.info(currentUrlStatus);
-  }
-
-  // Try to spider/extract
-  log.info(`No extracted fields found.. spidering ${url}`);
-  const metadataOrError = await scrapeUrl(dbCtx, services, url);
-  if ('error' in metadataOrError) {
-    const { error } = metadataOrError;
-    await commitUrlStatus(dbCtx, url, 'spider:error', error);
-    return metadataOrError;
-  }
-
-  const entryPath = getCorpusEntryDirForUrl(url);
-
-  log.info(`Extracting Fields in ${entryPath}`);
-
-  await extractFieldsForEntry(entryPath, log)
-
-  // try again:
-  fieldRecs = getCanonicalFieldRecs(alphaRec);
 
   if (fieldRecs === undefined) {
     const msg = 'No extracted fields available';
     log.info(msg);
+    await commitUrlStatus(dbCtx, url, 'extraction:warning', 'no canonical field record available');
     return ErrorRecord(msg);
+  }
+  if (fieldRecs.fields.length === 0) {
+    await commitUrlStatus(dbCtx, url, 'extraction:warning', 'no fields extracted');
+  } else {
+    await commitUrlStatus(dbCtx, url, 'extraction:success', `extracted ${fieldRecs.fields.length} fields`);
   }
 
   return fieldRecs;

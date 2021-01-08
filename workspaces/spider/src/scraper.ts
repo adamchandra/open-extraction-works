@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile, launchBrowser } from 'commons';
+import { writeCorpusJsonFile, writeCorpusTextFile, hasCorpusFile, launchBrowser, putStrLn } from 'commons';
 
 import {
   Response,
@@ -40,7 +40,9 @@ export async function initScraper(
       return scrapeUrl(browser, url);
     },
     async quit() {
-      await browser.close();
+      browser.disconnect();
+      return browser.close()
+        .then(() => putStrLn('Browser is closed'))
     }
   };
 }

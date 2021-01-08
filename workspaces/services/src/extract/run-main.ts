@@ -233,9 +233,6 @@ export async function extractFieldsForEntry(
   entryPath: string,
   log: Logger,
 ): Promise<void> {
-  // const logFilename = 'test-extractor-log.json';
-  // const logfilePath = path.join(logpath, logFilename);
-  // const log = getConsoleAndFileLogger(logfilePath, logLevel);
 
   log.info(`extracting field in ${entryPath}`);
 

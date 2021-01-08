@@ -76,7 +76,7 @@ export async function startSpiderableTestServer(): Promise<Server> {
         const { response, path } = ctx;
         prettyPrint({ path });
         const [status, respKey] = path.substr(1).split(/~/);
-        prettyPrint({ status, respKey });
+        // prettyPrint({ status, respKey });
 
         response.type = 'html';
         response.status = parseInt(status, 10);
